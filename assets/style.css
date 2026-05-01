@@ -1,0 +1,12 @@
+.btn-eda {
+    transition: all 0.25s ease;
+    min-height: 54px;
+    letter-spacing: 0.2px;
+}
+
+.btn-eda:hover {
+    background-color: #2E6DA4 !important;
+    color: white !important;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(26, 58, 92, 0.22) !important;
+}
