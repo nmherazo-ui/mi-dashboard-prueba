@@ -5,6 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from dash import html, dcc, Input, Output, dash_table
 from plotly.subplots import make_subplots
+from statsmodels.stats.outliers_influence import variance_inflation_factor
 from scipy.stats import gaussian_kde
 from statsmodels.tsa.stattools import acf
 from statsmodels.stats.diagnostic import acorr_ljungbox
@@ -55,7 +56,7 @@ def layout_eda():
                 children=[
                     boton_eda("Exploración inicial de datos", "btn-exploracion-inicial"),
                     boton_eda("Estructura temporal", "btn-estructura-temporal"),
-                    boton_eda("Correlación cruzada", "btn-correlacion-cruzada"),
+                    boton_eda("Análisis básico de datos", "btn-correlacion-cruzada"),
                     boton_eda("Imputación de datos", "btn-imputacion-datos"),
                 ],
             ),
@@ -444,8 +445,23 @@ def seccion_exploracion_inicial(df, columnas_estaciones):
             ),
             dcc.Graph(figure=fig_boxplots, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
         ]),
+        
     ])
 
+def calcular_correlacion_cruzada(df, explicativa, target="Calamar", max_lag=30):
+    resultados = []
+
+    for lag in range(max_lag + 1):
+        r = df[explicativa].shift(lag).corr(df[target])
+        resultados.append({
+            "Lag [días]": lag,
+            "Correlación": r
+        })
+
+    out = pd.DataFrame(resultados)
+    mejor = out.loc[out["Correlación"].idxmax()]
+
+    return out, int(mejor["Lag [días]"]), float(mejor["Correlación"])
 
 def registrar_callbacks_eda(app, df, columnas_estaciones, serie_objetivo):
     @app.callback(
@@ -1035,65 +1051,1523 @@ def registrar_callbacks_eda(app, df, columnas_estaciones, serie_objetivo):
             return contenido, *estilos
 
         if boton_id == "btn-correlacion-cruzada":
-            df_lags = pd.DataFrame([
-                {"Lag [días]": lag, "Correlación": df[serie_objetivo].shift(lag).corr(df[serie_objetivo])}
-                for lag in range(31)
-            ])
-            fig_corr = aplicar_estilo_figura(px.line(
-                df_lags,
-                x="Lag [días]",
-                y="Correlación",
-                markers=True,
-                title="Correlación cruzada para diferentes rezagos",
-                color_discrete_sequence=[AZUL_MED],
-            ))
-            contenido = html.Div([
-                tarjeta_grafica(
-                    "Correlación cruzada",
-                    "La correlación cruzada permite evaluar la relación entre una serie y versiones rezagadas de otra serie. En este ejemplo se muestra la correlación para distintos lags temporales.",
-                    fig_corr,
+
+            # ====================================================
+            # Matriz de correlación entre variables
+            # ====================================================
+
+            columnas_corr = [
+                "Calamar",
+                "Achi",
+                "ElBanco",
+                "SaladoBlanco",
+                "PuertoBerrio",
+                "Barrancabermeja",
+            ]
+
+            columnas_corr = [
+                col for col in columnas_corr
+                if col in df.columns
+            ]
+
+            nombres_corr = [
+                NOMBRES_ESTACIONES[col]
+                for col in columnas_corr
+            ]
+
+            corr = df[columnas_corr].corr().round(3)
+
+            fig_corr_matriz = go.Figure(
+                data=go.Heatmap(
+                    z=corr.values,
+                    x=nombres_corr,
+                    y=nombres_corr,
+                    colorscale="Blues",
+                    zmin=0,
+                    zmax=1,
+                    text=corr.round(2).values,
+                    texttemplate="%{text}",
+                    textfont={
+                        "size": 15,
+                        "color": "black"
+                    },
+                    colorbar=dict(
+                        title=dict(text=""),
+                        x=1.05,
+                        y=0.5,
+                        len=0.82,
+                        thickness=18,
+                        tickfont=dict(
+                            family="Georgia",
+                            size=13,
+                            color=AZUL
+                        ),
+                        ticks="outside",
+                        ticklen=6,
+                        tickwidth=1.5,
+                        outlinewidth=1.5,
+                        outlinecolor="black"
+                    ),
+                    hovertemplate=(
+                        "<b>Variable X:</b> %{x}<br>"
+                        "<b>Variable Y:</b> %{y}<br>"
+                        "<b>Correlación:</b> %{z:.2f}<br>"
+                        "<extra></extra>"
+                    )
                 )
+            )
+
+            fig_corr_matriz.update_layout(
+                title=None,
+                plot_bgcolor="white",
+                paper_bgcolor="white",
+                font=dict(
+                    family="Georgia",
+                    size=14,
+                    color=AZUL
+                ),
+                margin=dict(l=140, r=200, t=40, b=140),
+                height=620,
+                width=820
+            )
+
+            fig_corr_matriz.update_xaxes(
+                tickangle=45,
+                side="bottom",
+                automargin=True,
+                showline=True,
+                linewidth=2,
+                linecolor="black",
+                mirror=True,
+                ticks="outside",
+                ticklen=8,
+                tickwidth=2,
+                tickcolor="black"
+            )
+
+            fig_corr_matriz.update_yaxes(
+                autorange="reversed",
+                automargin=True,
+                showline=True,
+                linewidth=2,
+                linecolor="black",
+                mirror=True,
+                ticks="outside",
+                ticklen=8,
+                tickwidth=2,
+                tickcolor="black"
+            )
+
+            fig_corr_matriz.add_annotation(
+                text="Correlación",
+                xref="paper",
+                yref="paper",
+                x=1.22,
+                y=0.5,
+                showarrow=False,
+                textangle=90,
+                font=dict(
+                    family="Georgia",
+                    size=15,
+                    color=AZUL
+                )
+            )
+
+            # ====================================================
+            # Diagramas de dispersión entre variables
+            # ====================================================
+
+            columnas_dispersion = columnas_corr
+            nombres_dispersion = {
+                col: NOMBRES_ESTACIONES[col]
+                for col in columnas_dispersion
+            }
+
+            df_dispersion = df[columnas_dispersion].dropna()
+
+            n_vars = len(columnas_dispersion)
+
+            fig_dispersion = make_subplots(
+                rows=n_vars - 1,
+                cols=n_vars - 1,
+                horizontal_spacing=0.02,
+                vertical_spacing=0.02
+            )
+
+            for i in range(1, n_vars):
+                for j in range(i):
+
+                    col_y = columnas_dispersion[i]
+                    col_x = columnas_dispersion[j]
+
+                    fig_dispersion.add_trace(
+                        go.Scattergl(
+                            x=df_dispersion[col_x],
+                            y=df_dispersion[col_y],
+                            mode="markers",
+                            marker=dict(
+                                size=3,
+                                color="#5B86C5",
+                                opacity=0.65,
+                                line=dict(width=0)
+                            ),
+                            showlegend=False,
+                            hovertemplate=(
+                                f"<b>X:</b> {nombres_dispersion[col_x]}<br>"
+                                f"<b>Y:</b> {nombres_dispersion[col_y]}<br>"
+                                "<b>X:</b> %{x:.2f} cm<br>"
+                                "<b>Y:</b> %{y:.2f} cm<br>"
+                                "<extra></extra>"
+                            )
+                        ),
+                        row=i,
+                        col=j + 1
+                    )
+
+                    fig_dispersion.update_xaxes(
+                        showgrid=True,
+                        gridcolor="white",
+                        zeroline=False,
+                        showticklabels=(i == n_vars - 1),
+                        title_text=nombres_dispersion[col_x] if i == n_vars - 1 else "",
+                        row=i,
+                        col=j + 1
+                    )
+
+                    fig_dispersion.update_yaxes(
+                        showgrid=True,
+                        gridcolor="white",
+                        zeroline=False,
+                        showticklabels=(j == 0),
+                        title_text=nombres_dispersion[col_y] if j == 0 else "",
+                        row=i,
+                        col=j + 1
+                    )
+
+            fig_dispersion.update_layout(
+                title=None,
+                height=780,
+                width=780,
+                plot_bgcolor="#EAEAF2",
+                paper_bgcolor="white",
+                font=dict(
+                    family="Georgia",
+                    size=11,
+                    color=AZUL
+                ),
+                margin=dict(l=50, r=20, t=5, b=50)
+            )
+
+            # ====================================================
+            # Correlación cruzada
+            # ====================================================
+
+            target = "Calamar"
+            max_lag = 30
+
+            explicativas = [
+                col for col in columnas_corr
+                if col != target
+            ]
+
+            ccf_resultados = {}
+            lags_optimos = {}
+            corrs_optimas = {}
+
+            for est in explicativas:
+
+                ccf, lag, corr_max = calcular_correlacion_cruzada(
+                    df,
+                    explicativa=est,
+                    target=target,
+                    max_lag=max_lag
+                )
+
+                ccf_resultados[est] = ccf
+                lags_optimos[est] = lag
+                corrs_optimas[est] = corr_max
+
+            df_lags = pd.DataFrame({
+                "Estación": [
+                    NOMBRES_ESTACIONES[e]
+                    for e in explicativas
+                ],
+                "Lag óptimo [días]": [
+                    lags_optimos[e]
+                    for e in explicativas
+                ],
+                "Correlación máxima": [
+                    round(corrs_optimas[e], 4)
+                    for e in explicativas
+                ]
+            }).sort_values(
+                "Correlación máxima",
+                ascending=False
+            ).reset_index(drop=True)
+
+            n = len(explicativas)
+            ncols = 2
+            nrows = int(np.ceil(n / ncols))
+
+            fig_ccf = make_subplots(
+                rows=nrows,
+                cols=ncols,
+                shared_xaxes=False,
+                vertical_spacing=0.18,
+                horizontal_spacing=0.12,
+                subplot_titles=[
+                    f"{NOMBRES_ESTACIONES[est]} vs {NOMBRES_ESTACIONES[target]}"
+                    for est in explicativas
+                ]
+            )
+
+            posiciones_ccf = [
+                (fila, col)
+                for fila in range(1, nrows + 1)
+                for col in range(1, ncols + 1)
+            ]
+
+            for est, (fila, columna) in zip(explicativas, posiciones_ccf):
+
+                ccf = ccf_resultados[est]
+                lag = lags_optimos[est]
+                corr_max = corrs_optimas[est]
+                color = COLORES_ESTACIONES.get(est, AZUL_MED)
+
+                fig_ccf.add_trace(
+                    go.Scatter(
+                        x=ccf["Lag [días]"],
+                        y=ccf["Correlación"],
+                        mode="lines+markers",
+                        line=dict(
+                            color=color,
+                            width=1.5
+                        ),
+                        marker=dict(
+                            size=6,
+                            color=color
+                        ),
+                        showlegend=False,
+                        hovertemplate=(
+                            f"<b>Estación:</b> {NOMBRES_ESTACIONES[est]}<br>"
+                            "<b>Lag:</b> %{x} días<br>"
+                            "<b>Correlación:</b> %{y:.3f}<br>"
+                            "<extra></extra>"
+                        )
+                    ),
+                    row=fila,
+                    col=columna
+                )
+
+                min_corr = ccf["Correlación"].min()
+                max_corr = ccf["Correlación"].max()
+                rango_corr = max_corr - min_corr if max_corr != min_corr else 0.02
+                margen_y = 0.08 * rango_corr
+
+                y_inf = min_corr - margen_y
+                y_sup = max_corr + margen_y
+
+                fig_ccf.add_trace(
+                    go.Scatter(
+                        x=ccf["Lag [días]"],
+                        y=ccf["Correlación"],
+                        mode="lines+markers",
+                        line=dict(
+                            color=color,
+                            width=1.6
+                        ),
+                        marker=dict(
+                            size=6,
+                            color=color
+                        ),
+                        showlegend=False,
+                        hovertemplate=(
+                            f"<b>Estación:</b> {NOMBRES_ESTACIONES[est]}<br>"
+                            "<b>Lag:</b> %{x} días<br>"
+                            "<b>Correlación:</b> %{y:.3f}<br>"
+                            "<extra></extra>"
+                        )
+                    ),
+                    row=fila,
+                    col=columna
+                )
+
+                # Línea vertical punteada en el lag óptimo
+                fig_ccf.add_trace(
+                    go.Scatter(
+                        x=[lag, lag],
+                        y=[y_inf, corr_max],
+                        mode="lines",
+                        line=dict(
+                            color=color,
+                            width=1.5,
+                            dash="dash"
+                        ),
+                        showlegend=False,
+                        hoverinfo="skip"
+                    ),
+                    row=fila,
+                    col=columna
+                )
+
+                # Punto del máximo
+                fig_ccf.add_trace(
+                    go.Scatter(
+                        x=[lag],
+                        y=[corr_max],
+                        mode="markers",
+                        marker=dict(
+                            size=9,
+                            color=color,
+                            symbol="circle"
+                        ),
+                        showlegend=False,
+                        hovertemplate=(
+                            f"<b>Lag óptimo:</b> {lag} días<br>"
+                            f"<b>Correlación máxima:</b> {corr_max:.3f}<br>"
+                            "<extra></extra>"
+                        )
+                    ),
+                    row=fila,
+                    col=columna
+                )
+
+                fig_ccf.add_trace(
+                    go.Scatter(
+                        x=[lag],
+                        y=[corr_max],
+                        mode="markers",
+                        marker=dict(
+                            size=9,
+                            color=color,
+                            symbol="circle"
+                        ),
+                        showlegend=False,
+                        hovertemplate=(
+                            f"<b>Lag óptimo:</b> {lag} días<br>"
+                            f"<b>Correlación máxima:</b> {corr_max:.3f}<br>"
+                            "<extra></extra>"
+                        )
+                    ),
+                    row=fila,
+                    col=columna
+                )
+
+                indice_subplot = (fila - 1) * ncols + columna
+
+                xref_actual = "x domain" if indice_subplot == 1 else f"x{indice_subplot} domain"
+                yref_actual = "y domain" if indice_subplot == 1 else f"y{indice_subplot} domain"
+
+                fig_ccf.add_annotation(
+                    x=0.04,
+                    y=0.96,
+                    xref=xref_actual,
+                    yref=yref_actual,
+                    text=f"lag óptimo = {lag}, corr = {corr_max:.2f}",
+                    showarrow=False,
+                    xanchor="left",
+                    yanchor="top",
+                    bgcolor="rgba(255,255,255,0.80)",
+                    bordercolor="rgba(26,58,92,0.15)",
+                    borderwidth=1,
+                    font=dict(
+                        family="Georgia",
+                        size=11,
+                        color=AZUL
+                    )
+                )
+
+                fig_ccf.update_xaxes(
+                    title_text="Lag [días]",
+                    showgrid=True,
+                    gridcolor="#D9E2EF",
+                    range=[-0.5, max_lag + 1.5],
+                    dtick=5,
+                    row=fila,
+                    col=columna
+                )
+
+                fig_ccf.update_yaxes(
+                    title_text="Correlación",
+                    showgrid=True,
+                    gridcolor="#D9E2EF",
+                    zeroline=False,
+                    range=[y_inf, y_sup],
+                    row=fila,
+                    col=columna
+                )
+
+            fig_ccf.update_layout(
+                height=430 * nrows,
+                plot_bgcolor="white",
+                paper_bgcolor="white",
+                font=dict(
+                    family="Georgia",
+                    size=12,
+                    color=AZUL
+                ),
+                showlegend=False,
+                margin=dict(l=70, r=40, t=90, b=70)
+            )
+
+            for anot in fig_ccf["layout"]["annotations"]:
+                anot.font = dict(
+                    family="Georgia",
+                    size=13,
+                    color=AZUL
+                )
+                anot.xanchor = "center" if str(anot.text).startswith("Achi") or " vs " in str(anot.text) else anot.xanchor
+
+            # Factor de Inflación de la Varianza (VIF)
+
+            variables_vif = [
+                "Achi",
+                "ElBanco",
+                "SaladoBlanco",
+                "PuertoBerrio",
+                "Barrancabermeja",
+            ]
+
+            variables_vif = [
+                col for col in variables_vif
+                if col in df.columns
+            ]
+
+            X_vif = df[variables_vif].dropna().copy()
+
+            vif_df = pd.DataFrame({
+                "Variable": [
+                    NOMBRES_ESTACIONES[col]
+                    for col in variables_vif
+                ],
+                "VIF": [
+                    variance_inflation_factor(X_vif.values, i)
+                    for i in range(X_vif.shape[1])
+                ]
+            })
+
+            vif_df["VIF"] = vif_df["VIF"].round(3)
+
+            vif_df["Nivel de colinealidad"] = np.select(
+                [
+                    vif_df["VIF"] < 5,
+                    (vif_df["VIF"] >= 5) & (vif_df["VIF"] < 10),
+                    vif_df["VIF"] >= 10
+                ],
+                [
+                    "Baja",
+                    "Moderada",
+                    "Alta"
+                ],
+                default="Sin clasificar"
+            )
+
+            vif_df = vif_df.sort_values(
+                "VIF",
+                ascending=False
+            ).reset_index(drop=True)
+
+
+            contenido = html.Div([
+
+                html.Div(style=estilo_tarjeta, children=[
+                    html.P(
+                        "Esta sección explora las relaciones entre variables mediante la matriz de correlación, "
+                        "diagramas de dispersión, correlación cruzada y el factor de inflación de la varianza.",
+                        style=estilo_parrafo,
+                    )
+                ]),
+
+                html.Div(style=estilo_tarjeta, children=[
+
+                    html.H2(
+                        "Matriz de correlación entre variables",
+                        style=estilo_titulo
+                    ),
+
+                    html.P(
+                        "La matriz de correlación resume la relación lineal entre las series de nivel "
+                        "registradas en las estaciones analizadas. Valores cercanos a 1 indican una "
+                        "asociación positiva fuerte, mientras que valores cercanos a 0 sugieren una "
+                        "relación lineal débil.",
+                        style=estilo_parrafo
+                    ),
+
+                    html.Div(
+                        style={
+                            "display": "flex",
+                            "justifyContent": "center",
+                            "alignItems": "center"
+                        },
+                        children=[
+                            dcc.Graph(
+                                figure=fig_corr_matriz,
+                                config={
+                                    "displayModeBar": True,
+                                    "scrollZoom": True,
+                                    "displaylogo": False,
+                                    "toImageButtonOptions": {
+                                        "format": "png",
+                                        "filename": "matriz_correlacion",
+                                        "height": 900,
+                                        "width": 1100,
+                                        "scale": 2
+                                    }
+                                }
+                            )
+                        ]
+                    )
+
+                ]),
+
+                html.Div(style=estilo_tarjeta, children=[
+
+                    html.H2(
+                        "Diagramas de dispersión",
+                        style=estilo_titulo
+                    ),
+
+                    html.P(
+                        "Los diagramas de dispersión permiten observar la relación entre pares de estaciones. "
+                        "Esta visualización complementa la matriz de correlación, ya que permite identificar "
+                        "patrones lineales, dispersión de los datos y posibles agrupamientos o valores atípicos.",
+                        style=estilo_parrafo
+                    ),
+
+                    html.Div(
+                        style={
+                            "display": "flex",
+                            "justifyContent": "center",
+                            "alignItems": "center",
+                            "marginTop": "-10px"
+                        },
+                        children=[
+                            dcc.Graph(
+                                figure=fig_dispersion,
+                                style={
+                                    "width": "780px",
+                                    "height": "780px",
+                                    "margin": "0 auto",
+                                    "display": "block"
+                                },
+                                config={
+                                    "displayModeBar": True,
+                                    "scrollZoom": True,
+                                    "displaylogo": False,
+                                    "toImageButtonOptions": {
+                                        "format": "png",
+                                        "filename": "diagramas_dispersion",
+                                        "height": 1000,
+                                        "width": 1000,
+                                        "scale": 2
+                                    }
+                                }
+                            )
+                        ]
+                    )
+
+                ]),
+
+                html.Div(style=estilo_tarjeta, children=[
+
+                    html.H2(
+                        "Correlación cruzada",
+                        style=estilo_titulo
+                    ),
+
+                    html.P(
+                        "Debido a que las estaciones explicativas se encuentran a varios cientos de kilómetros "
+                        "de la estación Calamar, se espera que exista un retardo temporal entre las variables "
+                        "explicativas y la serie objetivo. Por esta razón, se calcula la correlación cruzada "
+                        "entre cada estación explicativa y Calamar, con el fin de identificar el desfase temporal "
+                        "que maximiza la correlación.",
+                        style=estilo_parrafo
+                    ),
+
+                    dcc.Graph(
+                        figure=fig_ccf,
+                        config={
+                            "displayModeBar": True,
+                            "scrollZoom": True,
+                            "displaylogo": False,
+                            "toImageButtonOptions": {
+                                "format": "png",
+                                "filename": "correlacion_cruzada",
+                                "height": 1200,
+                                "width": 1400,
+                                "scale": 2
+                            }
+                        }
+                    )
+
+                ]),
+
+                html.Div(style=estilo_tarjeta, children=[
+
+                    html.H2(
+                        "Resumen de lags óptimos",
+                        style=estilo_titulo
+                    ),
+
+                    html.P(
+                        "La tabla resume el lag que maximiza la correlación entre cada estación explicativa "
+                        "y la estación objetivo Calamar. En este análisis, un lag positivo indica que la serie "
+                        "explicativa antecede temporalmente a Calamar.",
+                        style=estilo_parrafo
+                    ),
+
+                    crear_tabla(
+                        df_lags,
+                        page_size=10
+                    )
+
+                ]),
+                
+                        html.Div(style=estilo_tarjeta, children=[
+
+            html.H2(
+                "Factor de Inflación de la Varianza (VIF)",
+                style=estilo_titulo
+            ),
+
+            html.P(
+                "El Factor de Inflación de la Varianza permite evaluar la presencia de "
+                "multicolinealidad entre las variables explicativas. Valores altos de VIF "
+                "indican que una variable puede estar fuertemente explicada por las demás, "
+                "lo cual puede afectar la estabilidad e interpretación de algunos modelos.",
+                style=estilo_parrafo
+            ),
+
+            crear_tabla(
+                vif_df,
+                page_size=10,
+                style_data_conditional=[
+                    {
+                        "if": {
+                            "filter_query": '{Nivel de colinealidad} = "Baja"'
+                        },
+                        "backgroundColor": "#DDEEE3",
+                        "color": "#1F5C3A",
+                        "fontWeight": "bold"
+                    },
+                    {
+                        "if": {
+                            "filter_query": '{Nivel de colinealidad} = "Moderada"'
+                        },
+                        "backgroundColor": "#FFF4D6",
+                        "color": "#7A5A1F",
+                        "fontWeight": "bold"
+                    },
+                    {
+                        "if": {
+                            "filter_query": '{Nivel de colinealidad} = "Alta"'
+                        },
+                        "backgroundColor": "#F4D7D7",
+                        "color": "#7A1F1F",
+                        "fontWeight": "bold"
+                    }
+                ]
+            ),
+
+            html.P(
+                "Como criterio general, valores de VIF menores que 5 sugieren colinealidad baja; "
+                "valores entre 5 y 10 indican colinealidad moderada; y valores superiores a 10 "
+                "pueden indicar colinealidad alta entre variables explicativas.",
+                style={
+                    **estilo_parrafo,
+                    "marginTop": "18px"
+                }
+            )
+
+        ]),
+
             ])
+
             return contenido, *estilos
+            
 
         if boton_id == "btn-imputacion-datos":
-            df_imputacion = pd.DataFrame({
-                "Estación": ["Calamar", "Achi", "El Banco", "Salado Blanco", "Puerto Berrío", "Barrancabermeja"],
-                "Prueba": ["Mann–Whitney U"] * 6,
-                "p-valor": [0.421, 0.000003, 0.318, 0.274, 0.612, 0.0117],
-                "¿Diferencia significativa?": ["No", "Sí", "No", "No", "No", "Sí"],
-            })
-            contenido = html.Div(style=estilo_tarjeta, children=[
-                html.H2("Imputación de datos", style=estilo_titulo),
-                html.P(
-                    "La prueba Mann–Whitney U se utiliza para comparar la distribución de las series originales frente a las series imputadas. El objetivo es revisar si el proceso de imputación generó cambios estadísticamente significativos.",
-                    style=estilo_parrafo,
+
+            ruta_imputados = "data/Niveles_imputados_completo.csv"
+
+            df_imp = pd.read_csv(
+                ruta_imputados,
+                sep=None,
+                engine="python",
+                encoding="utf-8-sig"
+            )
+
+            df_imp.columns = df_imp.columns.str.strip()
+
+            for col in df_imp.columns:
+                if "Fecha" in col:
+                    df_imp = df_imp.rename(columns={col: "Fecha"})
+
+            df_imp["Fecha"] = pd.to_datetime(df_imp["Fecha"], errors="coerce")
+            
+            for col in df_imp.columns:
+                if col != "Fecha":
+                    df_imp[col] = (
+                        df_imp[col]
+                        .astype(str)
+                        .str.replace(",", ".", regex=False)
+                        .str.strip()
+                    )
+                    df_imp[col] = pd.to_numeric(df_imp[col], errors="coerce")
+            
+                        # ====================================================
+            # Promedio climatológico mensual
+            # ====================================================
+
+            ruta_climatologia = "data/climatologia_mensual.csv"
+
+            df_clima = pd.read_csv(
+                ruta_climatologia,
+                sep=None,
+                engine="python",
+                encoding="utf-8-sig"
+            )
+
+            df_clima.columns = df_clima.columns.str.strip()
+
+            # Si el mes quedó como índice exportado desde pandas
+            if "Unnamed: 0" in df_clima.columns:
+                df_clima = df_clima.rename(columns={"Unnamed: 0": "Mes"})
+
+            # Si la columna Mes no existe, se crea con 1-12
+            if "Mes" not in df_clima.columns:
+                df_clima.insert(0, "Mes", range(1, len(df_clima) + 1))
+
+            meses_labels = {
+                1: "Ene", 2: "Feb", 3: "Mar", 4: "Abr",
+                5: "May", 6: "Jun", 7: "Jul", 8: "Ago",
+                9: "Sep", 10: "Oct", 11: "Nov", 12: "Dic"
+            }
+
+            df_clima["Mes"] = pd.to_numeric(df_clima["Mes"], errors="coerce")
+            df_clima["Mes_nombre"] = df_clima["Mes"].map(meses_labels)
+
+            for col in df_clima.columns:
+                if col not in ["Mes", "Mes_nombre"]:
+                    df_clima[col] = (
+                        df_clima[col]
+                        .astype(str)
+                        .str.replace(",", ".", regex=False)
+                        .replace("nan", np.nan)
+                    )
+                    df_clima[col] = pd.to_numeric(df_clima[col], errors="coerce")
+                    
+                estaciones_clima = [
+                "Calamar",
+                "Achi",
+                "ElBanco",
+                "SaladoBlanco",
+                "PuertoBerrio",
+                "Barrancabermeja",
+            ]
+
+            estaciones_clima = [
+                est for est in estaciones_clima
+                if est in df_clima.columns
+            ]
+
+            # Gráfica conjunta
+            fig_clima_conjunta = go.Figure()
+
+            for est in estaciones_clima:
+                fig_clima_conjunta.add_trace(
+                    go.Scatter(
+                        x=df_clima["Mes_nombre"],
+                        y=df_clima[est],
+                        mode="lines+markers",
+                        name=NOMBRES_ESTACIONES.get(est, est),
+                        line=dict(
+                            color=COLORES_ESTACIONES.get(est, AZUL_MED),
+                            width=2
+                        ),
+                        marker=dict(size=7),
+                        hovertemplate=(
+                            f"<b>Estación:</b> {NOMBRES_ESTACIONES.get(est, est)}<br>"
+                            "<b>Mes:</b> %{x}<br>"
+                            "<b>Promedio climatológico:</b> %{y:.2f} cm<br>"
+                            "<extra></extra>"
+                        )
+                    )
+                )
+
+            fig_clima_conjunta.update_layout(
+                title=None,
+                xaxis_title="Mes",
+                yaxis_title="Nivel medio climatológico [cm]",
+                plot_bgcolor="white",
+                paper_bgcolor="white",
+                font=dict(
+                    family="Georgia",
+                    size=13,
+                    color=AZUL
                 ),
-                dash_table.DataTable(
-                    data=df_imputacion.to_dict("records"),
-                    columns=[{"name": col, "id": col} for col in df_imputacion.columns],
-                    page_size=10,
-                    style_table={"overflowX": "auto", "marginTop": "16px"},
-                    style_cell={
-                        "textAlign": "center",
-                        "fontFamily": FUENTE,
-                        "fontSize": "14px",
-                        "padding": "10px",
-                        "whiteSpace": "normal",
-                        "height": "auto",
-                    },
-                    style_header=estilo_tabla_header,
-                    style_data=estilo_tabla_data,
-                    style_data_conditional=[
-                        {"if": {"filter_query": '{¿Diferencia significativa?} = "Sí"'}, "backgroundColor": "#FDECEC", "fontWeight": "bold"},
-                        {"if": {"filter_query": '{¿Diferencia significativa?} = "No"'}, "backgroundColor": "#EAF6EF"},
-                    ],
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="right",
+                    x=1,
+                    bgcolor="rgba(255,255,255,0.85)",
+                    bordercolor="rgba(26,58,92,0.18)",
+                    borderwidth=1
                 ),
-                html.P(
-                    "Nota: se considera diferencia estadísticamente significativa cuando el p-valor es menor que 0.05.",
-                    style={**estilo_parrafo_sec, "fontSize": "13px", "marginTop": "14px"},
+                margin=dict(l=70, r=40, t=70, b=60),
+                height=520
+            )
+
+            fig_clima_conjunta.update_xaxes(
+                showgrid=True,
+                gridcolor="#D9E2EF"
+            )
+
+            fig_clima_conjunta.update_yaxes(
+                showgrid=True,
+                gridcolor="#D9E2EF",
+                zeroline=False
+            )
+
+            # Mosaico por estación
+            fig_clima_panel = make_subplots(
+                rows=2,
+                cols=3,
+                shared_xaxes=False,
+                vertical_spacing=0.18,
+                horizontal_spacing=0.10,
+                subplot_titles=[
+                    NOMBRES_ESTACIONES.get(est, est)
+                    for est in estaciones_clima
+                ]
+            )
+
+            posiciones_clima = [
+                (1, 1), (1, 2), (1, 3),
+                (2, 1), (2, 2), (2, 3)
+            ]
+
+            for est, (fila, columna) in zip(estaciones_clima, posiciones_clima):
+                fig_clima_panel.add_trace(
+                    go.Scatter(
+                        x=df_clima["Mes_nombre"],
+                        y=df_clima[est],
+                        mode="lines+markers",
+                        name=NOMBRES_ESTACIONES.get(est, est),
+                        line=dict(
+                            color=COLORES_ESTACIONES.get(est, AZUL_MED),
+                            width=2
+                        ),
+                        marker=dict(size=6),
+                        showlegend=False,
+                        hovertemplate=(
+                            f"<b>Estación:</b> {NOMBRES_ESTACIONES.get(est, est)}<br>"
+                            "<b>Mes:</b> %{x}<br>"
+                            "<b>Promedio climatológico:</b> %{y:.2f} cm<br>"
+                            "<extra></extra>"
+                        )
+                    ),
+                    row=fila,
+                    col=columna
+                )
+
+                fig_clima_panel.update_xaxes(
+                    title_text="Mes",
+                    showgrid=True,
+                    gridcolor="#D9E2EF",
+                    row=fila,
+                    col=columna
+                )
+
+                fig_clima_panel.update_yaxes(
+                    title_text="Nivel [cm]",
+                    showgrid=True,
+                    gridcolor="#D9E2EF",
+                    zeroline=False,
+                    row=fila,
+                    col=columna
+                )
+
+            fig_clima_panel.update_layout(
+                height=760,
+                plot_bgcolor="white",
+                paper_bgcolor="white",
+                font=dict(
+                    family="Georgia",
+                    size=12,
+                    color=AZUL
                 ),
+                showlegend=False,
+                margin=dict(l=70, r=40, t=90, b=60)
+            )
+
+            for anot in fig_clima_panel["layout"]["annotations"]:
+                anot.font = dict(
+                    family="Georgia",
+                    size=14,
+                    color=AZUL
+                )
+                anot.xanchor = "center"
+
+            estaciones_imp = [
+                "Calamar",
+                "Achi",
+                "ElBanco",
+                "SaladoBlanco",
+                "PuertoBerrio",
+                "Barrancabermeja",
+            ]
+
+            estaciones_imp = [
+                col for col in estaciones_imp
+                if col in df_imp.columns and f"{col}_original" in df_imp.columns
+            ]
+
+            resumen_imputacion = []
+
+            for est in estaciones_imp:
+
+                col_original = f"{est}_original"
+
+                total_registros = len(df_imp)
+                datos_originales = df_imp[col_original].notna().sum()
+                datos_faltantes = df_imp[col_original].isna().sum()
+
+                datos_imputados = (
+                    df_imp[col_original].isna()
+                    & df_imp[est].notna()
+                ).sum()
+
+                porcentaje_imputado = datos_imputados / total_registros * 100
+
+                resumen_imputacion.append({
+                    "Estación": NOMBRES_ESTACIONES.get(est, est),
+                    "Registros totales": total_registros,
+                    "Datos originales": int(datos_originales),
+                    "Datos faltantes originales": int(datos_faltantes),
+                    "Datos imputados": int(datos_imputados),
+                    "Porcentaje imputado [%]": round(porcentaje_imputado, 2),
+                })
+
+            df_resumen_imp = pd.DataFrame(resumen_imputacion)
+            
+            max_imputados = df_resumen_imp["Datos imputados"].max()
+            min_imputados = df_resumen_imp["Datos imputados"].min()
+
+            estacion_default = estaciones_imp[0]
+            col_original_default = f"{estacion_default}_original"
+
+            mask_imp_default = (
+                df_imp[col_original_default].isna()
+                & df_imp[estacion_default].notna()
+            )
+
+            fig_imp = go.Figure()
+
+            fig_imp.add_trace(
+                go.Scatter(
+                    x=df_imp["Fecha"],
+                    y=df_imp[col_original_default],
+                    mode="lines",
+                    name="Serie original",
+                    line=dict(color=AZUL_MED, width=1.2),
+                    hovertemplate=(
+                        "<b>Fecha:</b> %{x|%Y-%m-%d}<br>"
+                        "<b>Nivel original:</b> %{y:.2f} cm<br>"
+                        "<extra></extra>"
+                    )
+                )
+            )
+
+            fig_imp.add_trace(
+                go.Scatter(
+                    x=df_imp["Fecha"],
+                    y=df_imp[estacion_default],
+                    mode="lines",
+                    name="Serie imputada",
+                    line=dict(color="#D97B29", width=1.4, dash="dash"),
+                    hovertemplate=(
+                        "<b>Fecha:</b> %{x|%Y-%m-%d}<br>"
+                        "<b>Nivel imputado:</b> %{y:.2f} cm<br>"
+                        "<extra></extra>"
+                    )
+                )
+            )
+
+            fig_imp.add_trace(
+                go.Scatter(
+                    x=df_imp.loc[mask_imp_default, "Fecha"],
+                    y=df_imp.loc[mask_imp_default, estacion_default],
+                    mode="markers",
+                    name="Valores imputados",
+                    marker=dict(color="#B23A48", size=6, symbol="circle"),
+                    hovertemplate=(
+                        "<b>Fecha:</b> %{x|%Y-%m-%d}<br>"
+                        "<b>Valor imputado:</b> %{y:.2f} cm<br>"
+                        "<extra></extra>"
+                    )
+                )
+            )
+
+            fig_imp.update_layout(
+                title=None,
+                xaxis_title="Fecha",
+                yaxis_title="Nivel [cm]",
+                plot_bgcolor="white",
+                paper_bgcolor="white",
+                font=dict(family="Georgia", size=13, color=AZUL),
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="right",
+                    x=1,
+                    bgcolor="rgba(255,255,255,0.85)",
+                    bordercolor="rgba(26,58,92,0.18)",
+                    borderwidth=1
+                ),
+                margin=dict(l=70, r=40, t=70, b=60),
+                height=520
+            )
+
+            fig_imp.update_xaxes(showgrid=True, gridcolor="#D9E2EF")
+            
+            y_vals = pd.concat([
+                df_imp[col_original_default],
+                df_imp[estacion_default]
+            ]).dropna()
+
+            y_min = y_vals.min()
+            y_max = y_vals.max()
+            margen_y = 0.08 * (y_max - y_min)
+
+            fig_imp.update_yaxes(
+                showgrid=True,
+                gridcolor="#D9E2EF",
+                zeroline=False,
+                range=[
+                    max(0, y_min - margen_y),
+                    y_max + margen_y
+                ]
+            )
+
+            contenido = html.Div([
+
+                html.Div(style=estilo_tarjeta, children=[
+                    html.H2("Imputación de datos", style=estilo_titulo),
+
+                    html.P(
+                        "La imputación se realizó mediante un procedimiento iterativo apoyado en el "
+                        "promedio climatológico mensual. Este promedio se utilizó como relleno auxiliar "
+                        "para completar temporalmente las variables predictoras cuando estas tenían datos "
+                        "faltantes en las fechas necesarias para imputar una estación objetivo.",
+                        style=estilo_parrafo
+                    ),
+
+                    html.P(
+                        "Posteriormente, para cada estación se ajustó un modelo de regresión lineal múltiple "
+                        "usando las demás estaciones como variables explicativas. Los valores estimados por "
+                        "el modelo reemplazaron progresivamente los valores auxiliares hasta obtener un "
+                        "dataset final con las series completas.",
+                        style=estilo_parrafo
+                    ),
+                ]),
+
+
+                html.Div(style=estilo_tarjeta, children=[
+                    html.H2("Resumen de datos imputados por estación", style=estilo_titulo),
+
+                    html.P(
+                        "La siguiente tabla resume la cantidad de datos originales disponibles, los datos "
+                        "faltantes identificados en las series originales y los valores que fueron completados "
+                        "en el dataset final imputado.",
+                        style=estilo_parrafo
+                    ),
+
+                    crear_tabla(
+                        df_resumen_imp,
+                        page_size=10,
+                        style_data_conditional=[
+                            {
+                                "if": {
+                                    "filter_query": f"{{Datos imputados}} = {max_imputados}"
+                                },
+                                "backgroundColor": "#F4D7D7",
+                                "color": "#7A1F1F",
+                                "fontWeight": "bold"
+                            },
+                            {
+                                "if": {
+                                    "filter_query": f"{{Datos imputados}} = {min_imputados}"
+                                },
+                                "backgroundColor": "#DDEEE3",
+                                "color": "#1F5C3A",
+                                "fontWeight": "bold"
+                            }
+                        ]
+                    )
+                ]),
+                
+                html.Div(style=estilo_tarjeta, children=[
+
+                    html.H2(
+                        "Promedio climatológico mensual",
+                        style=estilo_titulo
+                    ),
+
+                    html.P(
+                        "Antes de aplicar la imputación por regresión lineal múltiple, se calculó "
+                        "el promedio climatológico mensual de cada estación. Este promedio se usó "
+                        "como relleno auxiliar cuando las variables predictoras requeridas por el modelo "
+                        "presentaban datos faltantes en las fechas de imputación.",
+                        style=estilo_parrafo
+                    ),
+
+                    html.P(
+                        "Es importante señalar que el promedio climatológico no corresponde al resultado "
+                        "final de la imputación. Su función fue completar temporalmente los predictores "
+                        "para permitir la estimación de los valores faltantes mediante regresión.",
+                        style=estilo_parrafo
+                    ),
+
+                    dcc.Graph(
+                        figure=fig_clima_conjunta,
+                        config={
+                            "displayModeBar": True,
+                            "scrollZoom": True,
+                            "displaylogo": False,
+                            "toImageButtonOptions": {
+                                "format": "png",
+                                "filename": "promedio_climatologico_conjunto",
+                                "height": 900,
+                                "width": 1400,
+                                "scale": 2
+                            }
+                        }
+                    ),
+
+                    dcc.Graph(
+                        figure=fig_clima_panel,
+                        config={
+                            "displayModeBar": True,
+                            "scrollZoom": True,
+                            "displaylogo": False,
+                            "toImageButtonOptions": {
+                                "format": "png",
+                                "filename": "promedio_climatologico_panel",
+                                "height": 1200,
+                                "width": 1400,
+                                "scale": 2
+                            }
+                        }
+                    )
+
+                ]),
+
+                html.Div(style=estilo_tarjeta, children=[
+                    html.H2("Comparación entre serie original e imputada", style=estilo_titulo),
+
+                    html.P(
+                        "Seleccione una estación para comparar la serie original, que conserva los vacíos "
+                        "del registro inicial, con la serie final imputada. Los puntos resaltados indican "
+                        "las fechas donde se completaron datos faltantes.",
+                        style=estilo_parrafo
+                    ),
+
+                    dcc.Dropdown(
+                        id="selector-estacion-imputacion",
+                        options=[
+                            {
+                                "label": NOMBRES_ESTACIONES.get(est, est),
+                                "value": est
+                            }
+                            for est in estaciones_imp
+                        ],
+                        value=estacion_default,
+                        clearable=False,
+                        style={
+                            "fontFamily": "Georgia",
+                            "fontSize": "14px",
+                            "maxWidth": "360px",
+                            "marginBottom": "18px"
+                        }
+                    ),
+
+                    dcc.Graph(
+                        id="grafica-imputacion",
+                        figure=fig_imp,
+                        config={
+                            "displayModeBar": True,
+                            "scrollZoom": True,
+                            "displaylogo": False,
+                            "toImageButtonOptions": {
+                                "format": "png",
+                                "filename": "serie_original_vs_imputada",
+                                "height": 900,
+                                "width": 1400,
+                                "scale": 2
+                            }
+                        }
+                    )
+                ]),
             ])
+
             return contenido, *estilos
 
+        
+        @app.callback(
+            Output("grafica-imputacion", "figure"),
+            Input("selector-estacion-imputacion", "value"),
+            prevent_initial_call=False
+        )
+        def actualizar_grafica_imputacion(estacion):
+
+            ruta_imputados = "data/Niveles_imputados_completo.csv"
+            df_imp = pd.read_csv(ruta_imputados, parse_dates=["Fecha"])
+
+            col_original = f"{estacion}_original"
+
+            mask_imp = (
+                df_imp[col_original].isna()
+                & df_imp[estacion].notna()
+            )
+
+            fig = go.Figure()
+
+            fig.add_trace(
+                go.Scatter(
+                    x=df_imp["Fecha"],
+                    y=df_imp[col_original],
+                    mode="lines",
+                    name="Serie original",
+                    line=dict(
+                        color=AZUL_MED,
+                        width=1.2
+                    ),
+                    hovertemplate=(
+                        "<b>Fecha:</b> %{x|%Y-%m-%d}<br>"
+                        "<b>Nivel original:</b> %{y:.2f} cm<br>"
+                        "<extra></extra>"
+                    )
+                )
+            )
+
+            fig.add_trace(
+                go.Scatter(
+                    x=df_imp["Fecha"],
+                    y=df_imp[estacion],
+                    mode="lines",
+                    name="Serie imputada",
+                    line=dict(
+                        color="#D97B29",
+                        width=1.4,
+                        dash="dash"
+                    ),
+                    hovertemplate=(
+                        "<b>Fecha:</b> %{x|%Y-%m-%d}<br>"
+                        "<b>Nivel imputado:</b> %{y:.2f} cm<br>"
+                        "<extra></extra>"
+                    )
+                )
+            )
+
+            fig.add_trace(
+                go.Scatter(
+                    x=df_imp.loc[mask_imp, "Fecha"],
+                    y=df_imp.loc[mask_imp, estacion],
+                    mode="markers",
+                    name="Valores imputados",
+                    marker=dict(
+                        color="#B23A48",
+                        size=6,
+                        symbol="circle"
+                    ),
+                    hovertemplate=(
+                        "<b>Fecha:</b> %{x|%Y-%m-%d}<br>"
+                        "<b>Valor imputado:</b> %{y:.2f} cm<br>"
+                        "<extra></extra>"
+                    )
+                )
+            )
+
+            fig.update_layout(
+                title=f"Serie original vs serie imputada - {NOMBRES_ESTACIONES.get(estacion, estacion)}",
+                xaxis_title="Fecha",
+                yaxis_title="Nivel [cm]",
+                plot_bgcolor="white",
+                paper_bgcolor="white",
+                font=dict(
+                    family="Georgia",
+                    size=13,
+                    color=AZUL
+                ),
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="right",
+                    x=1,
+                    bgcolor="rgba(255,255,255,0.85)",
+                    bordercolor="rgba(26,58,92,0.18)",
+                    borderwidth=1
+                ),
+                margin=dict(l=70, r=40, t=80, b=60),
+                height=520
+            )
+
+            fig.update_xaxes(
+                showgrid=True,
+                gridcolor="#D9E2EF"
+            )
+
+            fig.update_yaxes(
+                showgrid=True,
+                gridcolor="#D9E2EF",
+                zeroline=False
+            )
+
+            return fig
+        
         return html.Div(), *estilos
+
+    @app.callback(
+        Output("grafica-imputacion", "figure"),
+        Input("selector-estacion-imputacion", "value"),
+        prevent_initial_call=False
+    )
+    def actualizar_grafica_imputacion(estacion):
+
+        ruta_imputados = "data/Niveles_imputados_completo.csv"
+
+        df_imp = pd.read_csv(
+            ruta_imputados,
+            sep=None,
+            engine="python",
+            encoding="utf-8-sig"
+        )
+
+        df_imp.columns = df_imp.columns.str.strip()
+
+        for col in df_imp.columns:
+            if "Fecha" in col:
+                df_imp = df_imp.rename(columns={col: "Fecha"})
+
+        df_imp["Fecha"] = pd.to_datetime(df_imp["Fecha"], errors="coerce")
+
+        # Convertir todas las columnas numéricas
+        for col in df_imp.columns:
+            if col != "Fecha":
+                df_imp[col] = (
+                    df_imp[col]
+                    .astype(str)
+                    .str.replace(",", ".", regex=False)
+                    .str.strip()
+                )
+                df_imp[col] = pd.to_numeric(df_imp[col], errors="coerce")
+
+        df_imp.columns = df_imp.columns.str.strip()
+
+        for col in df_imp.columns:
+            if "Fecha" in col:
+                df_imp = df_imp.rename(columns={col: "Fecha"})
+
+        df_imp["Fecha"] = pd.to_datetime(df_imp["Fecha"], errors="coerce")
+
+        col_original = f"{estacion}_original"
+
+        mask_imp = (
+            df_imp[col_original].isna()
+            & df_imp[estacion].notna()
+        )
+
+        fig = go.Figure()
+
+        fig.add_trace(
+            go.Scatter(
+                x=df_imp["Fecha"],
+                y=df_imp[col_original],
+                mode="lines",
+                name="Serie original",
+                line=dict(color=AZUL_MED, width=1.2),
+                hovertemplate=(
+                    "<b>Fecha:</b> %{x|%Y-%m-%d}<br>"
+                    "<b>Nivel original:</b> %{y:.2f} cm<br>"
+                    "<extra></extra>"
+                )
+            )
+        )
+
+        fig.add_trace(
+            go.Scatter(
+                x=df_imp["Fecha"],
+                y=df_imp[estacion],
+                mode="lines",
+                name="Serie imputada",
+                line=dict(color="#D97B29", width=1.4, dash="dash"),
+                hovertemplate=(
+                    "<b>Fecha:</b> %{x|%Y-%m-%d}<br>"
+                    "<b>Nivel imputado:</b> %{y:.2f} cm<br>"
+                    "<extra></extra>"
+                )
+            )
+        )
+
+        fig.add_trace(
+            go.Scatter(
+                x=df_imp.loc[mask_imp, "Fecha"],
+                y=df_imp.loc[mask_imp, estacion],
+                mode="markers",
+                name="Valores imputados",
+                marker=dict(color="#B23A48", size=6, symbol="circle"),
+                hovertemplate=(
+                    "<b>Fecha:</b> %{x|%Y-%m-%d}<br>"
+                    "<b>Valor imputado:</b> %{y:.2f} cm<br>"
+                    "<extra></extra>"
+                )
+            )
+        )
+
+        fig.update_layout(
+            title=f"Serie original vs serie imputada - {NOMBRES_ESTACIONES.get(estacion, estacion)}",
+            xaxis_title="Fecha",
+            yaxis_title="Nivel [cm]",
+            plot_bgcolor="white",
+            paper_bgcolor="white",
+            font=dict(family="Georgia", size=13, color=AZUL),
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1,
+                bgcolor="rgba(255,255,255,0.85)",
+                bordercolor="rgba(26,58,92,0.18)",
+                borderwidth=1
+            ),
+            margin=dict(l=70, r=40, t=80, b=60),
+            height=520
+        )
+
+        fig.update_xaxes(showgrid=True, gridcolor="#D9E2EF")
+        y_vals = pd.concat([
+            df_imp[col_original],
+            df_imp[estacion]
+        ]).dropna()
+
+        y_min = y_vals.min()
+        y_max = y_vals.max()
+        margen_y = 0.08 * (y_max - y_min)
+
+        fig.update_yaxes(
+            showgrid=True,
+            gridcolor="#D9E2EF",
+            zeroline=False,
+            range=[
+                max(0, y_min - margen_y),
+                y_max + margen_y
+            ]
+        )
+
+        return fig
