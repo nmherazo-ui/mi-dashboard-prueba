@@ -6,6 +6,9 @@ import plotly.graph_objects as go
 from dash import html, dcc, Input, Output, dash_table
 from plotly.subplots import make_subplots
 from scipy.stats import gaussian_kde
+from statsmodels.tsa.stattools import acf
+from statsmodels.stats.diagnostic import acorr_ljungbox
+import pymannkendall as mk
 
 from datos import COLORES_ESTACIONES, NOMBRES_ESTACIONES
 from estilos import (
@@ -466,32 +469,569 @@ def registrar_callbacks_eda(app, df, columnas_estaciones, serie_objetivo):
             return seccion_exploracion_inicial(df, columnas_estaciones), *estilos
 
         if boton_id == "btn-estructura-temporal":
-            df_temp = df.assign(Año=df["Fecha"].dt.year, Mes=df["Fecha"].dt.month)
-            fig_box_mes = aplicar_estilo_figura(px.box(
-                df_temp,
-                x="Mes",
-                y=serie_objetivo,
-                title="Distribución mensual de niveles",
-                color_discrete_sequence=[AZUL_MED],
-            ))
-            fig_anual = aplicar_estilo_figura(px.line(
-                df_temp.groupby("Año", as_index=False)[serie_objetivo].mean(),
-                x="Año",
-                y=serie_objetivo,
-                markers=True,
-                title="Nivel promedio anual",
-                color_discrete_sequence=[CELESTE],
-            ))
+            # ====================================================
+            # Autocorrelación
+            # ====================================================
+            series_cols = columnas_estaciones
+            lags_test = [7, 14, 21, 30, 60, 90, 180, 365]
+            max_lag = 360
+            resultados_lb = []
+
+            fig_acf = make_subplots(
+                rows=2,
+                cols=3,
+                shared_xaxes=False,
+                vertical_spacing=0.18,
+                horizontal_spacing=0.10,
+                subplot_titles=[
+                    f"Función de autocorrelación (ACF) - {NOMBRES_ESTACIONES[col]}"
+                    for col in series_cols
+                ],
+            )
+
+            posiciones_acf = [
+                (1, 1), (1, 2), (1, 3),
+                (2, 1), (2, 2), (2, 3),
+            ]
+
+            for col, (fila, columna) in zip(series_cols, posiciones_acf):
+                s = df[col].dropna()
+
+                acf_vals = acf(
+                    s,
+                    nlags=max_lag,
+                    fft=True,
+                    missing="drop",
+                )
+                lags = np.arange(len(acf_vals))
+                conf = 1.96 / np.sqrt(len(s))
+
+                # Banda de confianza aproximada al 95 %
+                fig_acf.add_trace(
+                    go.Scatter(
+                        x=np.concatenate([lags, lags[::-1]]),
+                        y=np.concatenate([
+                            np.full_like(lags, conf, dtype=float),
+                            np.full_like(lags, -conf, dtype=float)[::-1],
+                        ]),
+                        fill="toself",
+                        fillcolor="rgba(31, 119, 180, 0.15)",
+                        line=dict(color="rgba(255,255,255,0)"),
+                        hoverinfo="skip",
+                        showlegend=False,
+                    ),
+                    row=fila,
+                    col=columna,
+                )
+
+                # Línea horizontal en cero
+                fig_acf.add_trace(
+                    go.Scatter(
+                        x=[0, max_lag],
+                        y=[0, 0],
+                        mode="lines",
+                        line=dict(color="#1f77b4", width=1.3),
+                        hoverinfo="skip",
+                        showlegend=False,
+                    ),
+                    row=fila,
+                    col=columna,
+                )
+
+                # Barras tipo ACF
+                fig_acf.add_trace(
+                    go.Bar(
+                        x=lags,
+                        y=acf_vals,
+                        marker_color=COLORES_ESTACIONES.get(col, "#1f77b4"),
+                        width=0.85,
+                        opacity=0.95,
+                        hovertemplate=(
+                            f"<b>Serie:</b> {NOMBRES_ESTACIONES[col]}<br>"
+                            "<b>Lag:</b> %{x} días<br>"
+                            "<b>ACF:</b> %{y:.3f}<br>"
+                            "<extra></extra>"
+                        ),
+                        showlegend=False,
+                    ),
+                    row=fila,
+                    col=columna,
+                )
+
+                # Puntos en la punta para asemejar plot_acf
+                fig_acf.add_trace(
+                    go.Scatter(
+                        x=lags,
+                        y=acf_vals,
+                        mode="markers",
+                        marker=dict(
+                            color=COLORES_ESTACIONES.get(col, "#1f77b4"),
+                            size=4,
+                        ),
+                        hoverinfo="skip",
+                        showlegend=False,
+                    ),
+                    row=fila,
+                    col=columna,
+                )
+
+                fig_acf.update_xaxes(
+                    title_text="Lag [días]",
+                    showgrid=False,
+                    range=[-1, max_lag + 1],
+                    row=fila,
+                    col=columna,
+                )
+                fig_acf.update_yaxes(
+                    title_text="Autocorrelación",
+                    range=[-0.3, 1.05],
+                    showgrid=False,
+                    zeroline=False,
+                    row=fila,
+                    col=columna,
+                )
+
+                lb = acorr_ljungbox(
+                    s,
+                    lags=lags_test,
+                    return_df=True,
+                )
+                for lag, row_lb in lb.iterrows():
+                    resultados_lb.append({
+                        "Serie": NOMBRES_ESTACIONES[col],
+                        "Lag [días]": lag,
+                        "LB_stat": round(row_lb["lb_stat"], 2),
+                        "p-valor": round(row_lb["lb_pvalue"], 4),
+                    })
+
+            fig_acf.update_layout(
+                height=850,
+                plot_bgcolor="white",
+                paper_bgcolor="white",
+                font=dict(family="Georgia", size=12, color=AZUL),
+                showlegend=False,
+                barmode="overlay",
+                margin=dict(l=70, r=40, t=90, b=60),
+            )
+
+            for anot in fig_acf["layout"]["annotations"]:
+                anot["font"] = dict(family="Georgia", size=13, color=AZUL)
+                anot["xanchor"] = "center"
+
+            lb_df = pd.DataFrame(resultados_lb)
+
+            # ====================================================
+            # Boxplots mensuales por estación
+            # ====================================================
+            df_mes = df.copy()
+            df_mes["Mes"] = df_mes["Fecha"].dt.month
+
+            mes_labels = [
+                "Ene", "Feb", "Mar", "Abr", "May", "Jun",
+                "Jul", "Ago", "Sep", "Oct", "Nov", "Dic",
+            ]
+
+            fig_boxplots_mensuales = make_subplots(
+                rows=len(series_cols),
+                cols=1,
+                shared_xaxes=False,
+                vertical_spacing=0.07,
+                subplot_titles=[
+                    f"Boxplots mensuales - {NOMBRES_ESTACIONES[col]}"
+                    for col in series_cols
+                ],
+            )
+
+            for i, col in enumerate(series_cols, start=1):
+                for mes_num, mes_nombre in enumerate(mes_labels, start=1):
+                    datos_mes = df_mes.loc[df_mes["Mes"] == mes_num, col].dropna()
+
+                    fig_boxplots_mensuales.add_trace(
+                        go.Box(
+                            y=datos_mes,
+                            name=mes_nombre,
+                            marker=dict(
+                                color=COLORES_ESTACIONES.get(col, AZUL_MED),
+                                symbol="x",
+                                size=4,
+                            ),
+                            line=dict(
+                                color=COLORES_ESTACIONES.get(col, AZUL_MED),
+                                width=1.3,
+                            ),
+                            boxmean=False,
+                            showlegend=False,
+                            hovertemplate=(
+                                f"<b>Estación:</b> {NOMBRES_ESTACIONES[col]}<br>"
+                                f"<b>Mes:</b> {mes_nombre}<br>"
+                                "<b>Nivel:</b> %{y:.2f} cm<br>"
+                                "<extra></extra>"
+                            ),
+                        ),
+                        row=i,
+                        col=1,
+                    )
+                    
+                max_y = df_mes[col].dropna().max()
+                min_y = df_mes[col].dropna().min()
+
+                rango_y = max_y - min_y
+                margen_inferior = 0.08 * rango_y
+                margen_superior = 0.25 * rango_y
+
+                fig_boxplots_mensuales.update_yaxes(
+                    title_text="Nivel [cm]",
+                    range=[
+                        max(0, min_y - margen_inferior),
+                        max_y + margen_superior
+                    ],
+                    showgrid=True,
+                    gridcolor="#D9E2EF",
+                    zeroline=False,
+                    row=i,
+                    col=1
+                )
+                
+                fig_boxplots_mensuales.update_xaxes(
+                    title_text="Mes",
+                    showgrid=False,
+                    row=i,
+                    col=1,
+                )
+
+            fig_boxplots_mensuales.update_layout(
+                height=420 * len(series_cols),
+                plot_bgcolor="white",
+                paper_bgcolor="white",
+                font=dict(family="Georgia", size=13, color=AZUL),
+                showlegend=False,
+                margin=dict(l=80, r=40, t=90, b=70),
+            )
+
+            for anot in fig_boxplots_mensuales["layout"]["annotations"]:
+                anot["font"] = dict(family="Georgia", size=16, color=AZUL)
+                anot["x"] = 0.5
+                anot["xanchor"] = "center"
+
+            # ====================================================
+            # Tendencias mensuales por estación
+            # ====================================================
+            df_m = df.copy()
+            df_m["AñoMes"] = df_m["Fecha"].dt.to_period("M")
+
+            df_monthly = (
+                df_m.groupby("AñoMes")[series_cols]
+                .mean()
+                .reset_index()
+            )
+            df_monthly["Fecha"] = df_monthly["AñoMes"].dt.to_timestamp()
+
+            resultados_mk = []
+
+            fig_tendencias = make_subplots(
+                rows=3,
+                cols=2,
+                shared_xaxes=False,
+                vertical_spacing=0.14,
+                horizontal_spacing=0.12,
+                subplot_titles=[
+                    f"Tendencia mensual - {NOMBRES_ESTACIONES[col]}"
+                    for col in series_cols
+                ],
+            )
+
+            posiciones_tendencias = [
+                (1, 1), (1, 2),
+                (2, 1), (2, 2),
+                (3, 1), (3, 2),
+            ]
+
+            for col, (fila, columna) in zip(series_cols, posiciones_tendencias):
+                s_mensual = df_monthly[["Fecha", col]].dropna().copy()
+
+                x = np.arange(len(s_mensual))
+                y = s_mensual[col].values
+
+                coef = np.polyfit(x, y, 1)
+                trend_line = np.poly1d(coef)(x)
+
+                res = mk.seasonal_test(s_mensual[col], period=12)
+
+                resultados_mk.append({
+                    "Serie": NOMBRES_ESTACIONES[col],
+                    "Tendencia": res.trend,
+                    "p-valor": round(res.p, 4),
+                    "Tau": round(res.Tau, 4),
+                    "Pendiente": round(res.slope, 4),
+                    "Intercepto": round(res.intercept, 4),
+                })
+
+                color_serie = COLORES_ESTACIONES.get(col, AZUL_MED)
+
+                fig_tendencias.add_trace(
+                    go.Scatter(
+                        x=s_mensual["Fecha"],
+                        y=s_mensual[col],
+                        mode="lines",
+                        name="Serie mensual",
+                        line=dict(color=color_serie, width=1.3),
+                        opacity=0.9,
+                        showlegend=False,
+                        hovertemplate=(
+                            f"<b>Estación:</b> {NOMBRES_ESTACIONES[col]}<br>"
+                            "<b>Fecha:</b> %{x|%Y-%m}<br>"
+                            "<b>Nivel medio mensual:</b> %{y:.2f} cm<br>"
+                            "<extra></extra>"
+                        ),
+                    ),
+                    row=fila,
+                    col=columna,
+                )
+
+                fig_tendencias.add_trace(
+                    go.Scatter(
+                        x=s_mensual["Fecha"],
+                        y=trend_line,
+                        mode="lines",
+                        name="Tendencia lineal",
+                        line=dict(color=AZUL, width=2, dash="dash"),
+                        showlegend=False,
+                        hovertemplate=(
+                            f"<b>Tendencia:</b> {NOMBRES_ESTACIONES[col]}<br>"
+                            "<b>Fecha:</b> %{x|%Y-%m}<br>"
+                            "<b>Nivel estimado:</b> %{y:.2f} cm<br>"
+                            "<extra></extra>"
+                        ),
+                    ),
+                    row=fila,
+                    col=columna,
+                )
+
+                fig_tendencias.update_yaxes(
+                    title_text="Nivel medio mensual [cm]",
+                    showgrid=True,
+                    gridcolor="#D9E2EF",
+                    zeroline=False,
+                    row=fila,
+                    col=columna,
+                )
+
+                fig_tendencias.update_xaxes(
+                    title_text="Fecha",
+                    showgrid=True,
+                    gridcolor="#D9E2EF",
+                    tickformat="%Y",
+                    dtick="M120",
+                    row=fila,
+                    col=columna,
+                )
+
+                eje_id = (fila - 1) * 2 + columna
+                xref = "x domain" if eje_id == 1 else f"x{eje_id} domain"
+                yref = "y domain" if eje_id == 1 else f"y{eje_id} domain"
+
+                fig_tendencias.add_annotation(
+                    x=0.98,
+                    y=0.96,
+                    xref=xref,
+                    yref=yref,
+                    text=(
+                        f"<span style='color:{color_serie};'>━━</span> Serie mensual&nbsp;&nbsp;"
+                        f"<span style='color:{AZUL};'>┄┄</span> Tendencia lineal"
+                    ),
+                    showarrow=False,
+                    align="right",
+                    xanchor="right",
+                    yanchor="top",
+                    bgcolor="rgba(255,255,255,0.82)",
+                    bordercolor="rgba(26,58,92,0.18)",
+                    borderwidth=1,
+                    font=dict(family="Georgia", size=11, color=AZUL),
+                )
+
+            fig_tendencias.update_layout(
+                height=1050,
+                plot_bgcolor="white",
+                paper_bgcolor="white",
+                font=dict(family="Georgia", size=12, color=AZUL),
+                showlegend=False,
+                margin=dict(l=80, r=40, t=95, b=70),
+            )
+
+            for anot in fig_tendencias["layout"]["annotations"]:
+                texto_anotacion = getattr(anot, "text", "")
+
+                if str(texto_anotacion).startswith("Tendencia mensual"):
+                    anot.font = dict(family="Georgia", size=13, color=AZUL)
+                    anot.xanchor = "center"
+
+            mk_df = pd.DataFrame(resultados_mk)
+            mk_df["Tendencia"] = mk_df["Tendencia"].replace({
+                "increasing": "Creciente",
+                "decreasing": "Decreciente",
+                "no trend": "Sin tendencia",
+            })
+
             contenido = html.Div([
-                tarjeta_texto(
-                    "Estructura temporal",
-                    "En esta sección se analiza la organización temporal de los datos. Se revisan patrones mensuales y cambios promedio entre años.",
-                ),
-                html.Div(style=estilo_flex, children=[
-                    html.Div(style={**estilo_tarjeta, "flex": "1"}, children=[dcc.Graph(figure=fig_box_mes)]),
-                    html.Div(style={**estilo_tarjeta, "flex": "1"}, children=[dcc.Graph(figure=fig_anual)]),
+                html.Div(style=estilo_tarjeta, children=[
+                    html.P(
+                        "Esta sección analiza la estructura temporal de las series de nivel. "
+                        "Se evalúan patrones de dependencia temporal mediante la función de autocorrelación, "
+                        "boxplots mensuales y análisis de tendencias.",
+                        style=estilo_parrafo,
+                    )
+                ]),
+
+                html.Div(style=estilo_tarjeta, children=[
+                    html.H2("Autocorrelación", style=estilo_titulo),
+                    html.P(
+                        "La función de autocorrelación permite evaluar la dependencia de una serie "
+                        "con sus propios valores pasados. En este caso, se calcula la autocorrelación "
+                        "hasta 360 días de rezago para identificar memoria temporal y posibles patrones "
+                        "asociados a ciclos hidrológicos.",
+                        style=estilo_parrafo,
+                    ),
+                    dcc.Graph(
+                        figure=fig_acf,
+                        config={
+                            "displayModeBar": True,
+                            "scrollZoom": True,
+                            "displaylogo": False,
+                            "toImageButtonOptions": {
+                                "format": "png",
+                                "filename": "autocorrelacion_acf",
+                                "height": 1200,
+                                "width": 1600,
+                                "scale": 2,
+                            },
+                        },
+                    ),
+                ]),
+
+                html.Div(style=estilo_tarjeta, children=[
+                    html.H2("Prueba Ljung–Box", style=estilo_titulo),
+                    html.P(
+                        "La prueba Ljung–Box evalúa si existe autocorrelación significativa "
+                        "en un conjunto de rezagos. Valores pequeños de p-valor indican evidencia "
+                        "de dependencia temporal en la serie.",
+                        style=estilo_parrafo,
+                    ),
+                    crear_tabla(lb_df, page_size=12),
+                    html.P(
+                        "Los resultados de la prueba Ljung–Box muestran p-valores cercanos a cero "
+                        "para los rezagos evaluados en las estaciones analizadas. Esto indica que se "
+                        "rechaza la hipótesis nula de ausencia de autocorrelación y confirma que las "
+                        "series de nivel presentan dependencia temporal significativa. En consecuencia, "
+                        "los valores pasados contienen información relevante para explicar el comportamiento "
+                        "futuro de los niveles hidrométricos.",
+                        style={**estilo_parrafo, "marginTop": "18px"},
+                    ),
+                ]),
+
+                html.Div(style=estilo_tarjeta, children=[
+                    html.H2("Boxplots mensuales por estación", style=estilo_titulo),
+                    html.P(
+                        "Los boxplots mensuales permiten evaluar la variabilidad de los niveles "
+                        "a lo largo del año para cada estación. Esta visualización facilita la "
+                        "identificación de patrones estacionales, diferencias entre meses y presencia "
+                        "de valores atípicos en las series de nivel.",
+                        style=estilo_parrafo,
+                    ),
+                    dcc.Graph(
+                        figure=fig_boxplots_mensuales,
+                        config={
+                            "displayModeBar": True,
+                            "scrollZoom": True,
+                            "displaylogo": False,
+                            "toImageButtonOptions": {
+                                "format": "png",
+                                "filename": "boxplots_mensuales_estaciones",
+                                "height": 1800,
+                                "width": 1400,
+                                "scale": 2,
+                            },
+                        },
+                    ),
+                ]),
+
+                html.Div(style=estilo_tarjeta, children=[
+                    html.H2("Tendencias mensuales por estación", style=estilo_titulo),
+                    html.P(
+                        "Para evaluar cambios de largo plazo, las series diarias fueron agregadas "
+                        "a escala mensual. Posteriormente, se estimó una tendencia lineal sobre los "
+                        "promedios mensuales y se aplicó la prueba estacional de Mann–Kendall, "
+                        "considerando una periodicidad anual de 12 meses.",
+                        style=estilo_parrafo,
+                    ),
+                    dcc.Graph(
+                        figure=fig_tendencias,
+                        config={
+                            "displayModeBar": True,
+                            "scrollZoom": True,
+                            "displaylogo": False,
+                            "toImageButtonOptions": {
+                                "format": "png",
+                                "filename": "tendencias_mensuales_estaciones",
+                                "height": 1800,
+                                "width": 1400,
+                                "scale": 2,
+                            },
+                        },
+                    ),
+                ]),
+
+                html.Div(style=estilo_tarjeta, children=[
+                    html.H2("Resultados de la prueba estacional Mann–Kendall", style=estilo_titulo),
+                    html.P(
+                        "La prueba estacional de Mann–Kendall permite evaluar si existe una tendencia "
+                        "monótona significativa en la serie, considerando la estacionalidad mensual. "
+                        "Un p-valor menor que 0.05 indica evidencia estadística de tendencia.",
+                        style=estilo_parrafo,
+                    ),
+                    crear_tabla(
+                        mk_df,
+                        page_size=10,
+                        style_data_conditional=[
+                            {
+                                "if": {
+                                    "filter_query": '{Tendencia} = "Creciente"'
+                                },
+                                "backgroundColor": "#DDEEE3",
+                                "color": "#1F5C3A",
+                                "fontWeight": "bold"
+                            },
+                            {
+                                "if": {
+                                    "filter_query": '{Tendencia} = "Decreciente"'
+                                },
+                                "backgroundColor": "#F4D7D7",
+                                "color": "#7A1F1F",
+                                "fontWeight": "bold"
+                            },
+                            {
+                                "if": {
+                                    "filter_query": '{Tendencia} = "Sin tendencia"'
+                                },
+                                "backgroundColor": "#EAF1F8",
+                                "color": "#1A3A5C",
+                                "fontWeight": "bold"
+                            }
+                        ]
+                    ),
+                                       
+                    html.P(
+                        "Dado que las series presentaron autocorrelación significativa, la tendencia se evaluó "
+                        "mediante la prueba Seasonal Mann-Kendall sobre series mensuales agregadas, en lugar "
+                        "de aplicar una prueba simple sobre los datos diarios. Los resultados muestran una "
+                        "tendencia creciente significativa en Calamar, Achí y El Banco, así como una tendencia "
+                        "decreciente significativa en Salado Blanco y Puerto Berrío. En contraste, Barrancabermeja "
+                        "no presentó una tendencia estadísticamente significativa, por lo que no se encontró "
+                        "evidencia suficiente de un cambio monotónico sostenido en esa estación.",
+                        style={**estilo_parrafo, "marginTop": "18px"},
+                    ),
                 ]),
             ])
+
             return contenido, *estilos
 
         if boton_id == "btn-correlacion-cruzada":
