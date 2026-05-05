@@ -1,0 +1,49 @@
+{
+    "target": "Calamar",
+    "numInputs": 3,
+    "numOutputs": 1,
+    "numJumps": 1,
+    "best_params": {
+        "rf__n_estimators": 500,
+        "rf__max_depth": null,
+        "rf__min_samples_leaf": 1,
+        "rf__max_features": 1.0
+    },
+    "modelo": "Pipeline(RandomForestRegressor)",
+    "archivo_modelo": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosRF\\modelo_rf_calamar.joblib",
+    "archivo_acf_residuos": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosRF\\acf_residuos_rf_test_externo.png",
+    "archivo_hist_residuos": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosRF\\histograma_residuos_rf_test_externo.png",
+    "criterio_final": "Menor MAE de validación entre las configuraciones que satisfacen el criterio BDS. MSE se usó como métrica complementaria. El modelo guardado fue entrenado sin incluir el último año, reservado como test externo final.",
+    "ventanas_evaluadas": [
+        1,
+        3,
+        7
+    ],
+    "grid_hiperparametros": {
+        "rf__n_estimators": [
+            300,
+            500
+        ],
+        "rf__max_depth": [
+            null,
+            5,
+            10
+        ],
+        "rf__min_samples_leaf": [
+            1,
+            3,
+            5
+        ],
+        "rf__max_features": [
+            "sqrt",
+            1.0
+        ]
+    },
+    "modelos_entrenados_busqueda": 540,
+    "fecha_inicio_trainval": "1975-06-29 00:00:00",
+    "fecha_fin_trainval": "2024-11-09 00:00:00",
+    "fecha_inicio_test_externo": "2024-11-10 00:00:00",
+    "fecha_fin_test_externo": "2025-11-10 00:00:00",
+    "MAE_test_externo": 1.6801499286977,
+    "MSE_test_externo": 5.1868441955754
+}
