@@ -19,20 +19,35 @@ from estilos import (
 def layout_modelos(modelos):
     return html.Div([
         html.Div(style=estilo_tarjeta, children=[
-            html.H2("Comparativa de Modelos", style=estilo_titulo),
+            html.H2("Comparativa de modelos implementados", style=estilo_titulo),
             html.P(
                 "Selecciona un modelo para visualizar su predicción frente a los valores reales.",
                 style=estilo_parrafo_sec,
             ),
             dcc.Dropdown(
-                id="selector-modelo",
-                options=[{"label": m, "value": m} for m in modelos],
-                value="Modelo 1",
-                clearable=False,
-                style={"fontFamily": FUENTE, "fontSize": "14px", "maxWidth": "300px"},
-            ),
+            id="selector-modelo",
+            options=[
+                {"label": "Máquina de Vectores de Soporte (SVM)", "value": "Modelo 1"},
+                {"label": "Modelo comparativo 2", "value": "Modelo 2"},
+                {"label": "Modelo comparativo 3", "value": "Modelo 3"},
+                {"label": "Modelo comparativo 4", "value": "Modelo 4"},
+                {"label": "Modelo comparativo 5", "value": "Modelo 4"},
+                {"label": "Modelo comparativo 6", "value": "Modelo 6"},
+                {"label": "Modelo comparativo 7", "value": "Modelo 7"},
+                {"label": "Modelo comparativo 8", "value": "Modelo 8"},
+                {"label": "Modelo comparativo 9", "value": "Modelo 9"},
+                {"label": "Modelo comparativo 10", "value": "Modelo 10"},
+                {"label": "Modelo comparativo 11", "value": "Modelo 11"},
+                {"label": "Modelo comparativo 12", "value": "Modelo 12"},
+                {"label": "Modelo comparativo 12", "value": "Modelo 13"},                
+            ],
+            value="Modelo 1",
+            clearable=False,
+            style={"fontFamily": FUENTE, "fontSize": "14px", "maxWidth": "300px"},
+        ),
         ]),
         html.Div(id="grafica-modelo"),
+        
     ])
 
 

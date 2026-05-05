@@ -2152,11 +2152,253 @@ def registrar_callbacks_eda(app, df, columnas_estaciones, serie_objetivo):
                     y_max + margen_y
                 ]
             )
+            
+                        # ====================================================
+            # Métricas de validación de imputación
+            # ====================================================
+
+            ruta_metricas = "data/metricas_imputacion_iterativa.csv"
+            ruta_detalle_validacion = "data/detalle_validacion_imputacion_iterativa.csv"
+
+            df_metricas_imp = pd.read_csv(
+                ruta_metricas,
+                sep=None,
+                engine="python",
+                encoding="utf-8-sig"
+            )
+
+            df_detalle_val = pd.read_csv(
+                ruta_detalle_validacion,
+                sep=None,
+                engine="python",
+                encoding="utf-8-sig"
+            )
+
+            df_metricas_imp.columns = df_metricas_imp.columns.str.strip()
+            df_detalle_val.columns = df_detalle_val.columns.str.strip()
+
+            if "Fecha" in df_detalle_val.columns:
+                df_detalle_val["Fecha"] = pd.to_datetime(
+                    df_detalle_val["Fecha"],
+                    errors="coerce"
+                )
+
+            # Valores para resaltar en la tabla
+            min_rmse = df_metricas_imp["RMSE"].min()
+            max_rmse = df_metricas_imp["RMSE"].max()
+            min_mape = df_metricas_imp["MAPE [%]"].min()
+            max_mape = df_metricas_imp["MAPE [%]"].max()
+            min_r2 = df_metricas_imp["R²"].min()
+            max_r2 = df_metricas_imp["R²"].max()
+
+            # ----------------------------------------------------
+            # Gráfico comparativo de métricas
+            # ----------------------------------------------------
+
+            fig_metricas_imp = make_subplots(
+                rows=1,
+                cols=3,
+                subplot_titles=[
+                    "RMSE",
+                    "MAPE [%]",
+                    "R²"
+                ],
+                horizontal_spacing=0.12
+            )
+
+            fig_metricas_imp.add_trace(
+                go.Bar(
+                    x=df_metricas_imp["Estación"],
+                    y=df_metricas_imp["RMSE"],
+                    name="RMSE",
+                    marker_color="#5B86C5",
+                    hovertemplate=(
+                        "<b>Estación:</b> %{x}<br>"
+                        "<b>RMSE:</b> %{y:.3f}<br>"
+                        "<extra></extra>"
+                    )
+                ),
+                row=1,
+                col=1
+            )
+
+            fig_metricas_imp.add_trace(
+                go.Bar(
+                    x=df_metricas_imp["Estación"],
+                    y=df_metricas_imp["MAPE [%]"],
+                    name="MAPE [%]",
+                    marker_color="#D97B29",
+                    hovertemplate=(
+                        "<b>Estación:</b> %{x}<br>"
+                        "<b>MAPE:</b> %{y:.3f} %<br>"
+                        "<extra></extra>"
+                    )
+                ),
+                row=1,
+                col=2
+            )
+
+            fig_metricas_imp.add_trace(
+                go.Bar(
+                    x=df_metricas_imp["Estación"],
+                    y=df_metricas_imp["R²"],
+                    name="R²",
+                    marker_color="#3C8D5A",
+                    hovertemplate=(
+                        "<b>Estación:</b> %{x}<br>"
+                        "<b>R²:</b> %{y:.3f}<br>"
+                        "<extra></extra>"
+                    )
+                ),
+                row=1,
+                col=3
+            )
+
+            fig_metricas_imp.update_layout(
+                height=520,
+                plot_bgcolor="white",
+                paper_bgcolor="white",
+                font=dict(
+                    family="Georgia",
+                    size=12,
+                    color=AZUL
+                ),
+                showlegend=False,
+                margin=dict(l=60, r=40, t=80, b=120)
+            )
+
+            for i in range(1, 4):
+                fig_metricas_imp.update_xaxes(
+                    tickangle=45,
+                    showgrid=False,
+                    row=1,
+                    col=i
+                )
+
+                fig_metricas_imp.update_yaxes(
+                    showgrid=True,
+                    gridcolor="#D9E2EF",
+                    zeroline=False,
+                    row=1,
+                    col=i
+                )
+
+            for anot in fig_metricas_imp["layout"]["annotations"]:
+                anot.font = dict(
+                    family="Georgia",
+                    size=14,
+                    color=AZUL
+                )
+
+            # ----------------------------------------------------
+            # Gráfico inicial real vs predicho
+            # ----------------------------------------------------
+
+            estacion_val_default = df_metricas_imp["Estación"].iloc[0]
+
+            df_val_default = df_detalle_val[
+                df_detalle_val["Estación"] == estacion_val_default
+            ].copy()
+
+            fila_metricas_default = df_metricas_imp[
+                df_metricas_imp["Estación"] == estacion_val_default
+            ].iloc[0]
+
+            min_val = min(
+                df_val_default["Valor real"].min(),
+                df_val_default["Valor predicho"].min()
+            )
+
+            max_val = max(
+                df_val_default["Valor real"].max(),
+                df_val_default["Valor predicho"].max()
+            )
+
+            margen_val = 0.06 * (max_val - min_val)
+
+            fig_val_imp = go.Figure()
+
+            fig_val_imp.add_trace(
+                go.Scatter(
+                    x=df_val_default["Valor real"],
+                    y=df_val_default["Valor predicho"],
+                    mode="markers",
+                    name="Real vs predicho",
+                    marker=dict(
+                        color=AZUL_MED,
+                        size=6,
+                        opacity=0.65
+                    ),
+                    hovertemplate=(
+                        "<b>Valor real:</b> %{x:.2f} cm<br>"
+                        "<b>Valor predicho:</b> %{y:.2f} cm<br>"
+                        "<extra></extra>"
+                    )
+                )
+            )
+
+            fig_val_imp.add_trace(
+                go.Scatter(
+                    x=[min_val - margen_val, max_val + margen_val],
+                    y=[min_val - margen_val, max_val + margen_val],
+                    mode="lines",
+                    name="Línea ideal (y=x)",
+                    line=dict(
+                        color="#B23A48",
+                        width=2,
+                        dash="dash"
+                    ),
+                    hoverinfo="skip"
+                )
+            )
+
+            fig_val_imp.update_layout(
+                title=(
+                    f"Validación: Real vs Predicho - {estacion_val_default} | "
+                    f"R²={fila_metricas_default['R²']:.3f}  "
+                    f"RMSE={fila_metricas_default['RMSE']:.3f}  "
+                    f"MAPE={fila_metricas_default['MAPE [%]']:.3f}%"
+                ),
+                xaxis_title="Valor real [cm]",
+                yaxis_title="Valor predicho [cm]",
+                plot_bgcolor="white",
+                paper_bgcolor="white",
+                font=dict(
+                    family="Georgia",
+                    size=13,
+                    color=AZUL
+                ),
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="right",
+                    x=1,
+                    bgcolor="rgba(255,255,255,0.85)",
+                    bordercolor="rgba(26,58,92,0.18)",
+                    borderwidth=1
+                ),
+                margin=dict(l=70, r=40, t=90, b=70),
+                height=560
+            )
+
+            fig_val_imp.update_xaxes(
+                showgrid=True,
+                gridcolor="#D9E2EF",
+                range=[min_val - margen_val, max_val + margen_val]
+            )
+
+            fig_val_imp.update_yaxes(
+                showgrid=True,
+                gridcolor="#D9E2EF",
+                zeroline=False,
+                range=[min_val - margen_val, max_val + margen_val]
+            )
+            
 
             contenido = html.Div([
 
                 html.Div(style=estilo_tarjeta, children=[
-                    html.H2("Imputación de datos", style=estilo_titulo),
 
                     html.P(
                         "La imputación se realizó mediante un procedimiento iterativo apoyado en el "
@@ -2312,6 +2554,175 @@ def registrar_callbacks_eda(app, df, columnas_estaciones, serie_objetivo):
                         }
                     )
                 ]),
+                
+                                html.Div(style=estilo_tarjeta, children=[
+
+                    html.H2(
+                        "Métricas de validación de la imputación",
+                        style=estilo_titulo
+                    ),
+
+                    html.P(
+                        "Las métricas se calcularon mediante una validación con faltantes simulados, "
+                        "replicando el procedimiento iterativo de imputación apoyado en el promedio "
+                        "climatológico mensual. Para cada estación se ocultó una fracción de datos "
+                        "observados, se estimaron mediante regresión lineal múltiple y posteriormente "
+                        "se compararon con los valores reales ocultados.",
+                        style=estilo_parrafo
+                    ),
+
+                    crear_tabla(
+                        df_metricas_imp,
+                        page_size=10,
+                        style_data_conditional=[
+                            {
+                                "if": {
+                                    "filter_query": f"{{RMSE}} = {min_rmse}"
+                                },
+                                "backgroundColor": "#DDEEE3",
+                                "color": "#1F5C3A",
+                                "fontWeight": "bold"
+                            },
+                            {
+                                "if": {
+                                    "filter_query": f"{{RMSE}} = {max_rmse}"
+                                },
+                                "backgroundColor": "#F4D7D7",
+                                "color": "#7A1F1F",
+                                "fontWeight": "bold"
+                            },
+                            {
+                                "if": {
+                                    "filter_query": f"{{MAPE [%]}} = {min_mape}"
+                                },
+                                "backgroundColor": "#EAF6EF",
+                                "color": "#1F5C3A",
+                                "fontWeight": "bold"
+                            },
+                            {
+                                "if": {
+                                    "filter_query": f"{{MAPE [%]}} = {max_mape}"
+                                },
+                                "backgroundColor": "#F9E1E1",
+                                "color": "#7A1F1F",
+                                "fontWeight": "bold"
+                            },
+                            {
+                                "if": {
+                                    "filter_query": f"{{R²}} = {max_r2}"
+                                },
+                                "backgroundColor": "#DDEEE3",
+                                "color": "#1F5C3A",
+                                "fontWeight": "bold"
+                            },
+                            {
+                                "if": {
+                                    "filter_query": f"{{R²}} = {min_r2}"
+                                },
+                                "backgroundColor": "#F4D7D7",
+                                "color": "#7A1F1F",
+                                "fontWeight": "bold"
+                            }
+                        ]
+                    ),
+
+                    html.P(
+                        "En esta tabla, los menores valores de RMSE y MAPE indican mejor desempeño, "
+                        "mientras que valores mayores de R² indican una mejor capacidad explicativa del "
+                        "modelo durante la validación.",
+                        style={
+                            **estilo_parrafo,
+                            "marginTop": "18px"
+                        }
+                    )
+
+                ]),
+
+                html.Div(style=estilo_tarjeta, children=[
+
+                    html.H2(
+                        "Comparación de métricas por estación",
+                        style=estilo_titulo
+                    ),
+
+                    html.P(
+                        "Los gráficos comparan el desempeño de la imputación entre estaciones. "
+                        "RMSE y MAPE cuantifican el error de predicción, mientras que R² indica "
+                        "qué proporción de la variabilidad observada es explicada por el modelo.",
+                        style=estilo_parrafo
+                    ),
+
+                    dcc.Graph(
+                        figure=fig_metricas_imp,
+                        config={
+                            "displayModeBar": True,
+                            "scrollZoom": True,
+                            "displaylogo": False,
+                            "toImageButtonOptions": {
+                                "format": "png",
+                                "filename": "metricas_imputacion",
+                                "height": 900,
+                                "width": 1400,
+                                "scale": 2
+                            }
+                        }
+                    )
+
+                ]),
+
+                html.Div(style=estilo_tarjeta, children=[
+
+                    html.H2(
+                        "Validación: real vs predicho",
+                        style=estilo_titulo
+                    ),
+
+                    html.P(
+                        "El gráfico compara los valores reales ocultados durante la validación con los "
+                        "valores predichos por el modelo. La línea punteada representa la relación ideal "
+                        "y=x; mientras más cerca estén los puntos de esta línea, mejor será el desempeño "
+                        "de la imputación.",
+                        style=estilo_parrafo
+                    ),
+
+                    dcc.Dropdown(
+                        id="selector-estacion-validacion-imputacion",
+                        options=[
+                            {
+                                "label": est,
+                                "value": est
+                            }
+                            for est in df_metricas_imp["Estación"].tolist()
+                        ],
+                        value=estacion_val_default,
+                        clearable=False,
+                        style={
+                            "fontFamily": "Georgia",
+                            "fontSize": "14px",
+                            "maxWidth": "360px",
+                            "marginBottom": "18px"
+                        }
+                    ),
+
+                    dcc.Graph(
+                        id="grafica-validacion-imputacion",
+                        figure=fig_val_imp,
+                        config={
+                            "displayModeBar": True,
+                            "scrollZoom": True,
+                            "displaylogo": False,
+                            "toImageButtonOptions": {
+                                "format": "png",
+                                "filename": "validacion_real_vs_predicho",
+                                "height": 900,
+                                "width": 1200,
+                                "scale": 2
+                            }
+                        }
+                    )
+
+                ]),
+                
             ])
 
             return contenido, *estilos
@@ -2322,6 +2733,7 @@ def registrar_callbacks_eda(app, df, columnas_estaciones, serie_objetivo):
             Input("selector-estacion-imputacion", "value"),
             prevent_initial_call=False
         )
+        
         def actualizar_grafica_imputacion(estacion):
 
             ruta_imputados = "data/Niveles_imputados_completo.csv"
@@ -2437,6 +2849,7 @@ def registrar_callbacks_eda(app, df, columnas_estaciones, serie_objetivo):
         Input("selector-estacion-imputacion", "value"),
         prevent_initial_call=False
     )
+    
     def actualizar_grafica_imputacion(estacion):
 
         ruta_imputados = "data/Niveles_imputados_completo.csv"
@@ -2568,6 +2981,134 @@ def registrar_callbacks_eda(app, df, columnas_estaciones, serie_objetivo):
                 max(0, y_min - margen_y),
                 y_max + margen_y
             ]
+        )
+
+        return fig
+    
+    @app.callback(
+        Output("grafica-validacion-imputacion", "figure"),
+        Input("selector-estacion-validacion-imputacion", "value"),
+        prevent_initial_call=False
+    )
+    def actualizar_grafica_validacion_imputacion(estacion):
+
+        ruta_metricas = "data/metricas_imputacion_iterativa.csv"
+        ruta_detalle_validacion = "data/detalle_validacion_imputacion_iterativa.csv"
+
+        df_metricas_imp = pd.read_csv(
+            ruta_metricas,
+            sep=None,
+            engine="python",
+            encoding="utf-8-sig"
+        )
+
+        df_detalle_val = pd.read_csv(
+            ruta_detalle_validacion,
+            sep=None,
+            engine="python",
+            encoding="utf-8-sig"
+        )
+
+        df_metricas_imp.columns = df_metricas_imp.columns.str.strip()
+        df_detalle_val.columns = df_detalle_val.columns.str.strip()
+
+        df_val = df_detalle_val[
+            df_detalle_val["Estación"] == estacion
+        ].copy()
+
+        fila_metricas = df_metricas_imp[
+            df_metricas_imp["Estación"] == estacion
+        ].iloc[0]
+
+        min_val = min(
+            df_val["Valor real"].min(),
+            df_val["Valor predicho"].min()
+        )
+
+        max_val = max(
+            df_val["Valor real"].max(),
+            df_val["Valor predicho"].max()
+        )
+
+        margen_val = 0.06 * (max_val - min_val)
+
+        fig = go.Figure()
+
+        fig.add_trace(
+            go.Scatter(
+                x=df_val["Valor real"],
+                y=df_val["Valor predicho"],
+                mode="markers",
+                name="Real vs predicho",
+                marker=dict(
+                    color=AZUL_MED,
+                    size=6,
+                    opacity=0.65
+                ),
+                hovertemplate=(
+                    "<b>Valor real:</b> %{x:.2f} cm<br>"
+                    "<b>Valor predicho:</b> %{y:.2f} cm<br>"
+                    "<extra></extra>"
+                )
+            )
+        )
+
+        fig.add_trace(
+            go.Scatter(
+                x=[min_val - margen_val, max_val + margen_val],
+                y=[min_val - margen_val, max_val + margen_val],
+                mode="lines",
+                name="Línea ideal (y=x)",
+                line=dict(
+                    color="#B23A48",
+                    width=2,
+                    dash="dash"
+                ),
+                hoverinfo="skip"
+            )
+        )
+
+        fig.update_layout(
+            title=(
+                f"Validación: Real vs Predicho - {estacion} | "
+                f"R²={fila_metricas['R²']:.3f}  "
+                f"RMSE={fila_metricas['RMSE']:.3f}  "
+                f"MAPE={fila_metricas['MAPE [%]']:.3f}%"
+            ),
+            xaxis_title="Valor real [cm]",
+            yaxis_title="Valor predicho [cm]",
+            plot_bgcolor="white",
+            paper_bgcolor="white",
+            font=dict(
+                family="Georgia",
+                size=13,
+                color=AZUL
+            ),
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1,
+                bgcolor="rgba(255,255,255,0.85)",
+                bordercolor="rgba(26,58,92,0.18)",
+                borderwidth=1
+            ),
+            margin=dict(l=70, r=40, t=90, b=70),
+            height=560
+        )
+
+        fig.update_xaxes(
+            showgrid=True,
+            gridcolor="#D9E2EF",
+            range=[min_val - margen_val, max_val + margen_val]
+        )
+
+        fig.update_yaxes(
+            showgrid=True,
+            gridcolor="#D9E2EF",
+            zeroline=False,
+            range=[min_val - margen_val, max_val + margen_val]
         )
 
         return fig

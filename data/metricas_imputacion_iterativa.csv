@@ -1,0 +1,7 @@
+﻿Estación,RMSE,MAE,MAPE [%],R²,Filas evaluadas,Faltantes simulados,Predictoras usadas
+Calamar,73.825,58.294,12.083,0.811,3671,3671,"Achí, El Banco, Salado Blanco, Puerto Berrío, Barrancabermeja"
+Achí,91.489,72.293,17.779,0.583,2906,2906,"Calamar, El Banco, Salado Blanco, Puerto Berrío, Barrancabermeja"
+El Banco,43.255,34.286,5.558,0.903,3618,3618,"Calamar, Achí, Salado Blanco, Puerto Berrío, Barrancabermeja"
+Salado Blanco,48.225,36.304,28.685,0.1,3644,3644,"Calamar, Achí, El Banco, Puerto Berrío, Barrancabermeja"
+Puerto Berrío,28.238,21.899,6.291,0.819,3483,3483,"Calamar, Achí, El Banco, Salado Blanco, Barrancabermeja"
+Barrancabermeja,32.484,25.43,10.787,0.869,3469,3469,"Calamar, Achí, El Banco, Salado Blanco, Puerto Berrío"
