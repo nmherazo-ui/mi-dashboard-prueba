@@ -31,6 +31,22 @@ RUTA_METADATA_KNN = Path("Resultados/metadata_modelo_knn_calamar.json")
 RUTA_TEST_KNN = Path("Resultados/test_final_externo_knn_calamar.csv")
 RUTA_MODELO_KNN = Path("Resultados/modelo_knn_calamar.joblib")
 
+RUTA_METADATA_XARIMA = Path("Resultados/metadata_modelo_xarima_calamar.json")
+RUTA_TEST_XARIMA = Path("Resultados/test_final_externo_xarima_calamar.csv")
+RUTA_MODELO_XARIMA = Path("Resultados/modelo_xarima_calamar.joblib")
+
+RUTA_METADATA_DT = Path("Resultados/metadata_modelo_dt_calamar.json")
+RUTA_TEST_DT = Path("Resultados/test_final_externo_dt_calamar.csv")
+RUTA_MODELO_DT = Path("Resultados/modelo_dt_calamar.joblib")
+
+RUTA_METADATA_LASSO = Path("Resultados/metadata_modelo_lasso_calamar.json")
+RUTA_TEST_LASSO = Path("Resultados/test_final_externo_lasso_calamar.csv")
+RUTA_MODELO_LASSO = Path("Resultados/modelo_lasso_calamar.joblib")
+
+RUTA_METADATA_RIDGE = Path("Resultados/metadata_modelo_ridge_calamar.json")
+RUTA_TEST_RIDGE = Path("Resultados/test_final_externo_ridge_calamar.csv")
+RUTA_MODELO_RIDGE = Path("Resultados/modelo_ridge_calamar.joblib")
+
 RUTA_SERIE_COMPLETA = Path("data/Niveles_imputados_completo.csv")
 
 
@@ -83,6 +99,72 @@ def cargar_resultados_knn_calamar():
         metadata = json.load(f)
 
     df_test = pd.read_csv(RUTA_TEST_KNN, sep=None, engine="python", encoding="utf-8-sig")
+    df_test.columns = df_test.columns.str.strip()
+
+    if "Fecha" in df_test.columns:
+        df_test["Fecha"] = pd.to_datetime(df_test["Fecha"], errors="coerce")
+
+    if "Residuo" not in df_test.columns and {"Calamar_real", "Calamar_predicho"}.issubset(df_test.columns):
+        df_test["Residuo"] = df_test["Calamar_real"] - df_test["Calamar_predicho"]
+
+    return metadata, df_test
+
+
+
+
+def cargar_resultados_xarima_calamar():
+    with open(RUTA_METADATA_XARIMA, "r", encoding="utf-8") as f:
+        metadata = json.load(f)
+
+    df_test = pd.read_csv(RUTA_TEST_XARIMA, sep=None, engine="python", encoding="utf-8-sig")
+    df_test.columns = df_test.columns.str.strip()
+
+    if "Fecha" in df_test.columns:
+        df_test["Fecha"] = pd.to_datetime(df_test["Fecha"], errors="coerce")
+
+    if "Residuo" not in df_test.columns and {"Calamar_real", "Calamar_predicho"}.issubset(df_test.columns):
+        df_test["Residuo"] = df_test["Calamar_real"] - df_test["Calamar_predicho"]
+
+    return metadata, df_test
+
+
+def cargar_resultados_dt_calamar():
+    with open(RUTA_METADATA_DT, "r", encoding="utf-8") as f:
+        metadata = json.load(f)
+
+    df_test = pd.read_csv(RUTA_TEST_DT, sep=None, engine="python", encoding="utf-8-sig")
+    df_test.columns = df_test.columns.str.strip()
+
+    if "Fecha" in df_test.columns:
+        df_test["Fecha"] = pd.to_datetime(df_test["Fecha"], errors="coerce")
+
+    if "Residuo" not in df_test.columns and {"Calamar_real", "Calamar_predicho"}.issubset(df_test.columns):
+        df_test["Residuo"] = df_test["Calamar_real"] - df_test["Calamar_predicho"]
+
+    return metadata, df_test
+
+
+def cargar_resultados_lasso_calamar():
+    with open(RUTA_METADATA_LASSO, "r", encoding="utf-8") as f:
+        metadata = json.load(f)
+
+    df_test = pd.read_csv(RUTA_TEST_LASSO, sep=None, engine="python", encoding="utf-8-sig")
+    df_test.columns = df_test.columns.str.strip()
+
+    if "Fecha" in df_test.columns:
+        df_test["Fecha"] = pd.to_datetime(df_test["Fecha"], errors="coerce")
+
+    if "Residuo" not in df_test.columns and {"Calamar_real", "Calamar_predicho"}.issubset(df_test.columns):
+        df_test["Residuo"] = df_test["Calamar_real"] - df_test["Calamar_predicho"]
+
+    return metadata, df_test
+
+
+def cargar_resultados_ridge_calamar():
+    with open(RUTA_METADATA_RIDGE, "r", encoding="utf-8") as f:
+        metadata = json.load(f)
+
+    df_test = pd.read_csv(RUTA_TEST_RIDGE, sep=None, engine="python", encoding="utf-8-sig")
     df_test.columns = df_test.columns.str.strip()
 
     if "Fecha" in df_test.columns:
@@ -186,6 +268,199 @@ def figura_serie_knn(df_test):
     fig.update_xaxes(showgrid=True, gridcolor="#D9E2EF")
     fig.update_yaxes(showgrid=True, gridcolor="#D9E2EF", zeroline=False)
     return fig
+
+
+
+def figura_serie_xarima(df_test):
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=df_test["Fecha"],
+        y=df_test["Calamar_real"],
+        mode="lines",
+        name="Calamar real",
+        line=dict(color=AZUL, width=2),
+        hovertemplate="<b>Fecha:</b> %{x|%Y-%m-%d}<br><b>Nivel real:</b> %{y:.2f} cm<br><extra></extra>",
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=df_test["Fecha"],
+        y=df_test["Calamar_predicho"],
+        mode="lines",
+        name="Calamar predicho - XARIMA",
+        line=dict(color=CELESTE, width=2, dash="dash"),
+        hovertemplate="<b>Fecha:</b> %{x|%Y-%m-%d}<br><b>Nivel predicho:</b> %{y:.2f} cm<br><extra></extra>",
+    ))
+
+    fig.update_layout(
+        title=None,
+        xaxis_title="Fecha",
+        yaxis_title="Nivel en Calamar [cm]",
+        plot_bgcolor=BLANCO,
+        paper_bgcolor=BLANCO,
+        font=dict(family=FUENTE, size=13, color=AZUL),
+        hovermode="x unified",
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            bgcolor="rgba(255,255,255,0.85)",
+            bordercolor="rgba(26,58,92,0.18)",
+            borderwidth=1,
+        ),
+        margin=dict(l=70, r=40, t=70, b=60),
+        height=520,
+    )
+    fig.update_xaxes(showgrid=True, gridcolor="#D9E2EF")
+    fig.update_yaxes(showgrid=True, gridcolor="#D9E2EF", zeroline=False)
+    return fig
+
+
+
+
+def figura_serie_dt(df_test):
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=df_test["Fecha"],
+        y=df_test["Calamar_real"],
+        mode="lines",
+        name="Calamar real",
+        line=dict(color=AZUL, width=2),
+        hovertemplate="<b>Fecha:</b> %{x|%Y-%m-%d}<br><b>Nivel real:</b> %{y:.2f} cm<br><extra></extra>",
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=df_test["Fecha"],
+        y=df_test["Calamar_predicho"],
+        mode="lines",
+        name="Calamar predicho - Decision Tree",
+        line=dict(color=CELESTE, width=2, dash="dash"),
+        hovertemplate="<b>Fecha:</b> %{x|%Y-%m-%d}<br><b>Nivel predicho:</b> %{y:.2f} cm<br><extra></extra>",
+    ))
+
+    fig.update_layout(
+        title=None,
+        xaxis_title="Fecha",
+        yaxis_title="Nivel en Calamar [cm]",
+        plot_bgcolor=BLANCO,
+        paper_bgcolor=BLANCO,
+        font=dict(family=FUENTE, size=13, color=AZUL),
+        hovermode="x unified",
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            bgcolor="rgba(255,255,255,0.85)",
+            bordercolor="rgba(26,58,92,0.18)",
+            borderwidth=1,
+        ),
+        margin=dict(l=70, r=40, t=70, b=60),
+        height=520,
+    )
+    fig.update_xaxes(showgrid=True, gridcolor="#D9E2EF")
+    fig.update_yaxes(showgrid=True, gridcolor="#D9E2EF", zeroline=False)
+    return fig
+
+
+
+def figura_serie_lasso(df_test):
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=df_test["Fecha"],
+        y=df_test["Calamar_real"],
+        mode="lines",
+        name="Calamar real",
+        line=dict(color=AZUL, width=2),
+        hovertemplate="<b>Fecha:</b> %{x|%Y-%m-%d}<br><b>Nivel real:</b> %{y:.2f} cm<br><extra></extra>",
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=df_test["Fecha"],
+        y=df_test["Calamar_predicho"],
+        mode="lines",
+        name="Calamar predicho - Lasso",
+        line=dict(color=CELESTE, width=2, dash="dash"),
+        hovertemplate="<b>Fecha:</b> %{x|%Y-%m-%d}<br><b>Nivel predicho:</b> %{y:.2f} cm<br><extra></extra>",
+    ))
+
+    fig.update_layout(
+        title=None,
+        xaxis_title="Fecha",
+        yaxis_title="Nivel en Calamar [cm]",
+        plot_bgcolor=BLANCO,
+        paper_bgcolor=BLANCO,
+        font=dict(family=FUENTE, size=13, color=AZUL),
+        hovermode="x unified",
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            bgcolor="rgba(255,255,255,0.85)",
+            bordercolor="rgba(26,58,92,0.18)",
+            borderwidth=1,
+        ),
+        margin=dict(l=70, r=40, t=70, b=60),
+        height=520,
+    )
+    fig.update_xaxes(showgrid=True, gridcolor="#D9E2EF")
+    fig.update_yaxes(showgrid=True, gridcolor="#D9E2EF", zeroline=False)
+    return fig
+
+
+def figura_serie_ridge(df_test):
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=df_test["Fecha"],
+        y=df_test["Calamar_real"],
+        mode="lines",
+        name="Calamar real",
+        line=dict(color=AZUL, width=2),
+        hovertemplate="<b>Fecha:</b> %{x|%Y-%m-%d}<br><b>Nivel real:</b> %{y:.2f} cm<br><extra></extra>",
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=df_test["Fecha"],
+        y=df_test["Calamar_predicho"],
+        mode="lines",
+        name="Calamar predicho - Ridge",
+        line=dict(color=CELESTE, width=2, dash="dash"),
+        hovertemplate="<b>Fecha:</b> %{x|%Y-%m-%d}<br><b>Nivel predicho:</b> %{y:.2f} cm<br><extra></extra>",
+    ))
+
+    fig.update_layout(
+        title=None,
+        xaxis_title="Fecha",
+        yaxis_title="Nivel en Calamar [cm]",
+        plot_bgcolor=BLANCO,
+        paper_bgcolor=BLANCO,
+        font=dict(family=FUENTE, size=13, color=AZUL),
+        hovermode="x unified",
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            bgcolor="rgba(255,255,255,0.85)",
+            bordercolor="rgba(26,58,92,0.18)",
+            borderwidth=1,
+        ),
+        margin=dict(l=70, r=40, t=70, b=60),
+        height=520,
+    )
+    fig.update_xaxes(showgrid=True, gridcolor="#D9E2EF")
+    fig.update_yaxes(showgrid=True, gridcolor="#D9E2EF", zeroline=False)
+    return fig
+
 
 def leer_serie_completa_calamar():
     df_serie = pd.read_csv(
@@ -452,6 +727,92 @@ def figura_particion_temporal_knn(metadata, df_serie, df_test):
     return fig
 
 
+
+
+def figura_particion_temporal_xarima(metadata, df_serie, df_test):
+    fig = figura_particion_temporal_svr(metadata, df_serie, df_test)
+
+    # Ajustar etiquetas del modelo para XARIMA sin duplicar toda la lógica de partición temporal
+    for trace in fig.data:
+        if trace.name == "Predicción SVR":
+            trace.name = "Predicción XARIMA"
+            trace.hovertemplate = (
+                "<b>Predicción XARIMA</b><br>"
+                "<b>Fecha:</b> %{x|%Y-%m-%d}<br>"
+                "<b>Nivel predicho:</b> %{y:.2f} cm<br>"
+                "<extra></extra>"
+            )
+
+    for anot in fig.layout.annotations:
+        if getattr(anot, "text", None) == "observado<br>SVR":
+            anot.text = "observado<br>XARIMA"
+
+    return fig
+
+
+def figura_particion_temporal_dt(metadata, df_serie, df_test):
+    fig = figura_particion_temporal_svr(metadata, df_serie, df_test)
+
+    # Ajustar etiquetas del modelo para Decision Tree sin duplicar toda la lógica
+    for trace in fig.data:
+        if trace.name == "Predicción SVR":
+            trace.name = "Predicción Decision Tree"
+            trace.hovertemplate = (
+                "<b>Predicción Decision Tree</b><br>"
+                "<b>Fecha:</b> %{x|%Y-%m-%d}<br>"
+                "<b>Nivel predicho:</b> %{y:.2f} cm<br>"
+                "<extra></extra>"
+            )
+
+    for anot in fig.layout.annotations:
+        if getattr(anot, "text", None) == "observado<br>SVR":
+            anot.text = "observado<br>Decision Tree"
+
+    return fig
+
+
+def figura_particion_temporal_lasso(metadata, df_serie, df_test):
+    fig = figura_particion_temporal_svr(metadata, df_serie, df_test)
+
+    # Ajustar etiquetas del modelo para Lasso sin duplicar toda la lógica
+    for trace in fig.data:
+        if trace.name == "Predicción SVR":
+            trace.name = "Predicción Lasso"
+            trace.hovertemplate = (
+                "<b>Predicción Lasso</b><br>"
+                "<b>Fecha:</b> %{x|%Y-%m-%d}<br>"
+                "<b>Nivel predicho:</b> %{y:.2f} cm<br>"
+                "<extra></extra>"
+            )
+
+    for anot in fig.layout.annotations:
+        if getattr(anot, "text", None) == "observado<br>SVR":
+            anot.text = "observado<br>Lasso"
+
+    return fig
+
+
+def figura_particion_temporal_ridge(metadata, df_serie, df_test):
+    fig = figura_particion_temporal_svr(metadata, df_serie, df_test)
+
+    # Ajustar etiquetas del modelo para Ridge sin duplicar toda la lógica
+    for trace in fig.data:
+        if trace.name == "Predicción SVR":
+            trace.name = "Predicción Ridge"
+            trace.hovertemplate = (
+                "<b>Predicción Ridge</b><br>"
+                "<b>Fecha:</b> %{x|%Y-%m-%d}<br>"
+                "<b>Nivel predicho:</b> %{y:.2f} cm<br>"
+                "<extra></extra>"
+            )
+
+    for anot in fig.layout.annotations:
+        if getattr(anot, "text", None) == "observado<br>SVR":
+            anot.text = "observado<br>Ridge"
+
+    return fig
+
+
 def figura_histograma_residuos(df_test):
     fig = go.Figure()
 
@@ -687,7 +1048,7 @@ def layout_knn_calamar():
 
     return html.Div([
         html.Div(style=estilo_tarjeta, children=[
-            html.H2("K-Vecinos más cercanos (KNN) - Calamar", style=estilo_titulo),
+            html.H2("K-Vecinos más Cercanos (KNN) - Calamar", style=estilo_titulo),
             html.P(
                 "Este modelo corresponde a un pipeline compuesto por StandardScaler y KNeighborsRegressor, aplicado a la predicción del nivel en la estación Calamar. La configuración final se seleccionó usando MAE como criterio principal de validación y MSE como métrica complementaria.",
                 style=estilo_parrafo,
@@ -759,6 +1120,456 @@ def layout_knn_calamar():
     ])
 
 
+
+
+def layout_xarima_calamar():
+    metadata, df_test = cargar_resultados_xarima_calamar()
+
+    mae = float(metadata["MAE_test_externo"])
+    mse = float(metadata["MSE_test_externo"])
+    rmse = float(np.sqrt(mse))
+
+    df_serie_completa = leer_serie_completa_calamar()
+
+    fig_particion = figura_particion_temporal_xarima(
+        metadata,
+        df_serie_completa,
+        df_test
+    )
+
+    fig_serie = figura_serie_xarima(df_test)
+    fig_hist = figura_histograma_residuos(df_test)
+    fig_acf = figura_acf_residuos(df_test, nlags=60)
+
+    df_validacion = pd.DataFrame([
+        {"Conjunto": "Train / validación", "Fecha inicial": metadata["fecha_inicio_trainval"], "Fecha final": metadata["fecha_fin_trainval"]},
+        {"Conjunto": "Test externo", "Fecha inicial": metadata["fecha_inicio_test_externo"], "Fecha final": metadata["fecha_fin_test_externo"]},
+    ])
+
+    order = metadata["order"]
+    df_hiper = pd.DataFrame([
+        {"Parámetro": "Ventana seleccionada", "Valor": f"{metadata['train_size']} días"},
+        {"Parámetro": "Orden ARIMA (p, d, q)", "Valor": f"({order[0]}, {order[1]}, {order[2]})"},
+        {"Parámetro": "Ventanas evaluadas", "Valor": ", ".join(map(str, metadata["ventanas_evaluadas"]))},
+        {"Parámetro": "Órdenes evaluados", "Valor": "; ".join([f"({o[0]}, {o[1]}, {o[2]})" for o in metadata["ordenes_evaluados"]])},
+    ])
+
+    df_metricas = pd.DataFrame([
+        {"Etapa": "Test externo", "MAE": round(mae, 4), "MSE": round(mse, 4), "RMSE": round(rmse, 4)}
+    ])
+
+    return html.Div([
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("XARIMA/ARIMA con SARIMAX - Calamar", style=estilo_titulo),
+            html.P(
+                "Este modelo corresponde a una formulación XARIMA/ARIMA implementada con SARIMAX, aplicada a la predicción del nivel en la estación Calamar. La configuración final se seleccionó usando MAE como criterio principal de validación y MSE como métrica complementaria.",
+                style=estilo_parrafo,
+            ),
+            html.P(metadata["criterio_final"], style=estilo_parrafo),
+        ]),
+
+        html.Div(style=estilo_flex, children=[
+            tarjeta_metrica("MAE test externo", f"{mae:.3f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo", f"{mse:.3f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Validación temporal", style=estilo_titulo),
+            html.P("El último año disponible se reservó como test externo final. El resto de la serie se empleó para entrenamiento y validación interna.", style=estilo_parrafo),
+            crear_tabla_simple(df_validacion, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Búsqueda y mejores hiperparámetros", style=estilo_titulo),
+            html.P("La búsqueda evaluó diferentes ventanas de entrenamiento y órdenes ARIMA. La tabla resume la configuración seleccionada y las alternativas evaluadas.", style=estilo_parrafo),
+            crear_tabla_simple(df_hiper, page_size=10),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Métricas del test externo", style=estilo_titulo),
+            crear_tabla_simple(df_metricas, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Partición temporal del modelado", style=estilo_titulo),
+            html.P(
+                "La serie se dividió temporalmente en un bloque de entrenamiento y validación interna, "
+                "seguido por un test externo final. El último año fue reservado como conjunto externo "
+                "para evaluar el desempeño del modelo sobre datos no utilizados durante la selección "
+                "de hiperparámetros.",
+                style=estilo_parrafo_sec
+            ),
+            dcc.Graph(
+                figure=fig_particion,
+                config={
+                    "displayModeBar": True,
+                    "scrollZoom": True,
+                    "displaylogo": False,
+                    "toImageButtonOptions": {
+                        "format": "png",
+                        "filename": "particion_temporal_xarima_calamar",
+                        "height": 900,
+                        "width": 1400,
+                        "scale": 2
+                    }
+                }
+            )
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Serie observada vs predicha", style=estilo_titulo),
+            html.P("La gráfica compara el nivel observado en Calamar con la predicción del modelo XARIMA durante el periodo reservado como test externo.", style=estilo_parrafo),
+            dcc.Graph(figure=fig_serie, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Diagnóstico de residuos", style=estilo_titulo),
+            html.P("El diagnóstico de residuos permite revisar la distribución de los errores y su posible dependencia temporal. Idealmente, los residuos deberían concentrarse alrededor de cero y no mostrar autocorrelación marcada.", style=estilo_parrafo),
+            dcc.Graph(figure=fig_hist, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+            dcc.Graph(figure=fig_acf, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+        ]),
+    ])
+
+
+def layout_dt_calamar():
+    metadata, df_test = cargar_resultados_dt_calamar()
+
+    mae = float(metadata["MAE_test_externo"])
+    mse = float(metadata["MSE_test_externo"])
+    rmse = float(np.sqrt(mse))
+
+    df_serie_completa = leer_serie_completa_calamar()
+
+    fig_particion = figura_particion_temporal_dt(
+        metadata,
+        df_serie_completa,
+        df_test
+    )
+
+    fig_serie = figura_serie_dt(df_test)
+    fig_hist = figura_histograma_residuos(df_test)
+    fig_acf = figura_acf_residuos(df_test, nlags=60)
+
+    df_validacion = pd.DataFrame([
+        {"Conjunto": "Train / validación", "Fecha inicial": metadata["fecha_inicio_trainval"], "Fecha final": metadata["fecha_fin_trainval"]},
+        {"Conjunto": "Test externo", "Fecha inicial": metadata["fecha_inicio_test_externo"], "Fecha final": metadata["fecha_fin_test_externo"]},
+    ])
+
+    best_params = metadata["best_params"]
+    def _valor_parametro(valor):
+        return "None" if valor is None else valor
+
+    df_hiper = pd.DataFrame([
+        {"Parámetro": "Ventana seleccionada", "Valor": f"{metadata['numInputs']} días"},
+        {"Parámetro": "max_depth", "Valor": _valor_parametro(best_params["dt__max_depth"])},
+        {"Parámetro": "min_samples_split", "Valor": best_params["dt__min_samples_split"]},
+        {"Parámetro": "min_samples_leaf", "Valor": best_params["dt__min_samples_leaf"]},
+        {"Parámetro": "max_features", "Valor": _valor_parametro(best_params["dt__max_features"])},
+        {"Parámetro": "Ventanas evaluadas", "Valor": ", ".join(map(str, metadata["ventanas_evaluadas"]))},
+        {"Parámetro": "Modelos entrenados en búsqueda", "Valor": metadata["modelos_entrenados_busqueda"]},
+    ])
+
+    df_metricas = pd.DataFrame([
+        {"Etapa": "Test externo", "MAE": round(mae, 4), "MSE": round(mse, 4), "RMSE": round(rmse, 4)}
+    ])
+
+    return html.Div([
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Árbol de Decisión - Calamar", style=estilo_titulo),
+            html.P(
+                "Este modelo corresponde a un DecisionTreeRegressor, aplicado a la predicción del nivel en la estación Calamar. La configuración final se seleccionó usando MAE como criterio principal de validación y MSE como métrica complementaria.",
+                style=estilo_parrafo,
+            ),
+            html.P(metadata["criterio_final"], style=estilo_parrafo),
+        ]),
+
+        html.Div(style=estilo_flex, children=[
+            tarjeta_metrica("MAE test externo", f"{mae:.3f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo", f"{mse:.3f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Validación temporal", style=estilo_titulo),
+            html.P("El último año disponible se reservó como test externo final. El resto de la serie se empleó para entrenamiento y validación interna.", style=estilo_parrafo),
+            crear_tabla_simple(df_validacion, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Búsqueda y mejores hiperparámetros", style=estilo_titulo),
+            html.P("La búsqueda evaluó distintas ventanas de entrada y combinaciones de hiperparámetros del árbol de decisión. La tabla resume la configuración seleccionada y el tamaño de la búsqueda.", style=estilo_parrafo),
+            crear_tabla_simple(df_hiper, page_size=10),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Métricas del test externo", style=estilo_titulo),
+            crear_tabla_simple(df_metricas, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Partición temporal del modelado", style=estilo_titulo),
+            html.P(
+                "La serie se dividió temporalmente en un bloque de entrenamiento y validación interna, "
+                "seguido por un test externo final. El último año fue reservado como conjunto externo "
+                "para evaluar el desempeño del modelo sobre datos no utilizados durante la selección "
+                "de hiperparámetros.",
+                style=estilo_parrafo_sec
+            ),
+            dcc.Graph(
+                figure=fig_particion,
+                config={
+                    "displayModeBar": True,
+                    "scrollZoom": True,
+                    "displaylogo": False,
+                    "toImageButtonOptions": {
+                        "format": "png",
+                        "filename": "particion_temporal_dt_calamar",
+                        "height": 900,
+                        "width": 1400,
+                        "scale": 2
+                    }
+                }
+            )
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Serie observada vs predicha", style=estilo_titulo),
+            html.P("La gráfica compara el nivel observado en Calamar con la predicción del modelo de Árbol de Decisión durante el periodo reservado como test externo.", style=estilo_parrafo),
+            dcc.Graph(figure=fig_serie, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Diagnóstico de residuos", style=estilo_titulo),
+            html.P("El diagnóstico de residuos permite revisar la distribución de los errores y su posible dependencia temporal. Idealmente, los residuos deberían concentrarse alrededor de cero y no mostrar autocorrelación marcada.", style=estilo_parrafo),
+            dcc.Graph(figure=fig_hist, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+            dcc.Graph(figure=fig_acf, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+        ]),
+    ])
+
+
+
+
+def layout_lasso_calamar():
+    metadata, df_test = cargar_resultados_lasso_calamar()
+
+    mae = float(metadata["MAE_test_externo"])
+    mse = float(metadata["MSE_test_externo"])
+    rmse = float(np.sqrt(mse))
+
+    df_serie_completa = leer_serie_completa_calamar()
+
+    fig_particion = figura_particion_temporal_lasso(
+        metadata,
+        df_serie_completa,
+        df_test
+    )
+
+    fig_serie = figura_serie_lasso(df_test)
+    fig_hist = figura_histograma_residuos(df_test)
+    fig_acf = figura_acf_residuos(df_test, nlags=60)
+
+    df_validacion = pd.DataFrame([
+        {"Conjunto": "Train / validación", "Fecha inicial": metadata["fecha_inicio_trainval"], "Fecha final": metadata["fecha_fin_trainval"]},
+        {"Conjunto": "Test externo", "Fecha inicial": metadata["fecha_inicio_test_externo"], "Fecha final": metadata["fecha_fin_test_externo"]},
+    ])
+
+    best_params = metadata["best_params"]
+    df_hiper = pd.DataFrame([
+        {"Parámetro": "Ventana seleccionada", "Valor": f"{metadata['numInputs']} días"},
+        {"Parámetro": "alpha", "Valor": best_params["lasso__alpha"]},
+        {"Parámetro": "Ventanas evaluadas", "Valor": ", ".join(map(str, metadata["ventanas_evaluadas"]))},
+        {"Parámetro": "Modelos entrenados en búsqueda", "Valor": metadata["modelos_entrenados_busqueda"]},
+    ])
+
+    df_metricas = pd.DataFrame([
+        {"Etapa": "Test externo", "MAE": round(mae, 4), "MSE": round(mse, 4), "RMSE": round(rmse, 4)}
+    ])
+
+    return html.Div([
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Regresión Lasso - Calamar", style=estilo_titulo),
+            html.P(
+                "Este modelo corresponde a un pipeline compuesto por StandardScaler y Lasso, aplicado a la predicción del nivel en la estación Calamar. La configuración final se seleccionó usando MAE como criterio principal de validación y MSE como métrica complementaria.",
+                style=estilo_parrafo,
+            ),
+            html.P(metadata["criterio_final"], style=estilo_parrafo),
+        ]),
+
+        html.Div(style=estilo_flex, children=[
+            tarjeta_metrica("MAE test externo", f"{mae:.3f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo", f"{mse:.3f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Validación temporal", style=estilo_titulo),
+            html.P("El último año disponible se reservó como test externo final. El resto de la serie se empleó para entrenamiento y validación interna.", style=estilo_parrafo),
+            crear_tabla_simple(df_validacion, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Búsqueda y mejores hiperparámetros", style=estilo_titulo),
+            html.P("La búsqueda evaluó distintas ventanas de entrada y valores del parámetro alpha de Lasso. La tabla resume la configuración seleccionada y el tamaño de la búsqueda.", style=estilo_parrafo),
+            crear_tabla_simple(df_hiper, page_size=10),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Métricas del test externo", style=estilo_titulo),
+            crear_tabla_simple(df_metricas, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Partición temporal del modelado", style=estilo_titulo),
+            html.P(
+                "La serie se dividió temporalmente en un bloque de entrenamiento y validación interna, "
+                "seguido por un test externo final. El último año fue reservado como conjunto externo "
+                "para evaluar el desempeño del modelo sobre datos no utilizados durante la selección "
+                "de hiperparámetros.",
+                style=estilo_parrafo_sec
+            ),
+            dcc.Graph(
+                figure=fig_particion,
+                config={
+                    "displayModeBar": True,
+                    "scrollZoom": True,
+                    "displaylogo": False,
+                    "toImageButtonOptions": {
+                        "format": "png",
+                        "filename": "particion_temporal_lasso_calamar",
+                        "height": 900,
+                        "width": 1400,
+                        "scale": 2
+                    }
+                }
+            )
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Serie observada vs predicha", style=estilo_titulo),
+            html.P("La gráfica compara el nivel observado en Calamar con la predicción del modelo Lasso durante el periodo reservado como test externo.", style=estilo_parrafo),
+            dcc.Graph(figure=fig_serie, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Diagnóstico de residuos", style=estilo_titulo),
+            html.P("El diagnóstico de residuos permite revisar la distribución de los errores y su posible dependencia temporal. Idealmente, los residuos deberían concentrarse alrededor de cero y no mostrar autocorrelación marcada.", style=estilo_parrafo),
+            dcc.Graph(figure=fig_hist, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+            dcc.Graph(figure=fig_acf, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+        ]),
+    ])
+
+
+def layout_ridge_calamar():
+    metadata, df_test = cargar_resultados_ridge_calamar()
+
+    mae = float(metadata["MAE_test_externo"])
+    mse = float(metadata["MSE_test_externo"])
+    rmse = float(np.sqrt(mse))
+
+    df_serie_completa = leer_serie_completa_calamar()
+
+    fig_particion = figura_particion_temporal_ridge(
+        metadata,
+        df_serie_completa,
+        df_test
+    )
+
+    fig_serie = figura_serie_ridge(df_test)
+    fig_hist = figura_histograma_residuos(df_test)
+    fig_acf = figura_acf_residuos(df_test, nlags=60)
+
+    df_validacion = pd.DataFrame([
+        {"Conjunto": "Train / validación", "Fecha inicial": metadata["fecha_inicio_trainval"], "Fecha final": metadata["fecha_fin_trainval"]},
+        {"Conjunto": "Test externo", "Fecha inicial": metadata["fecha_inicio_test_externo"], "Fecha final": metadata["fecha_fin_test_externo"]},
+    ])
+
+    best_params = metadata["best_params"]
+    df_hiper = pd.DataFrame([
+        {"Parámetro": "Ventana seleccionada", "Valor": f"{metadata['numInputs']} días"},
+        {"Parámetro": "alpha", "Valor": best_params["ridge__alpha"]},
+        {"Parámetro": "Ventanas evaluadas", "Valor": ", ".join(map(str, metadata["ventanas_evaluadas"]))},
+        {"Parámetro": "Modelos entrenados en búsqueda", "Valor": metadata["modelos_entrenados_busqueda"]},
+    ])
+
+    df_metricas = pd.DataFrame([
+        {"Etapa": "Test externo", "MAE": round(mae, 4), "MSE": round(mse, 4), "RMSE": round(rmse, 4)}
+    ])
+
+    return html.Div([
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Regresión Ridge - Calamar", style=estilo_titulo),
+            html.P(
+                "Este modelo corresponde a un pipeline compuesto por StandardScaler y Ridge, aplicado a la predicción del nivel en la estación Calamar. La configuración final se seleccionó usando MAE como criterio principal de validación y MSE como métrica complementaria.",
+                style=estilo_parrafo,
+            ),
+            html.P(metadata["criterio_final"], style=estilo_parrafo),
+        ]),
+
+        html.Div(style=estilo_flex, children=[
+            tarjeta_metrica("MAE test externo", f"{mae:.3f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo", f"{mse:.3f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Validación temporal", style=estilo_titulo),
+            html.P("El último año disponible se reservó como test externo final. El resto de la serie se empleó para entrenamiento y validación interna.", style=estilo_parrafo),
+            crear_tabla_simple(df_validacion, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Búsqueda y mejores hiperparámetros", style=estilo_titulo),
+            html.P("La búsqueda evaluó distintas ventanas de entrada y valores del parámetro alpha de Ridge. La tabla resume la configuración seleccionada y el tamaño de la búsqueda.", style=estilo_parrafo),
+            crear_tabla_simple(df_hiper, page_size=10),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Métricas del test externo", style=estilo_titulo),
+            crear_tabla_simple(df_metricas, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Partición temporal del modelado", style=estilo_titulo),
+            html.P(
+                "La serie se dividió temporalmente en un bloque de entrenamiento y validación interna, "
+                "seguido por un test externo final. El último año fue reservado como conjunto externo "
+                "para evaluar el desempeño del modelo sobre datos no utilizados durante la selección "
+                "de hiperparámetros.",
+                style=estilo_parrafo_sec
+            ),
+            dcc.Graph(
+                figure=fig_particion,
+                config={
+                    "displayModeBar": True,
+                    "scrollZoom": True,
+                    "displaylogo": False,
+                    "toImageButtonOptions": {
+                        "format": "png",
+                        "filename": "particion_temporal_ridge_calamar",
+                        "height": 900,
+                        "width": 1400,
+                        "scale": 2
+                    }
+                }
+            )
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Serie observada vs predicha", style=estilo_titulo),
+            html.P("La gráfica compara el nivel observado en Calamar con la predicción del modelo Ridge durante el periodo reservado como test externo.", style=estilo_parrafo),
+            dcc.Graph(figure=fig_serie, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Diagnóstico de residuos", style=estilo_titulo),
+            html.P("El diagnóstico de residuos permite revisar la distribución de los errores y su posible dependencia temporal. Idealmente, los residuos deberían concentrarse alrededor de cero y no mostrar autocorrelación marcada.", style=estilo_parrafo),
+            dcc.Graph(figure=fig_hist, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+            dcc.Graph(figure=fig_acf, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+        ]),
+    ])
+
+
 def layout_modelos(modelos=None):
     return html.Div([
         html.Div(style=estilo_tarjeta, children=[
@@ -772,6 +1583,10 @@ def layout_modelos(modelos=None):
                 options=[
                     {"label": "Máquina de Vectores de Soporte (SVR)", "value": "svr_calamar"},
                     {"label": "K-Vecinos más Cercanos (KNN)", "value": "knn_calamar"},
+                    {"label": "XARIMA/ARIMA", "value": "xarima_calamar"},
+                    {"label": "Árbol de Decisión", "value": "dt_calamar"},
+                    {"label": "Regresión Lasso", "value": "lasso_calamar"},
+                    {"label": "Regresión Ridge", "value": "ridge_calamar"},
                 ],
                 value="svr_calamar",
                 clearable=False,
@@ -790,6 +1605,18 @@ def registrar_callbacks_modelos(app, df, serie_objetivo, modelos=None):
 
         if modelo == "knn_calamar":
             return layout_knn_calamar()
+
+        if modelo == "xarima_calamar":
+            return layout_xarima_calamar()
+
+        if modelo == "dt_calamar":
+            return layout_dt_calamar()
+
+        if modelo == "lasso_calamar":
+            return layout_lasso_calamar()
+
+        if modelo == "ridge_calamar":
+            return layout_ridge_calamar()
 
         return html.Div(style=estilo_tarjeta, children=[
             html.H2("Modelo no disponible", style=estilo_titulo),
