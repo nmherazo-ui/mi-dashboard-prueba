@@ -59,11 +59,10 @@ def layout_introduccion():
         tarjeta_texto(
             "Contexto del estudio",
             "El río Magdalena es la arteria fluvial más importante de Colombia, desemboca en el mar Caribe "
-            "y su cuenca que cubre cerca del 22.8% del territorio nacional. En su tramo final, conocido como el Bajo Magdalena, el río entra en "
-            "una vasta llanura inundable denominada Depresión Momposina antes de llegar a su zona deltáica. "
-            "La estación de Calamar, situada en el departamento de Bolívar, es considerada el "
-            "ápice hidrológico de este sistema deltaico. Es el punto geográfico exacto donde se define la "
-            "repartición de caudales entre el cauce principal del río Magdalena y el brazo artificial conocido como el Canal del Dique. ",
+            "y su cuenca cubre cerca del 22.8% del territorio nacional. En su tramo final, conocido como el Bajo Magdalena, el río atraviesa una "
+            "extensa llanura inundable llamada Depresión Momposina antes de llegar a su zona deltáica. "
+            "La estación de Calamar, ubicada en el departamento de Bolívar, es el punto clave de este sistema. Allí el río se divide entre su cauce "
+            "principal y el Canal del Dique, un brazo artificial que conecta con la Bahía de Cartagena. ",
         ),
         
         html.Div(style=estilo_flex, children=[
@@ -81,8 +80,10 @@ def layout_introduccion():
             ),
 
             html.P(
-                "El dashboard se estructura en tres componentes principales, orientados a explorar, "
-                "preprocesar y modelar la serie temporal de niveles en la estación de Calamar.",
+                "Este dashboard presenta el comportamiento de los niveles del río Magdalena en varias estaciones durante un período de 50 años, "
+                "entre 1975 y 2025, permitiendo identificar tendencias, variaciones estacionales y cambios históricos en la dinámica hídrica."
+                "Adicionalmente, el módulo de predicción se enfoca exclusivamente en la estación de Calamar, al ser el nodo de control más relevante"
+                "para entender la distribución del agua en el sistema deltaico del Magdalena.",
                 style=estilo_parrafo
             ),
 
