@@ -25,6 +25,8 @@ from estilos import (
 
 RUTA_METADATA_SVR = Path("Resultados/metadata_modelo_svr_calamar.json")
 RUTA_TEST_SVR = Path("Resultados/test_final_externo_svr_calamar.csv")
+RUTA_SERIE_COMPLETA = Path("data/Niveles_imputados_completo.csv")
+RUTA_MODELO = Path("Resultados/modelo_svr_calamar.joblib")
 
 
 def crear_tabla_simple(df, page_size=10):
@@ -117,6 +119,249 @@ def figura_serie_svr(df_test):
     fig.update_yaxes(showgrid=True, gridcolor="#D9E2EF", zeroline=False)
     return fig
 
+def leer_serie_completa_calamar():
+    df_serie = pd.read_csv(
+        RUTA_SERIE_COMPLETA,
+        sep=None,
+        engine="python",
+        encoding="utf-8-sig"
+    )
+
+    df_serie.columns = df_serie.columns.str.strip()
+
+    for col in df_serie.columns:
+        if "Fecha" in col:
+            df_serie = df_serie.rename(columns={col: "Fecha"})
+
+    df_serie["Fecha"] = pd.to_datetime(df_serie["Fecha"], errors="coerce")
+
+    if "Calamar" not in df_serie.columns:
+        raise ValueError("No se encontró la columna Calamar en la serie completa.")
+
+    df_serie["Calamar"] = (
+        df_serie["Calamar"]
+        .astype(str)
+        .str.replace(",", ".", regex=False)
+        .str.strip()
+    )
+    df_serie["Calamar"] = pd.to_numeric(df_serie["Calamar"], errors="coerce")
+
+    df_serie = df_serie[["Fecha", "Calamar"]].dropna().sort_values("Fecha")
+
+    return df_serie
+
+
+def figura_particion_temporal_svr(metadata, df_serie, df_test):
+    fecha_inicio_trainval = pd.to_datetime(metadata["fecha_inicio_trainval"])
+    fecha_fin_trainval = pd.to_datetime(metadata["fecha_fin_trainval"])
+    fecha_inicio_test = pd.to_datetime(metadata["fecha_inicio_test_externo"])
+    fecha_fin_test = pd.to_datetime(metadata["fecha_fin_test_externo"])
+
+    df_serie = df_serie.copy()
+    df_test = df_test.copy()
+
+    df_serie["Fecha"] = pd.to_datetime(df_serie["Fecha"], errors="coerce")
+    df_test["Fecha"] = pd.to_datetime(df_test["Fecha"], errors="coerce")
+
+    df_trainval = df_serie[
+        (df_serie["Fecha"] >= fecha_inicio_trainval)
+        & (df_serie["Fecha"] <= fecha_fin_trainval)
+    ].copy()
+
+    df_test_obs = df_serie[
+        (df_serie["Fecha"] >= fecha_inicio_test)
+        & (df_serie["Fecha"] <= fecha_fin_test)
+    ].copy()
+
+    fig = go.Figure()
+
+    # Serie completa como referencia
+    fig.add_trace(
+        go.Scatter(
+            x=df_serie["Fecha"],
+            y=df_serie["Calamar"],
+            mode="lines",
+            name="Serie completa",
+            line=dict(
+                color="rgba(30,30,30,0.45)",
+                width=1.4,
+                dash="dash"
+            ),
+            hovertemplate=(
+                "<b>Fecha:</b> %{x|%Y-%m-%d}<br>"
+                "<b>Nivel:</b> %{y:.2f} cm<br>"
+                "<extra></extra>"
+            )
+        )
+    )
+
+    # Train / validación interna
+    fig.add_trace(
+        go.Scatter(
+            x=df_trainval["Fecha"],
+            y=df_trainval["Calamar"],
+            mode="lines",
+            name="Train / validación interna",
+            line=dict(
+                color="#D94F8C",
+                width=2.3
+            ),
+            hovertemplate=(
+                "<b>Train/validación interna</b><br>"
+                "<b>Fecha:</b> %{x|%Y-%m-%d}<br>"
+                "<b>Nivel:</b> %{y:.2f} cm<br>"
+                "<extra></extra>"
+            )
+        )
+    )
+
+    # Test observado
+    fig.add_trace(
+        go.Scatter(
+            x=df_test_obs["Fecha"],
+            y=df_test_obs["Calamar"],
+            mode="lines",
+            name="Test observado",
+            line=dict(
+                color="#3498DB",
+                width=2.8
+            ),
+            hovertemplate=(
+                "<b>Test observado</b><br>"
+                "<b>Fecha:</b> %{x|%Y-%m-%d}<br>"
+                "<b>Nivel:</b> %{y:.2f} cm<br>"
+                "<extra></extra>"
+            )
+        )
+    )
+
+    # Predicción SVR en test externo
+    fig.add_trace(
+        go.Scatter(
+            x=df_test["Fecha"],
+            y=df_test["Calamar_predicho"],
+            mode="lines",
+            name="Predicción SVR",
+            line=dict(
+                color="#1A3A5C",
+                width=2.4,
+                dash="dot"
+            ),
+            hovertemplate=(
+                "<b>Predicción SVR</b><br>"
+                "<b>Fecha:</b> %{x|%Y-%m-%d}<br>"
+                "<b>Nivel predicho:</b> %{y:.2f} cm<br>"
+                "<extra></extra>"
+            )
+        )
+    )
+
+    # Líneas verticales de separación
+    fig.add_vline(
+        x=fecha_fin_trainval,
+        line_width=1.8,
+        line_dash="dash",
+        line_color="#8E44AD"
+    )
+
+    fig.add_vline(
+        x=fecha_inicio_test,
+        line_width=1.8,
+        line_dash="dash",
+        line_color="#3498DB"
+    )
+
+    y_min = df_serie["Calamar"].min()
+    y_max = df_serie["Calamar"].max()
+    rango_y = y_max - y_min
+    margen_y = 0.12 * rango_y
+
+    # Etiquetas superiores
+    if len(df_trainval) > 0:
+        fig.add_annotation(
+            x=df_trainval["Fecha"].iloc[len(df_trainval) // 2],
+            y=y_max + margen_y,
+            text="<b>Train / validación interna</b>",
+            showarrow=False,
+            font=dict(
+                family="Georgia",
+                size=14,
+                color="#D94F8C"
+            )
+        )
+
+    if len(df_test_obs) > 0:
+        fig.add_annotation(
+            x=df_test_obs["Fecha"].iloc[len(df_test_obs) // 2],
+            y=y_max + margen_y,
+            text="<b>Test externo</b>",
+            showarrow=False,
+            font=dict(
+                family="Georgia",
+                size=14,
+                color="#3498DB"
+            )
+        )
+
+    fig.add_annotation(
+        x=fecha_inicio_test,
+        y=y_max,
+        text="observado<br>SVR",
+        showarrow=False,
+        xanchor="left",
+        align="left",
+        font=dict(
+            family="Georgia",
+            size=12,
+            color="#1A3A5C"
+        ),
+        bgcolor="rgba(255,255,255,0.80)",
+        bordercolor="rgba(26,58,92,0.15)",
+        borderwidth=1
+    )
+
+    fig.update_layout(
+        title=None,
+        xaxis_title="Fecha",
+        yaxis_title="Nivel en Calamar [cm]",
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        font=dict(
+            family="Georgia",
+            size=13,
+            color="#1A3A5C"
+        ),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.04,
+            xanchor="right",
+            x=1,
+            bgcolor="rgba(255,255,255,0.85)",
+            bordercolor="rgba(26,58,92,0.18)",
+            borderwidth=1
+        ),
+        margin=dict(l=70, r=40, t=90, b=60),
+        height=520
+    )
+
+    fig.update_xaxes(
+        showgrid=True,
+        gridcolor="#D9E2EF"
+    )
+
+    fig.update_yaxes(
+        showgrid=True,
+        gridcolor="#D9E2EF",
+        zeroline=False,
+        range=[
+            max(0, y_min - 0.04 * rango_y),
+            y_max + 1.45 * margen_y
+        ]
+    )
+
+    return fig
+
 
 def figura_histograma_residuos(df_test):
     fig = go.Figure()
@@ -198,9 +443,19 @@ def layout_svr_calamar():
     mse = float(metadata["MSE_test_externo"])
     rmse = float(np.sqrt(mse))
 
+    df_serie_completa = leer_serie_completa_calamar()
+
+    fig_particion = figura_particion_temporal_svr(
+        metadata,
+        df_serie_completa,
+        df_test
+    )
+
     fig_serie = figura_serie_svr(df_test)
     fig_hist = figura_histograma_residuos(df_test)
     fig_acf = figura_acf_residuos(df_test, nlags=60)
+
+
 
     df_validacion = pd.DataFrame([
         {"Conjunto": "Train / validación", "Fecha inicial": metadata["fecha_inicio_trainval"], "Fecha final": metadata["fecha_fin_trainval"]},
@@ -253,6 +508,39 @@ def layout_svr_calamar():
             html.H2("Métricas del test externo", style=estilo_titulo),
             crear_tabla_simple(df_metricas, page_size=5),
         ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+
+    html.H2(
+        "Partición temporal del modelado",
+        style=estilo_titulo
+    ),
+
+    html.P(
+        "La serie se dividió temporalmente en un bloque de entrenamiento y validación interna, "
+        "seguido por un test externo final. El último año fue reservado como conjunto externo "
+        "para evaluar el desempeño del modelo sobre datos no utilizados durante la selección "
+        "de hiperparámetros.",
+        style=estilo_parrafo_sec
+    ),
+
+    dcc.Graph(
+        figure=fig_particion,
+        config={
+            "displayModeBar": True,
+            "scrollZoom": True,
+            "displaylogo": False,
+            "toImageButtonOptions": {
+                "format": "png",
+                "filename": "particion_temporal_svr_calamar",
+                "height": 900,
+                "width": 1400,
+                "scale": 2
+            }
+        }
+    )
+
+]),
 
         html.Div(style=estilo_tarjeta, children=[
             html.H2("Serie observada vs predicha", style=estilo_titulo),
