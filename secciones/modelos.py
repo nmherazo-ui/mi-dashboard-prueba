@@ -3791,8 +3791,10 @@ def figura_heatmap_mannwhitney_todos_contra_todos(df_resultados):
     for i in range(min(matriz.shape)):
         matriz.iat[i, i] = np.nan
 
+    texto = matriz.copy().astype(object)
+
     texto = texto.map(
-        lambda valor: "" if pd.isna(valor) or valor == "" else f"{float(valor):.3g}"
+        lambda valor: "" if pd.isna(valor) else f"{float(valor):.3g}"
     )
 
     fig = go.Figure(
@@ -3839,7 +3841,6 @@ def figura_heatmap_mannwhitney_todos_contra_todos(df_resultados):
     fig.update_yaxes(autorange="reversed", showgrid=False)
 
     return fig
-
 
 def layout_todos_modelos():
     df_metricas, predicciones = cargar_comparacion_modelos()
