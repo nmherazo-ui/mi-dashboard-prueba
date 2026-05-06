@@ -85,6 +85,21 @@ RUTAS_DM_CUADRATICA = [
     Path("Resultados/matriz_pvalues_dm_cuadratica.xlsx"),
 ]
 
+RUTAS_MW_ERRORES_ABSOLUTOS = [
+    Path("Resultados/matriz_errores_absolutos_modelos.csv"),
+    Path("Resultados/matriz_errores_absolutos_modelos.xlsx"),
+]
+
+RUTAS_MW_SVR_VS_MODELOS = [
+    Path("Resultados/resultados_mannwhitney_svr_vs_modelos.csv"),
+    Path("Resultados/resultados_mannwhitney_svr_vs_modelos.xlsx"),
+]
+
+RUTAS_MW_TODOS_CONTRA_TODOS = [
+    Path("Resultados/resultados_mannwhitney_todos_contra_todos.csv"),
+    Path("Resultados/resultados_mannwhitney_todos_contra_todos.xlsx"),
+]
+
 
 def crear_tabla_simple(df, page_size=10):
     return dash_table.DataTable(
@@ -3373,6 +3388,257 @@ def figura_heatmap_pvalues_dm(df_pvalues):
     return fig
 
 
+
+
+MAPA_NOMBRES_MANNWHITNEY = {
+    "RandomForest": "Random Forest",
+    "DecisionTree": "Árbol de Decisión",
+    "XARIMA": "XARIMA/ARIMA",
+}
+
+
+def leer_archivo_mannwhitney_modelos(rutas_posibles, descripcion):
+    ruta_encontrada = None
+
+    for ruta in rutas_posibles:
+        if ruta.exists():
+            ruta_encontrada = ruta
+            break
+
+    if ruta_encontrada is None:
+        rutas_txt = ", ".join(str(ruta) for ruta in rutas_posibles)
+        raise FileNotFoundError(f"No se encontró el archivo de {descripcion}. Rutas revisadas: {rutas_txt}")
+
+    if ruta_encontrada.suffix.lower() in [".xlsx", ".xls"]:
+        df = pd.read_excel(ruta_encontrada)
+    else:
+        df = pd.read_csv(
+            ruta_encontrada,
+            sep=None,
+            engine="python",
+            encoding="utf-8-sig",
+        )
+
+    df.columns = df.columns.astype(str).str.strip()
+    return df
+
+
+def figura_heatmap_errores_absolutos_mannwhitney(df_errores):
+    df = df_errores.copy()
+    df.columns = df.columns.astype(str).str.strip()
+
+    columna_fecha = None
+    for col in df.columns:
+        if col.lower() == "fecha":
+            columna_fecha = col
+            break
+
+    if columna_fecha is not None:
+        df[columna_fecha] = pd.to_datetime(df[columna_fecha], errors="coerce")
+        df = df.set_index(columna_fecha)
+        df.index = df.index.strftime("%Y-%m-%d")
+
+    df = df.rename(columns=MAPA_NOMBRES_MANNWHITNEY)
+    df = df.apply(pd.to_numeric, errors="coerce")
+
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=df.values,
+            x=df.columns,
+            y=df.index,
+            zmin=0,
+            zmax=float(np.nanmax(df.values)) if np.isfinite(np.nanmax(df.values)) else 1,
+            colorscale=[
+                [0.00, "#B23A48"],
+                [0.05, "#F4D7D7"],
+                [0.25, "#EAF1F8"],
+                [1.00, AZUL],
+            ],
+            colorbar=dict(
+                title="Error absoluto",
+                tickfont=dict(family=FUENTE, size=12, color=AZUL),
+            ),
+            hovertemplate=(
+                "<b>Fecha:</b> %{y}<br>"
+                "<b>Modelo:</b> %{x}<br>"
+                "<b>Error absoluto:</b> %{z:.4g}"
+                "<extra></extra>"
+            ),
+        )
+    )
+
+    fig.update_layout(
+        title=None,
+        xaxis_title="Modelo",
+        yaxis_title="Fecha",
+        plot_bgcolor=BLANCO,
+        paper_bgcolor=BLANCO,
+        font=dict(family=FUENTE, size=13, color=AZUL),
+        margin=dict(l=120, r=80, t=40, b=120),
+        height=760,
+    )
+
+    fig.update_xaxes(tickangle=-35, showgrid=False)
+    fig.update_yaxes(showgrid=False)
+
+    return fig
+
+
+def figura_heatmap_mannwhitney_svr_vs_modelos(df_resultados):
+    df = df_resultados.copy()
+    df.columns = df.columns.astype(str).str.strip()
+
+    columna_modelo = "modelo_comparado"
+    if columna_modelo not in df.columns:
+        raise ValueError("No se encontró la columna 'modelo_comparado' en resultados_mannwhitney_svr_vs_modelos.")
+
+    columna_pvalor = "p_valor_ajustado_holm"
+    if columna_pvalor not in df.columns:
+        columna_pvalor = "p_valor"
+
+    if columna_pvalor not in df.columns:
+        raise ValueError("No se encontró la columna de p-valor en resultados_mannwhitney_svr_vs_modelos.")
+
+    df[columna_modelo] = df[columna_modelo].astype(str).str.strip().replace(MAPA_NOMBRES_MANNWHITNEY)
+    df[columna_pvalor] = pd.to_numeric(df[columna_pvalor], errors="coerce")
+
+    modelos = df[columna_modelo].tolist()
+    valores = df[columna_pvalor].values.reshape(1, -1)
+    texto = np.array([[("" if pd.isna(v) else f"{float(v):.3g}") for v in df[columna_pvalor].values]])
+
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=valores,
+            x=modelos,
+            y=["SVR"],
+            text=texto,
+            texttemplate="%{text}",
+            textfont=dict(size=10, color=AZUL),
+            zmin=0,
+            zmax=1,
+            colorscale=[
+                [0.00, "#B23A48"],
+                [0.05, "#F4D7D7"],
+                [0.25, "#EAF1F8"],
+                [1.00, AZUL],
+            ],
+            colorbar=dict(
+                title="p-valor",
+                tickfont=dict(family=FUENTE, size=12, color=AZUL),
+            ),
+            hovertemplate=(
+                "<b>Referencia:</b> SVR<br>"
+                "<b>Modelo comparado:</b> %{x}<br>"
+                "<b>p-valor:</b> %{z:.4g}"
+                "<extra></extra>"
+            ),
+        )
+    )
+
+    fig.update_layout(
+        title=None,
+        xaxis_title="Modelo comparado",
+        yaxis_title="Modelo de referencia",
+        plot_bgcolor=BLANCO,
+        paper_bgcolor=BLANCO,
+        font=dict(family=FUENTE, size=13, color=AZUL),
+        margin=dict(l=120, r=80, t=40, b=120),
+        height=360,
+    )
+
+    fig.update_xaxes(tickangle=-35, showgrid=False)
+    fig.update_yaxes(showgrid=False)
+
+    return fig
+
+
+def figura_heatmap_mannwhitney_todos_contra_todos(df_resultados):
+    df = df_resultados.copy()
+    df.columns = df.columns.astype(str).str.strip()
+
+    columna_a = "modelo_a"
+    columna_b = "modelo_b"
+    if columna_a not in df.columns or columna_b not in df.columns:
+        raise ValueError("No se encontraron las columnas 'modelo_a' y 'modelo_b' en resultados_mannwhitney_todos_contra_todos.")
+
+    columna_pvalor = "p_valor_ajustado_holm"
+    if columna_pvalor not in df.columns:
+        columna_pvalor = "p_valor"
+
+    if columna_pvalor not in df.columns:
+        raise ValueError("No se encontró la columna de p-valor en resultados_mannwhitney_todos_contra_todos.")
+
+    df[columna_a] = df[columna_a].astype(str).str.strip().replace(MAPA_NOMBRES_MANNWHITNEY)
+    df[columna_b] = df[columna_b].astype(str).str.strip().replace(MAPA_NOMBRES_MANNWHITNEY)
+    df[columna_pvalor] = pd.to_numeric(df[columna_pvalor], errors="coerce")
+
+    modelos = []
+    for modelo in list(df[columna_a]) + list(df[columna_b]):
+        if modelo not in modelos:
+            modelos.append(modelo)
+
+    matriz = pd.DataFrame(np.nan, index=modelos, columns=modelos)
+
+    for _, fila in df.iterrows():
+        modelo_a = fila[columna_a]
+        modelo_b = fila[columna_b]
+        pvalor = fila[columna_pvalor]
+        matriz.loc[modelo_a, modelo_b] = pvalor
+        matriz.loc[modelo_b, modelo_a] = pvalor
+
+    for i in range(min(matriz.shape)):
+        matriz.iat[i, i] = np.nan
+
+    texto = matriz.applymap(
+        lambda valor: "" if pd.isna(valor) else f"{float(valor):.3g}"
+    )
+
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=matriz.values,
+            x=matriz.columns,
+            y=matriz.index,
+            text=texto.values,
+            texttemplate="%{text}",
+            textfont=dict(size=10, color=AZUL),
+            zmin=0,
+            zmax=1,
+            colorscale=[
+                [0.00, "#B23A48"],
+                [0.05, "#F4D7D7"],
+                [0.25, "#EAF1F8"],
+                [1.00, AZUL],
+            ],
+            colorbar=dict(
+                title="p-valor",
+                tickfont=dict(family=FUENTE, size=12, color=AZUL),
+            ),
+            hovertemplate=(
+                "<b>Modelo A:</b> %{y}<br>"
+                "<b>Modelo B:</b> %{x}<br>"
+                "<b>p-valor:</b> %{z:.4g}"
+                "<extra></extra>"
+            ),
+        )
+    )
+
+    fig.update_layout(
+        title=None,
+        xaxis_title="Modelo",
+        yaxis_title="Modelo",
+        plot_bgcolor=BLANCO,
+        paper_bgcolor=BLANCO,
+        font=dict(family=FUENTE, size=13, color=AZUL),
+        margin=dict(l=140, r=80, t=40, b=120),
+        height=720,
+    )
+
+    fig.update_xaxes(tickangle=-35, showgrid=False)
+    fig.update_yaxes(autorange="reversed", showgrid=False)
+
+    return fig
+
+
 def layout_todos_modelos():
     df_metricas, predicciones = cargar_comparacion_modelos()
 
@@ -3391,6 +3657,21 @@ def layout_todos_modelos():
     df_dm_cuadratica = leer_matriz_pvalues_dm(RUTAS_DM_CUADRATICA)
     fig_dm_absoluta = figura_heatmap_pvalues_dm(df_dm_absoluta)
     fig_dm_cuadratica = figura_heatmap_pvalues_dm(df_dm_cuadratica)
+    df_mw_errores_absolutos = leer_archivo_mannwhitney_modelos(
+        RUTAS_MW_ERRORES_ABSOLUTOS,
+        "matriz de errores absolutos por modelo",
+    )
+    df_mw_svr_vs_modelos = leer_archivo_mannwhitney_modelos(
+        RUTAS_MW_SVR_VS_MODELOS,
+        "resultados Mann-Whitney SVR vs modelos",
+    )
+    df_mw_todos_contra_todos = leer_archivo_mannwhitney_modelos(
+        RUTAS_MW_TODOS_CONTRA_TODOS,
+        "resultados Mann-Whitney todos contra todos",
+    )
+    fig_mw_errores_absolutos = figura_heatmap_errores_absolutos_mannwhitney(df_mw_errores_absolutos)
+    fig_mw_svr_vs_modelos = figura_heatmap_mannwhitney_svr_vs_modelos(df_mw_svr_vs_modelos)
+    fig_mw_todos_contra_todos = figura_heatmap_mannwhitney_todos_contra_todos(df_mw_todos_contra_todos)
 
     texto_conclusion = (
     "Con el fin de evaluar la eficacia de cada modelo para predecir el nivel del río, se hizo uso de un test externo correspondiente "
@@ -3576,13 +3857,24 @@ def layout_todos_modelos():
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
-            html.H2("Mapas de calor de p-valores DM", style=estilo_titulo),
+            html.H2("Mapas de calor de p-valores Diebold-Mariano", style=estilo_titulo),
+            html.P(
+                "El test de Diebold–Mariano se aplicó para comparar la capacidad predictiva de los modelos sobre el mismo periodo "
+                "de test externo, usando pérdida absoluta y pérdida cuadrática, asociadas al MAE y al MSE, respectivamente. "
+                "Los resultados mostraron que SVR obtuvo el menor error promedio en el test externo, sin embargo, su diferencia "
+                "con Random Forest no fue estadísticamente significativa en ninguna de las dos funciones de pérdida. Esto indica que, "
+                "aunque SVR presentó el mejor desempeño promedio, Random Forest tuvo una capacidad predictiva estadísticamente comparable. "
+                "En contraste, varios modelos con mayores errores, como MLP, LSTM, RNN y XARIMA, sí presentaron diferencias significativas "
+                "frente a los modelos de mejor desempeño, evidenciando una menor precisión relativa en el periodo evaluado.",
+                style=estilo_parrafo,
+            ),
+            
             html.Div(
                 style={
                     "display": "grid",
-                    "gridTemplateColumns": "repeat(2, minmax(0, 1fr))",
-                    "gap": "18px",
-                    "alignItems": "start",
+                    "gridTemplateColumns": "1fr",
+                    "gap": "28px",
+                    "alignItems": "stretch",
                 },
                 children=[
                     html.Div(children=[
@@ -3626,6 +3918,80 @@ def layout_todos_modelos():
                                 "toImageButtonOptions": {
                                     "format": "png",
                                     "filename": "heatmap_pvalues_dm_cuadratica",
+                                    "height": 1100,
+                                    "width": 1400,
+                                    "scale": 2,
+                                },
+                            },
+                        ),
+                    ]),
+                ],
+            ),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Diferencias entre modelos con el Test Mann-Whitney", style=estilo_titulo),
+            html.P(
+                "Para comprender la significancia entre las diferencias de los modelos, se optó por aplicar el test Mann-Whitney. "
+                "Los valores de P fueron graficados en una matriz, esta muestra que, en la mayoría de comparaciones, los modelos sí "
+                "presentan diferencias claras entre sus errores, porque muchos valores de P son menores a 0.001. Esto quiere decir "
+                "que no solo hay diferencias en las métricas generales como MAE o RMSE, sino que esas diferencias también se reflejan "
+                "en los errores del test externo. Sin embargo, hay algunos grupos de modelos que se comportan de forma parecida, por "
+                "ejemplo SVR y Random Forest, donde el valor-p ajustado fue alto, lo que indica que sus errores no son estadísticamente "
+                "tan distintos. Algo similar ocurre entre Ridge y Lasso, y entre XGBoost y Decision Tree. En general, la prueba confirma "
+                "que SVR fue uno de los modelos más competitivos, pero también muestra que su ventaja frente a algunos modelos cercanos, "
+                "como Random Forest, no es tan marcada desde el punto de vista estadístico y se podría optar por modelos con menor costo "
+                "computacional.",
+                style=estilo_parrafo,
+            ),
+            html.Div(
+                style={
+                    "display": "grid",
+                    "gridTemplateColumns": "1fr",
+                    "gap": "28px",
+                    "alignItems": "stretch",
+                },
+                children=[
+                    html.Div(children=[
+                        html.H3("Mann-Whitney: SVR vs modelos", style={**estilo_titulo, "fontSize": "18px"}),
+                        html.P(
+                            "Este mapa muestra los p-valores ajustados del test Mann-Whitney al comparar "
+                            "la distribución de errores absolutos del SVR frente a los demás modelos.",
+                            style=estilo_parrafo,
+                        ),
+                        dcc.Graph(
+                            figure=fig_mw_svr_vs_modelos,
+                            config={
+                                "displayModeBar": True,
+                                "scrollZoom": True,
+                                "displaylogo": False,
+                                "toImageButtonOptions": {
+                                    "format": "png",
+                                    "filename": "heatmap_mannwhitney_svr_vs_modelos",
+                                    "height": 700,
+                                    "width": 1400,
+                                    "scale": 2,
+                                },
+                            },
+                        ),
+                    ]),
+                    html.Div(children=[
+                        html.H3("Mann-Whitney: todos contra todos", style={**estilo_titulo, "fontSize": "18px"}),
+                        html.P(
+                            "Este mapa muestra los p-valores ajustados del test Mann-Whitney para todas "
+                            "las comparaciones pareadas entre modelos. Valores menores que 0.05 indican "
+                            "diferencias estadísticamente significativas entre distribuciones de errores.",
+                            style=estilo_parrafo,
+                        ),
+                        dcc.Graph(
+                            figure=fig_mw_todos_contra_todos,
+                            config={
+                                "displayModeBar": True,
+                                "scrollZoom": True,
+                                "displaylogo": False,
+                                "toImageButtonOptions": {
+                                    "format": "png",
+                                    "filename": "heatmap_mannwhitney_todos_contra_todos",
                                     "height": 1100,
                                     "width": 1400,
                                     "scale": 2,

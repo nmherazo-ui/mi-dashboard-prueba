@@ -1,0 +1,12 @@
+﻿comparación,modelo_referencia,modelo_comparado,n_referencia,n_comparado,MAE_referencia,MAE_comparado,diferencia_MAE,U,p_valor,p_valor_ajustado_holm,¿Diferencia significativa?,interpretación
+SVR vs Random Forest,SVR,Random Forest,366,366,1.6044,1.6801,0.0758,65945.0,0.359068,0.359068,No,No se evidencia diferencia significativa a favor de SVR.
+SVR vs KNN,SVR,KNN,366,366,1.6044,1.7777,0.1733,63790.0,0.132572,0.265144,No,No se evidencia diferencia significativa a favor de SVR.
+SVR vs XGBoost,SVR,XGBoost,366,366,1.6044,1.8304,0.2261,58796.0,0.002117,0.008469,Sí,El modelo SVR presenta errores significativamente menores.
+SVR vs Árbol de Decisión,SVR,Árbol de Decisión,366,366,1.6044,1.9934,0.389,59087.0,0.002904,0.008712,Sí,El modelo SVR presenta errores significativamente menores.
+SVR vs Ridge,SVR,Ridge,366,366,1.6044,2.0803,0.4759,56430.0,0.000113,0.00068,Sí,El modelo SVR presenta errores significativamente menores.
+SVR vs Lasso,SVR,Lasso,366,366,1.6044,2.0806,0.4762,56433.0,0.000114,0.00068,Sí,El modelo SVR presenta errores significativamente menores.
+SVR vs CNN,SVR,CNN,366,366,1.6044,2.5345,0.9301,43822.0,0.0,0.0,Sí,El modelo SVR presenta errores significativamente menores.
+SVR vs RNN,SVR,RNN,366,366,1.6044,3.4434,1.839,35372.0,0.0,0.0,Sí,El modelo SVR presenta errores significativamente menores.
+SVR vs XARIMA/ARIMA,SVR,XARIMA/ARIMA,366,366,1.6044,3.5702,1.9658,37134.0,0.0,0.0,Sí,El modelo SVR presenta errores significativamente menores.
+SVR vs LSTM,SVR,LSTM,366,366,1.6044,4.1565,2.5521,32113.0,0.0,0.0,Sí,El modelo SVR presenta errores significativamente menores.
+SVR vs MLP,SVR,MLP,366,366,1.6044,5.5115,3.9071,22512.0,0.0,0.0,Sí,El modelo SVR presenta errores significativamente menores.

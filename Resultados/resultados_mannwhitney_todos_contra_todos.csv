@@ -1,0 +1,67 @@
+﻿modelo_a,modelo_b,n_modelo_a,n_modelo_b,MAE_modelo_a,MAE_modelo_b,mejor_por_MAE,diferencia_MAE_a_menos_b,U,p_valor,p_valor_ajustado_holm,¿Diferencia significativa?,interpretación
+SVR,Random Forest,366,366,1.6044,1.6801,SVR,-0.0758,65945.0,0.718136,1.0,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+SVR,KNN,366,366,1.6044,1.7777,SVR,-0.1733,63790.0,0.265144,1.0,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+SVR,XGBoost,366,366,1.6044,1.8304,SVR,-0.2261,58796.0,0.004234,0.084685,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+SVR,Árbol de Decisión,366,366,1.6044,1.9934,SVR,-0.389,59087.0,0.005808,0.110351,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+SVR,Ridge,366,366,1.6044,2.0803,SVR,-0.4759,56430.0,0.000227,0.00544,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+SVR,Lasso,366,366,1.6044,2.0806,SVR,-0.4762,56433.0,0.000228,0.00544,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+SVR,CNN,366,366,1.6044,2.5345,SVR,-0.9301,43822.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+SVR,RNN,366,366,1.6044,3.4434,SVR,-1.839,35372.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+SVR,XARIMA/ARIMA,366,366,1.6044,3.5702,SVR,-1.9658,37134.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+SVR,LSTM,366,366,1.6044,4.1565,SVR,-2.5521,32113.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+SVR,MLP,366,366,1.6044,5.5115,SVR,-3.9071,22512.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Random Forest,KNN,366,366,1.6801,1.7777,Random Forest,-0.0975,64925.0,0.473046,1.0,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+Random Forest,XGBoost,366,366,1.6801,1.8304,Random Forest,-0.1503,60251.0,0.018697,0.261764,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+Random Forest,Árbol de Decisión,366,366,1.6801,1.9934,Random Forest,-0.3133,60293.0,0.019448,0.261764,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+Random Forest,Ridge,366,366,1.6801,2.0803,Random Forest,-0.4002,57417.0,0.000831,0.018031,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Random Forest,Lasso,366,366,1.6801,2.0806,Random Forest,-0.4004,57406.0,0.00082,0.018031,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Random Forest,CNN,366,366,1.6801,2.5345,Random Forest,-0.8543,45341.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Random Forest,RNN,366,366,1.6801,3.4434,Random Forest,-1.7633,36750.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Random Forest,XARIMA/ARIMA,366,366,1.6801,3.5702,Random Forest,-1.89,38412.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Random Forest,LSTM,366,366,1.6801,4.1565,Random Forest,-2.4763,33318.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Random Forest,MLP,366,366,1.6801,5.5115,Random Forest,-3.8313,23553.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+KNN,XGBoost,366,366,1.7777,1.8304,KNN,-0.0528,62231.0,0.097051,1.0,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+KNN,Árbol de Decisión,366,366,1.7777,1.9934,KNN,-0.2157,62257.0,0.098895,1.0,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+KNN,Ridge,366,366,1.7777,2.0803,KNN,-0.3027,59498.0,0.008929,0.160727,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+KNN,Lasso,366,366,1.7777,2.0806,KNN,-0.3029,59505.0,0.008993,0.160727,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+KNN,CNN,366,366,1.7777,2.5345,KNN,-0.7568,46880.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+KNN,RNN,366,366,1.7777,3.4434,KNN,-1.6658,38143.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+KNN,XARIMA/ARIMA,366,366,1.7777,3.5702,KNN,-1.7925,39973.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+KNN,LSTM,366,366,1.7777,4.1565,KNN,-2.3788,34581.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+KNN,MLP,366,366,1.7777,5.5115,KNN,-3.7338,24593.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+XGBoost,Árbol de Decisión,366,366,1.8304,1.9934,XGBoost,-0.163,66458.0,0.855888,1.0,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+XGBoost,Ridge,366,366,1.8304,2.0803,XGBoost,-0.2499,63739.0,0.257574,1.0,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+XGBoost,Lasso,366,366,1.8304,2.0806,XGBoost,-0.2501,63738.0,0.257427,1.0,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+XGBoost,CNN,366,366,1.8304,2.5345,XGBoost,-0.704,49847.5,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+XGBoost,RNN,366,366,1.8304,3.4434,XGBoost,-1.613,40214.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+XGBoost,XARIMA/ARIMA,366,366,1.8304,3.5702,XGBoost,-1.7398,42219.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+XGBoost,LSTM,366,366,1.8304,4.1565,XGBoost,-2.3261,36310.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+XGBoost,MLP,366,366,1.8304,5.5115,XGBoost,-3.681,25553.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Árbol de Decisión,Ridge,366,366,1.9934,2.0803,Árbol de Decisión,-0.0869,64477.0,0.382038,1.0,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+Árbol de Decisión,Lasso,366,366,1.9934,2.0806,Árbol de Decisión,-0.0871,64464.0,0.379568,1.0,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+Árbol de Decisión,CNN,366,366,1.9934,2.5345,Árbol de Decisión,-0.5411,52460.5,0.0,1.2e-05,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Árbol de Decisión,RNN,366,366,1.9934,3.4434,Árbol de Decisión,-1.45,42886.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Árbol de Decisión,XARIMA/ARIMA,366,366,1.9934,3.5702,Árbol de Decisión,-1.5768,44410.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Árbol de Decisión,LSTM,366,366,1.9934,4.1565,Árbol de Decisión,-2.1631,38652.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Árbol de Decisión,MLP,366,366,1.9934,5.5115,Árbol de Decisión,-3.5181,27924.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Ridge,Lasso,366,366,2.0803,2.0806,Ridge,-0.0002,66952.0,0.992887,1.0,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+Ridge,CNN,366,366,2.0803,2.5345,Ridge,-0.4541,54450.0,1.2e-05,0.000333,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Ridge,RNN,366,366,2.0803,3.4434,Ridge,-1.3631,44640.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Ridge,XARIMA/ARIMA,366,366,2.0803,3.5702,Ridge,-1.4899,46159.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Ridge,LSTM,366,366,2.0803,4.1565,Ridge,-2.0762,40125.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Ridge,MLP,366,366,2.0803,5.5115,Ridge,-3.4311,29120.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Lasso,CNN,366,366,2.0806,2.5345,Lasso,-0.4539,54450.0,1.2e-05,0.000333,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Lasso,RNN,366,366,2.0806,3.4434,Lasso,-1.3629,44642.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Lasso,XARIMA/ARIMA,366,366,2.0806,3.5702,Lasso,-1.4896,46169.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Lasso,LSTM,366,366,2.0806,4.1565,Lasso,-2.0759,40134.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Lasso,MLP,366,366,2.0806,5.5115,Lasso,-3.4309,29125.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+CNN,RNN,366,366,2.5345,3.4434,CNN,-0.909,54960.0,2.7e-05,0.00069,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+CNN,XARIMA/ARIMA,366,366,2.5345,3.5702,CNN,-1.0357,56293.0,0.000188,0.004689,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+CNN,LSTM,366,366,2.5345,4.1565,CNN,-1.622,48851.5,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+CNN,MLP,366,366,2.5345,5.5115,CNN,-2.977,35769.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+RNN,XARIMA/ARIMA,366,366,3.4434,3.5702,RNN,-0.1268,67410.0,0.880096,1.0,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+RNN,LSTM,366,366,3.4434,4.1565,RNN,-0.7131,60055.0,0.015519,0.248309,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+RNN,MLP,366,366,3.4434,5.5115,RNN,-2.068,46479.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+XARIMA/ARIMA,LSTM,366,366,3.5702,4.1565,XARIMA/ARIMA,-0.5863,60104.0,0.016266,0.248309,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+XARIMA/ARIMA,MLP,366,366,3.5702,5.5115,XARIMA/ARIMA,-1.9413,47295.0,0.0,0.0,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+LSTM,MLP,366,366,4.1565,5.5115,LSTM,-1.355,54067.0,6e-06,0.000185,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
