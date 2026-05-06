@@ -280,6 +280,6 @@ def layout_introduccion():
         
         html.Div(style=estilo_flex, children=[
             tarjeta_metrica("Años de datos", "50", "1975 – 2025"),
-            tarjeta_metrica("Modelos evaluados", "13", "Comparativa"),
+            tarjeta_metrica("Modelos evaluados", "12", "Comparativa"),
         ]),
     ])
