@@ -3791,8 +3791,8 @@ def figura_heatmap_mannwhitney_todos_contra_todos(df_resultados):
     for i in range(min(matriz.shape)):
         matriz.iat[i, i] = np.nan
 
-    texto = matriz.applymap(
-        lambda valor: "" if pd.isna(valor) else f"{float(valor):.3g}"
+    texto = texto.map(
+        lambda valor: "" if pd.isna(valor) or valor == "" else f"{float(valor):.3g}"
     )
 
     fig = go.Figure(
