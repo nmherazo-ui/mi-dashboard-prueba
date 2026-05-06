@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-
+from plotly.subplots import make_subplots
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -62,6 +62,8 @@ RUTA_MODELO_MLP = Path("Resultados/modelo_mlp_calamar.joblib")
 RUTA_METADATA_RNN = Path("Resultados/metadata_modelo_rnn_calamar.json")
 RUTA_TEST_RNN = Path("Resultados/test_final_externo_rnn_calamar.csv")
 RUTA_MODELO_RNN = Path("Resultados/modelo_rnn_calamar.keras")
+
+RUTA_SERIE_COMPLETA = Path("data/Niveles_imputados_completo.csv")
 
 RUTA_SERIE_COMPLETA = Path("data/Niveles_imputados_completo.csv")
 
@@ -229,22 +231,6 @@ def cargar_resultados_mlp_calamar():
         metadata = json.load(f)
 
     df_test = pd.read_csv(RUTA_TEST_MLP, sep=None, engine="python", encoding="utf-8-sig")
-    df_test.columns = df_test.columns.str.strip()
-
-    if "Fecha" in df_test.columns:
-        df_test["Fecha"] = pd.to_datetime(df_test["Fecha"], errors="coerce")
-
-    if "Residuo" not in df_test.columns and {"Calamar_real", "Calamar_predicho"}.issubset(df_test.columns):
-        df_test["Residuo"] = df_test["Calamar_real"] - df_test["Calamar_predicho"]
-
-    return metadata, df_test
-
-
-def cargar_resultados_rnn_calamar():
-    with open(RUTA_METADATA_RNN, "r", encoding="utf-8") as f:
-        metadata = json.load(f)
-
-    df_test = pd.read_csv(RUTA_TEST_RNN, sep=None, engine="python", encoding="utf-8-sig")
     df_test.columns = df_test.columns.str.strip()
 
     if "Fecha" in df_test.columns:
@@ -655,55 +641,6 @@ def figura_serie_mlp(df_test):
         y=df_test["Calamar_predicho"],
         mode="lines",
         name="Calamar predicho - MLP",
-        line=dict(color=CELESTE, width=2, dash="dash"),
-        hovertemplate="<b>Fecha:</b> %{x|%Y-%m-%d}<br><b>Nivel predicho:</b> %{y:.2f} cm<br><extra></extra>",
-    ))
-
-    fig.update_layout(
-        title=None,
-        xaxis_title="Fecha",
-        yaxis_title="Nivel en Calamar [cm]",
-        plot_bgcolor=BLANCO,
-        paper_bgcolor=BLANCO,
-        font=dict(family=FUENTE, size=13, color=AZUL),
-        hovermode="x unified",
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="right",
-            x=1,
-            bgcolor="rgba(255,255,255,0.85)",
-            bordercolor="rgba(26,58,92,0.18)",
-            borderwidth=1,
-        ),
-        margin=dict(l=70, r=40, t=70, b=60),
-        height=520,
-    )
-    fig.update_xaxes(showgrid=True, gridcolor="#D9E2EF")
-    fig.update_yaxes(showgrid=True, gridcolor="#D9E2EF", zeroline=False)
-    return fig
-
-
-
-
-def figura_serie_rnn(df_test):
-    fig = go.Figure()
-
-    fig.add_trace(go.Scatter(
-        x=df_test["Fecha"],
-        y=df_test["Calamar_real"],
-        mode="lines",
-        name="Calamar real",
-        line=dict(color=AZUL, width=2),
-        hovertemplate="<b>Fecha:</b> %{x|%Y-%m-%d}<br><b>Nivel real:</b> %{y:.2f} cm<br><extra></extra>",
-    ))
-
-    fig.add_trace(go.Scatter(
-        x=df_test["Fecha"],
-        y=df_test["Calamar_predicho"],
-        mode="lines",
-        name="Calamar predicho - RNN",
         line=dict(color=CELESTE, width=2, dash="dash"),
         hovertemplate="<b>Fecha:</b> %{x|%Y-%m-%d}<br><b>Nivel predicho:</b> %{y:.2f} cm<br><extra></extra>",
     ))
@@ -1146,29 +1083,6 @@ def figura_particion_temporal_mlp(metadata, df_serie, df_test):
     for anot in fig.layout.annotations:
         if getattr(anot, "text", None) == "observado<br>SVR":
             anot.text = "observado<br>MLP"
-
-    return fig
-
-
-
-
-def figura_particion_temporal_rnn(metadata, df_serie, df_test):
-    fig = figura_particion_temporal_svr(metadata, df_serie, df_test)
-
-    # Ajustar etiquetas del modelo para RNN sin duplicar toda la lógica
-    for trace in fig.data:
-        if trace.name == "Predicción SVR":
-            trace.name = "Predicción RNN"
-            trace.hovertemplate = (
-                "<b>Predicción RNN</b><br>"
-                "<b>Fecha:</b> %{x|%Y-%m-%d}<br>"
-                "<b>Nivel predicho:</b> %{y:.2f} cm<br>"
-                "<extra></extra>"
-            )
-
-    for anot in fig.layout.annotations:
-        if getattr(anot, "text", None) == "observado<br>SVR":
-            anot.text = "observado<br>RNN"
 
     return fig
 
@@ -2273,118 +2187,847 @@ def layout_mlp_calamar():
 
 
 
+# =====================================
+# Comparación general de todos los modelos
+# =====================================
+MODELOS_COMPARACION = [
+    {
+        "codigo": "svr_calamar",
+        "nombre": "SVR",
+        "ruta_metadata": RUTA_METADATA_SVR,
+        "ruta_test": RUTA_TEST_SVR,
+    },
+    {
+        "codigo": "knn_calamar",
+        "nombre": "KNN",
+        "ruta_metadata": RUTA_METADATA_KNN,
+        "ruta_test": RUTA_TEST_KNN,
+    },
+    {
+        "codigo": "xarima_calamar",
+        "nombre": "XARIMA/ARIMA",
+        "ruta_metadata": RUTA_METADATA_XARIMA,
+        "ruta_test": RUTA_TEST_XARIMA,
+    },
+    {
+        "codigo": "dt_calamar",
+        "nombre": "Árbol de Decisión",
+        "ruta_metadata": RUTA_METADATA_DT,
+        "ruta_test": RUTA_TEST_DT,
+    },
+    {
+        "codigo": "lasso_calamar",
+        "nombre": "Lasso",
+        "ruta_metadata": RUTA_METADATA_LASSO,
+        "ruta_test": RUTA_TEST_LASSO,
+    },
+    {
+        "codigo": "ridge_calamar",
+        "nombre": "Ridge",
+        "ruta_metadata": RUTA_METADATA_RIDGE,
+        "ruta_test": RUTA_TEST_RIDGE,
+    },
+    {
+        "codigo": "rf_calamar",
+        "nombre": "Random Forest",
+        "ruta_metadata": RUTA_METADATA_RF,
+        "ruta_test": RUTA_TEST_RF,
+    },
+    {
+        "codigo": "xgb_calamar",
+        "nombre": "XGBoost",
+        "ruta_metadata": RUTA_METADATA_XGB,
+        "ruta_test": RUTA_TEST_XGB,
+    },
+    {
+        "codigo": "mlp_calamar",
+        "nombre": "MLP",
+        "ruta_metadata": RUTA_METADATA_MLP,
+        "ruta_test": RUTA_TEST_MLP,
+    },
+    {
+        "codigo": "rnn_calamar",
+        "nombre": "RNN",
+        "ruta_metadata": RUTA_METADATA_RNN,
+        "ruta_test": RUTA_TEST_RNN,
+    },
+]
 
-def layout_rnn_calamar():
-    metadata, df_test = cargar_resultados_rnn_calamar()
 
-    mae = float(metadata["MAE_test_externo"])
-    mse = float(metadata["MSE_test_externo"])
-    rmse = float(np.sqrt(mse))
+COLOR_MAPE = AZUL
+COLOR_HEATMAP = [[0, "#EAF1F8"], [0.5, CELESTE], [1, AZUL]]
 
-    df_serie_completa = leer_serie_completa_calamar()
 
-    fig_particion = figura_particion_temporal_rnn(
-        metadata,
-        df_serie_completa,
-        df_test
+def calcular_mape(y_real, y_pred):
+    y_real = pd.to_numeric(y_real, errors="coerce")
+    y_pred = pd.to_numeric(y_pred, errors="coerce")
+    mask = y_real.notna() & y_pred.notna() & (y_real != 0)
+
+    if mask.sum() == 0:
+        return np.nan
+
+    return np.mean(np.abs((y_real[mask] - y_pred[mask]) / y_real[mask])) * 100
+
+
+def cargar_comparacion_modelos():
+    registros = []
+    predicciones = {}
+
+    for spec in MODELOS_COMPARACION:
+        with open(spec["ruta_metadata"], "r", encoding="utf-8") as f:
+            metadata = json.load(f)
+
+        df_test = pd.read_csv(
+            spec["ruta_test"],
+            sep=None,
+            engine="python",
+            encoding="utf-8-sig",
+        )
+        df_test.columns = df_test.columns.str.strip()
+
+        if "Fecha" in df_test.columns:
+            df_test["Fecha"] = pd.to_datetime(df_test["Fecha"], errors="coerce")
+
+        df_test["Calamar_real"] = pd.to_numeric(df_test["Calamar_real"], errors="coerce")
+        df_test["Calamar_predicho"] = pd.to_numeric(df_test["Calamar_predicho"], errors="coerce")
+
+        if "Residuo" not in df_test.columns:
+            df_test["Residuo"] = df_test["Calamar_real"] - df_test["Calamar_predicho"]
+        else:
+            df_test["Residuo"] = pd.to_numeric(df_test["Residuo"], errors="coerce")
+
+        df_test["Error absoluto"] = np.abs(df_test["Calamar_real"] - df_test["Calamar_predicho"])
+
+        mae = float(metadata["MAE_test_externo"])
+        mse = float(metadata["MSE_test_externo"])
+        rmse = float(np.sqrt(mse))
+        mape = float(calcular_mape(df_test["Calamar_real"], df_test["Calamar_predicho"]))
+
+        ventana = metadata.get("numInputs", metadata.get("train_size", "N/A"))
+        if isinstance(ventana, (int, float)):
+            ventana = f"{int(ventana)} días"
+
+        registros.append({
+            "Modelo": spec["nombre"],
+            "MAE": mae,
+            "MSE": mse,
+            "RMSE": rmse,
+            "MAPE": mape,
+            "Ventana": ventana,
+            "Modelos entrenados": metadata.get("modelos_entrenados_busqueda", "N/A"),
+        })
+
+        columnas_pred = ["Fecha", "Calamar_real", "Calamar_predicho", "Residuo", "Error absoluto"]
+        predicciones[spec["nombre"]] = df_test[columnas_pred].dropna().copy()
+
+    df_metricas = pd.DataFrame(registros)
+    df_metricas = df_metricas.sort_values("MAE", ascending=True).reset_index(drop=True)
+    df_metricas.insert(0, "Ranking", np.arange(1, len(df_metricas) + 1))
+
+    return df_metricas, predicciones
+
+
+def tabla_comparativa_modelos(df_metricas):
+    df_tabla = df_metricas.copy()
+    for col in ["MAE", "MSE", "RMSE", "MAPE"]:
+        df_tabla[col] = df_tabla[col].round(4)
+
+    modelo_mejor = df_tabla.iloc[0]["Modelo"]
+    modelo_peor = df_tabla.iloc[-1]["Modelo"]
+
+    return dash_table.DataTable(
+        data=df_tabla.to_dict("records"),
+        columns=[
+            {"name": "Ranking", "id": "Ranking"},
+            {"name": "Modelo", "id": "Modelo"},
+            {"name": "MAE", "id": "MAE", "type": "numeric", "format": {"specifier": ".4f"}},
+            {"name": "MSE", "id": "MSE", "type": "numeric", "format": {"specifier": ".4f"}},
+            {"name": "RMSE", "id": "RMSE", "type": "numeric", "format": {"specifier": ".4f"}},
+            {"name": "MAPE [%]", "id": "MAPE", "type": "numeric", "format": {"specifier": ".4f"}},
+            {"name": "Ventana", "id": "Ventana"},
+            {"name": "Modelos entrenados", "id": "Modelos entrenados"},
+        ],
+        page_size=12,
+        style_table={"overflowX": "auto", "marginTop": "14px"},
+        style_cell={
+            "textAlign": "center",
+            "fontFamily": FUENTE,
+            "fontSize": "14px",
+            "padding": "10px",
+            "whiteSpace": "normal",
+            "height": "auto",
+        },
+        style_header={
+            "fontWeight": "bold",
+            "backgroundColor": "#EAF1F8",
+            "color": AZUL,
+            "border": "1px solid #D9E2EF",
+        },
+        style_data={
+            "backgroundColor": "white",
+            "color": TEXTO,
+            "border": "1px solid #D9E2EF",
+        },
+        style_data_conditional=[
+            {
+                "if": {"filter_query": f'{{Modelo}} = "{modelo_mejor}"'},
+                "backgroundColor": "#DDF3EA",
+                "color": "#006B4F",
+                "fontWeight": "bold",
+            },
+            {
+                "if": {"filter_query": f'{{Modelo}} = "{modelo_peor}"'},
+                "backgroundColor": "#F9DADA",
+                "color": "#8A1F1F",
+                "fontWeight": "bold",
+            },
+        ],
     )
 
-    fig_serie = figura_serie_rnn(df_test)
-    fig_hist = figura_histograma_residuos(df_test)
-    fig_acf = figura_acf_residuos(df_test, nlags=60)
 
-    df_validacion = pd.DataFrame([
-        {"Conjunto": "Train / validación", "Fecha inicial": metadata["fecha_inicio_trainval"], "Fecha final": metadata["fecha_fin_trainval"]},
-        {"Conjunto": "Test externo", "Fecha inicial": metadata["fecha_inicio_test_externo"], "Fecha final": metadata["fecha_fin_test_externo"]},
-    ])
+def figura_mosaico_metricas(df_metricas):
+    df_plot = df_metricas.sort_values("MAE", ascending=True).copy()
 
-    best_params = metadata["best_params"]
-    df_hiper = pd.DataFrame([
-        {"Parámetro": "Ventana seleccionada", "Valor": f"{metadata['numInputs']} días"},
-        {"Parámetro": "units", "Valor": best_params["units"]},
-        {"Parámetro": "dropout", "Valor": best_params["dropout"]},
-        {"Parámetro": "learning_rate", "Valor": best_params["learning_rate"]},
-        {"Parámetro": "Ventanas evaluadas", "Valor": ", ".join(map(str, metadata["ventanas_evaluadas"]))},
-        {"Parámetro": "Modelos entrenados en búsqueda", "Valor": metadata["modelos_entrenados_busqueda"]},
-    ])
+    fig = make_subplots(
+        rows=2,
+        cols=2,
+        specs=[
+            [{}, {}],
+            [{"colspan": 2}, None],
+        ],
+        subplot_titles=[
+            "MAE por modelo",
+            "RMSE por modelo",
+            "MAPE [%] por modelo",
+        ],
+        vertical_spacing=0.20,
+        horizontal_spacing=0.12,
+    )
 
-    df_metricas = pd.DataFrame([
-        {"Etapa": "Test externo", "MAE": round(mae, 4), "MSE": round(mse, 4), "RMSE": round(rmse, 4)}
-    ])
+    fig.add_trace(
+        go.Bar(
+            x=df_plot["Modelo"],
+            y=df_plot["MAE"],
+            text=df_plot["MAE"].round(3),
+            textposition="outside",
+            marker_color=AZUL_MED,
+            hovertemplate="<b>Modelo:</b> %{x}<br><b>MAE:</b> %{y:.4f}<extra></extra>",
+            showlegend=False,
+        ),
+        row=1,
+        col=1,
+    )
+
+    fig.add_trace(
+        go.Bar(
+            x=df_plot["Modelo"],
+            y=df_plot["RMSE"],
+            text=df_plot["RMSE"].round(3),
+            textposition="outside",
+            marker_color=CELESTE,
+            hovertemplate="<b>Modelo:</b> %{x}<br><b>RMSE:</b> %{y:.4f}<extra></extra>",
+            showlegend=False,
+        ),
+        row=1,
+        col=2,
+    )
+
+    fig.add_trace(
+        go.Bar(
+            x=df_plot["Modelo"],
+            y=df_plot["MAPE"],
+            text=df_plot["MAPE"].round(3),
+            textposition="outside",
+            marker_color=COLOR_MAPE,
+            hovertemplate="<b>Modelo:</b> %{x}<br><b>MAPE:</b> %{y:.4f} %<extra></extra>",
+            showlegend=False,
+        ),
+        row=2,
+        col=1,
+    )
+
+    fig.update_layout(
+        height=850,
+        plot_bgcolor=BLANCO,
+        paper_bgcolor=BLANCO,
+        font=dict(family=FUENTE, size=13, color=AZUL),
+        margin=dict(l=70, r=40, t=90, b=95),
+    )
+
+    fig.update_xaxes(tickangle=-30, showgrid=False, row=1, col=1)
+    fig.update_xaxes(tickangle=-30, showgrid=False, row=1, col=2)
+    fig.update_xaxes(tickangle=-30, showgrid=False, row=2, col=1)
+
+    fig.update_yaxes(title_text="MAE", showgrid=True, gridcolor="#D9E2EF", zeroline=False, row=1, col=1)
+    fig.update_yaxes(title_text="RMSE", showgrid=True, gridcolor="#D9E2EF", zeroline=False, row=1, col=2)
+    fig.update_yaxes(title_text="MAPE [%]", showgrid=True, gridcolor="#D9E2EF", zeroline=False, row=2, col=1)
+
+    for anot in fig.layout.annotations:
+        anot.font = dict(family=FUENTE, size=16, color=AZUL)
+
+    return fig
+
+
+def figura_ranking_mae_modelos(df_metricas):
+    df_plot = df_metricas.sort_values("MAE", ascending=False).copy()
+    mejor_mae = df_metricas["MAE"].min()
+    df_plot["Diferencia relativa [%]"] = ((df_plot["MAE"] - mejor_mae) / mejor_mae) * 100
+
+    fig = make_subplots(
+        rows=1,
+        cols=2,
+        subplot_titles=[
+            "Ranking horizontal por MAE",
+            "Diferencia relativa frente al mejor MAE",
+        ],
+        horizontal_spacing=0.18,
+    )
+
+    fig.add_trace(
+        go.Bar(
+            x=df_plot["MAE"],
+            y=df_plot["Modelo"],
+            orientation="h",
+            text=df_plot["MAE"].round(3),
+            textposition="outside",
+            marker_color=AZUL_MED,
+            hovertemplate="<b>Modelo:</b> %{y}<br><b>MAE:</b> %{x:.4f}<extra></extra>",
+            showlegend=False,
+        ),
+        row=1,
+        col=1,
+    )
+
+    fig.add_trace(
+        go.Bar(
+            x=df_plot["Diferencia relativa [%]"],
+            y=df_plot["Modelo"],
+            orientation="h",
+            text=df_plot["Diferencia relativa [%]"].round(1).astype(str) + " %",
+            textposition="outside",
+            marker_color=CELESTE,
+            hovertemplate=(
+                "<b>Modelo:</b> %{y}<br>"
+                "<b>Diferencia frente al mejor MAE:</b> %{x:.2f} %"
+                "<extra></extra>"
+            ),
+            showlegend=False,
+        ),
+        row=1,
+        col=2,
+    )
+
+    fig.update_layout(
+        height=620,
+        plot_bgcolor=BLANCO,
+        paper_bgcolor=BLANCO,
+        font=dict(family=FUENTE, size=13, color=AZUL),
+        margin=dict(l=120, r=60, t=85, b=60),
+    )
+
+    fig.update_xaxes(title_text="MAE", showgrid=True, gridcolor="#D9E2EF", zeroline=False, row=1, col=1)
+    fig.update_xaxes(title_text="Diferencia relativa [%]", showgrid=True, gridcolor="#D9E2EF", zeroline=False, row=1, col=2)
+    fig.update_yaxes(showgrid=False, row=1, col=1)
+    fig.update_yaxes(showgrid=False, row=1, col=2)
+
+    for anot in fig.layout.annotations:
+        anot.font = dict(family=FUENTE, size=16, color=AZUL)
+
+    return fig
+
+
+def figura_dispersion_metricas(df_metricas):
+    df_plot = df_metricas.sort_values("MAE", ascending=True).copy()
+
+    fig = make_subplots(
+        rows=1,
+        cols=2,
+        subplot_titles=[
+            "Relación MAE vs RMSE",
+            "Relación MAE vs MAPE [%]",
+        ],
+        horizontal_spacing=0.14,
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=df_plot["MAE"],
+            y=df_plot["RMSE"],
+            mode="markers+text",
+            text=df_plot["Modelo"],
+            textposition="top center",
+            marker=dict(
+                size=13,
+                color=df_plot["Ranking"],
+                colorscale="Blues",
+                showscale=False,
+                line=dict(width=1, color=AZUL),
+            ),
+            hovertemplate=(
+                "<b>%{text}</b><br>"
+                "<b>MAE:</b> %{x:.4f}<br>"
+                "<b>RMSE:</b> %{y:.4f}"
+                "<extra></extra>"
+            ),
+            showlegend=False,
+        ),
+        row=1,
+        col=1,
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=df_plot["MAE"],
+            y=df_plot["MAPE"],
+            mode="markers+text",
+            text=df_plot["Modelo"],
+            textposition="top center",
+            marker=dict(
+                size=13,
+                color=df_plot["Ranking"],
+                colorscale="Blues",
+                showscale=False,
+                line=dict(width=1, color=AZUL),
+            ),
+            hovertemplate=(
+                "<b>%{text}</b><br>"
+                "<b>MAE:</b> %{x:.4f}<br>"
+                "<b>MAPE:</b> %{y:.4f} %"
+                "<extra></extra>"
+            ),
+            showlegend=False,
+        ),
+        row=1,
+        col=2,
+    )
+
+    fig.update_layout(
+        height=560,
+        plot_bgcolor=BLANCO,
+        paper_bgcolor=BLANCO,
+        font=dict(family=FUENTE, size=13, color=AZUL),
+        margin=dict(l=70, r=40, t=85, b=65),
+    )
+
+    fig.update_xaxes(title_text="MAE", showgrid=True, gridcolor="#D9E2EF", zeroline=False, row=1, col=1)
+    fig.update_xaxes(title_text="MAE", showgrid=True, gridcolor="#D9E2EF", zeroline=False, row=1, col=2)
+    fig.update_yaxes(title_text="RMSE", showgrid=True, gridcolor="#D9E2EF", zeroline=False, row=1, col=1)
+    fig.update_yaxes(title_text="MAPE [%]", showgrid=True, gridcolor="#D9E2EF", zeroline=False, row=1, col=2)
+
+    for anot in fig.layout.annotations:
+        anot.font = dict(family=FUENTE, size=16, color=AZUL)
+
+    return fig
+
+
+def figura_boxplot_error_absoluto(predicciones, df_metricas):
+    modelos_ordenados = df_metricas["Modelo"].tolist()
+    fig = go.Figure()
+
+    for modelo in modelos_ordenados:
+        df_pred = predicciones[modelo]
+        fig.add_trace(
+            go.Box(
+                y=df_pred["Error absoluto"],
+                name=modelo,
+                boxmean=True,
+                marker_color=AZUL_MED,
+                line_color=AZUL,
+                hovertemplate=(
+                    f"<b>{modelo}</b><br>"
+                    "<b>Error absoluto:</b> %{y:.3f} cm"
+                    "<extra></extra>"
+                ),
+            )
+        )
+
+    fig.update_layout(
+        title=None,
+        yaxis_title="Error absoluto [cm]",
+        xaxis_title="Modelo",
+        plot_bgcolor=BLANCO,
+        paper_bgcolor=BLANCO,
+        font=dict(family=FUENTE, size=13, color=AZUL),
+        margin=dict(l=70, r=40, t=50, b=120),
+        height=560,
+        showlegend=False,
+    )
+
+    fig.update_xaxes(tickangle=-30, showgrid=False)
+    fig.update_yaxes(showgrid=True, gridcolor="#D9E2EF", zeroline=False)
+
+    return fig
+
+
+def figura_heatmap_metricas_normalizadas(df_metricas):
+    metricas = ["MAE", "RMSE", "MAPE"]
+    df_norm = df_metricas[["Modelo"] + metricas].copy()
+
+    for metrica in metricas:
+        minimo = df_norm[metrica].min()
+        maximo = df_norm[metrica].max()
+        if maximo == minimo:
+            df_norm[metrica] = 0
+        else:
+            df_norm[metrica] = (df_norm[metrica] - minimo) / (maximo - minimo)
+
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=df_norm[metricas].values,
+            x=["MAE", "RMSE", "MAPE [%]"],
+            y=df_norm["Modelo"],
+            colorscale=COLOR_HEATMAP,
+            zmin=0,
+            zmax=1,
+            colorbar=dict(title="Error normalizado"),
+            hovertemplate=(
+                "<b>Modelo:</b> %{y}<br>"
+                "<b>Métrica:</b> %{x}<br>"
+                "<b>Valor normalizado:</b> %{z:.3f}"
+                "<extra></extra>"
+            ),
+        )
+    )
+
+    fig.update_layout(
+        title=None,
+        xaxis_title="Métrica",
+        yaxis_title="Modelo",
+        plot_bgcolor=BLANCO,
+        paper_bgcolor=BLANCO,
+        font=dict(family=FUENTE, size=13, color=AZUL),
+        margin=dict(l=130, r=60, t=50, b=70),
+        height=520,
+    )
+
+    return fig
+
+
+def figura_real_vs_predicho_mejores(predicciones, df_metricas, n_modelos=5):
+    mejores_modelos = df_metricas.sort_values("MAE", ascending=True).head(n_modelos)["Modelo"].tolist()
+    fig = go.Figure()
+
+    min_val = np.inf
+    max_val = -np.inf
+
+    for modelo in mejores_modelos:
+        df_pred = predicciones[modelo]
+        min_val = min(min_val, df_pred["Calamar_real"].min(), df_pred["Calamar_predicho"].min())
+        max_val = max(max_val, df_pred["Calamar_real"].max(), df_pred["Calamar_predicho"].max())
+
+        fig.add_trace(
+            go.Scatter(
+                x=df_pred["Calamar_real"],
+                y=df_pred["Calamar_predicho"],
+                mode="markers",
+                name=modelo,
+                marker=dict(size=7, opacity=0.65),
+                hovertemplate=(
+                    f"<b>{modelo}</b><br>"
+                    "<b>Real:</b> %{x:.2f} cm<br>"
+                    "<b>Predicho:</b> %{y:.2f} cm"
+                    "<extra></extra>"
+                ),
+            )
+        )
+
+    margen = 0.04 * (max_val - min_val) if np.isfinite(max_val - min_val) and max_val != min_val else 1
+    min_linea = min_val - margen
+    max_linea = max_val + margen
+
+    fig.add_trace(
+        go.Scatter(
+            x=[min_linea, max_linea],
+            y=[min_linea, max_linea],
+            mode="lines",
+            name="Línea 1:1",
+            line=dict(color=AZUL, width=2, dash="dash"),
+            hoverinfo="skip",
+        )
+    )
+
+    fig.update_layout(
+        title=None,
+        xaxis_title="Nivel observado [cm]",
+        yaxis_title="Nivel predicho [cm]",
+        plot_bgcolor=BLANCO,
+        paper_bgcolor=BLANCO,
+        font=dict(family=FUENTE, size=13, color=AZUL),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            bgcolor="rgba(255,255,255,0.85)",
+            bordercolor="rgba(26,58,92,0.18)",
+            borderwidth=1,
+        ),
+        margin=dict(l=70, r=40, t=80, b=70),
+        height=580,
+    )
+
+    fig.update_xaxes(showgrid=True, gridcolor="#D9E2EF", zeroline=False, range=[min_linea, max_linea])
+    fig.update_yaxes(showgrid=True, gridcolor="#D9E2EF", zeroline=False, range=[min_linea, max_linea])
+
+    return fig
+
+
+def figura_series_todos_modelos(predicciones, df_metricas):
+    fig = go.Figure()
+
+    primer_modelo = df_metricas.iloc[0]["Modelo"]
+    df_base = predicciones[primer_modelo]
+
+    fig.add_trace(go.Scatter(
+        x=df_base["Fecha"],
+        y=df_base["Calamar_real"],
+        mode="lines",
+        name="Calamar real",
+        line=dict(color=AZUL, width=3),
+        hovertemplate="<b>Fecha:</b> %{x|%Y-%m-%d}<br><b>Nivel real:</b> %{y:.2f} cm<br><extra></extra>",
+    ))
+
+    modelos_visibles = set(df_metricas.head(3)["Modelo"])
+
+    for modelo, df_pred in predicciones.items():
+        fig.add_trace(go.Scatter(
+            x=df_pred["Fecha"],
+            y=df_pred["Calamar_predicho"],
+            mode="lines",
+            name=f"Predicción {modelo}",
+            line=dict(width=2, dash="dash"),
+            visible=True if modelo in modelos_visibles else "legendonly",
+            hovertemplate=(
+                f"<b>Predicción {modelo}</b><br>"
+                "<b>Fecha:</b> %{x|%Y-%m-%d}<br>"
+                "<b>Nivel predicho:</b> %{y:.2f} cm<br>"
+                "<extra></extra>"
+            ),
+        ))
+
+    fig.update_layout(
+        title=None,
+        xaxis_title="Fecha",
+        yaxis_title="Nivel en Calamar [cm]",
+        plot_bgcolor=BLANCO,
+        paper_bgcolor=BLANCO,
+        font=dict(family=FUENTE, size=13, color=AZUL),
+        hovermode="x unified",
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            bgcolor="rgba(255,255,255,0.85)",
+            bordercolor="rgba(26,58,92,0.18)",
+            borderwidth=1,
+        ),
+        margin=dict(l=70, r=40, t=80, b=60),
+        height=560,
+    )
+    fig.update_xaxes(showgrid=True, gridcolor="#D9E2EF")
+    fig.update_yaxes(showgrid=True, gridcolor="#D9E2EF", zeroline=False)
+    return fig
+
+
+def layout_todos_modelos():
+    df_metricas, predicciones = cargar_comparacion_modelos()
+
+    mejor_mae = df_metricas.loc[df_metricas["MAE"].idxmin()]
+    mejor_rmse = df_metricas.loc[df_metricas["RMSE"].idxmin()]
+    mejor_mape = df_metricas.loc[df_metricas["MAPE"].idxmin()]
+
+    fig_mosaico_metricas = figura_mosaico_metricas(df_metricas)
+    fig_ranking = figura_ranking_mae_modelos(df_metricas)
+    fig_dispersion = figura_dispersion_metricas(df_metricas)
+    fig_boxplot_error = figura_boxplot_error_absoluto(predicciones, df_metricas)
+    fig_heatmap_metricas = figura_heatmap_metricas_normalizadas(df_metricas)
+    fig_real_predicho = figura_real_vs_predicho_mejores(predicciones, df_metricas, n_modelos=5)
+    fig_series = figura_series_todos_modelos(predicciones, df_metricas)
+
+    texto_conclusion = (
+        f"Con base en el test externo, el modelo con menor MAE fue {mejor_mae['Modelo']} "
+        f"(MAE = {mejor_mae['MAE']:.3f}). El menor RMSE fue obtenido por {mejor_rmse['Modelo']} "
+        f"(RMSE = {mejor_rmse['RMSE']:.3f}) y el menor MAPE por {mejor_mape['Modelo']} "
+        f"(MAPE = {mejor_mape['MAPE']:.3f} %). En conjunto, estas métricas permiten comparar "
+        "el desempeño de los modelos bajo el mismo periodo de test externo."
+    )
 
     return html.Div([
         html.Div(style=estilo_tarjeta, children=[
-            html.H2("Recurrent neural network (RNN) - Calamar", style=estilo_titulo),
+            html.H2("Comparación general de modelos - Calamar", style=estilo_titulo),
             html.P(
-                "Este modelo corresponde a una red SimpleRNN implementada en Keras, con capa de normalización y escalamiento de la variable objetivo, aplicada a la predicción del nivel en la estación Calamar. La configuración final se seleccionó usando MAE como criterio principal de validación y MSE como métrica complementaria.",
+                "Esta sección compara el desempeño de todos los modelos implementados para la predicción "
+                "del nivel en la estación Calamar. La comparación se realiza sobre el mismo periodo de test "
+                "externo, reservado como conjunto no utilizado durante la selección de hiperparámetros.",
                 style=estilo_parrafo,
             ),
-            html.P(metadata["criterio_final"], style=estilo_parrafo),
+            html.P(
+                "Se presentan las métricas MAE, MSE, RMSE y MAPE. En todos los casos, valores menores "
+                "indican mejor desempeño predictivo.",
+                style=estilo_parrafo,
+            ),
         ]),
 
         html.Div(style=estilo_flex, children=[
-            tarjeta_metrica("MAE test externo", f"{mae:.3f}", "Error absoluto medio"),
-            tarjeta_metrica("MSE test externo", f"{mse:.3f}", "Error cuadrático medio"),
-            tarjeta_metrica("RMSE test externo", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+            tarjeta_metrica("Mejor MAE", mejor_mae["Modelo"], f"MAE = {mejor_mae['MAE']:.3f}"),
+            tarjeta_metrica("Mejor RMSE", mejor_rmse["Modelo"], f"RMSE = {mejor_rmse['RMSE']:.3f}"),
+            tarjeta_metrica("Mejor MAPE", mejor_mape["Modelo"], f"MAPE = {mejor_mape['MAPE']:.3f} %"),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
-            html.H2("Validación temporal", style=estilo_titulo),
-            html.P("El último año disponible se reservó como test externo final. El resto de la serie se empleó para entrenamiento y validación interna.", style=estilo_parrafo),
-            crear_tabla_simple(df_validacion, page_size=5),
-        ]),
-
-        html.Div(style=estilo_tarjeta, children=[
-            html.H2("Búsqueda y mejores hiperparámetros", style=estilo_titulo),
-            html.P("La búsqueda evaluó distintas ventanas de entrada y combinaciones de hiperparámetros de la RNN. La tabla resume la configuración seleccionada y el tamaño de la búsqueda.", style=estilo_parrafo),
-            crear_tabla_simple(df_hiper, page_size=10),
-        ]),
-
-        html.Div(style=estilo_tarjeta, children=[
-            html.H2("Métricas del test externo", style=estilo_titulo),
-            crear_tabla_simple(df_metricas, page_size=5),
-        ]),
-
-        html.Div(style=estilo_tarjeta, children=[
-            html.H2("Partición temporal del modelado", style=estilo_titulo),
+            html.H2("Tabla comparativa de métricas", style=estilo_titulo),
             html.P(
-                "La serie se dividió temporalmente en un bloque de entrenamiento y validación interna, "
-                "seguido por un test externo final. El último año fue reservado como conjunto externo "
-                "para evaluar el desempeño del modelo sobre datos no utilizados durante la selección "
-                "de hiperparámetros.",
-                style=estilo_parrafo_sec
+                "La tabla resume el desempeño de cada modelo en el test externo. La fila verde "
+                "resalta el modelo con menor MAE y la fila roja el modelo con mayor MAE.",
+                style=estilo_parrafo,
+            ),
+            tabla_comparativa_modelos(df_metricas),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Comparación gráfica de métricas", style=estilo_titulo),
+            html.P(
+                "Las gráficas comparan el desempeño de los modelos en el test externo. "
+                "Valores menores de MAE, RMSE y MAPE indican mejor desempeño predictivo.",
+                style=estilo_parrafo,
             ),
             dcc.Graph(
-                figure=fig_particion,
+                figure=fig_mosaico_metricas,
                 config={
                     "displayModeBar": True,
                     "scrollZoom": True,
                     "displaylogo": False,
                     "toImageButtonOptions": {
                         "format": "png",
-                        "filename": "particion_temporal_rnn_calamar",
+                        "filename": "comparacion_metricas_modelos",
+                        "height": 1400,
+                        "width": 1600,
+                        "scale": 2,
+                    },
+                },
+            ),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Análisis gráfico del ranking", style=estilo_titulo),
+            html.P(
+                "El ranking se representa mediante barras horizontales ordenadas por MAE. "
+                "También se muestra la diferencia relativa de cada modelo frente al mejor desempeño, "
+                "lo que permite ver cuánto aumenta el error respecto al modelo con menor MAE.",
+                style=estilo_parrafo,
+            ),
+            dcc.Graph(
+                figure=fig_ranking,
+                config={
+                    "displayModeBar": True,
+                    "scrollZoom": True,
+                    "displaylogo": False,
+                    "toImageButtonOptions": {
+                        "format": "png",
+                        "filename": "ranking_modelos_mae",
+                        "height": 1000,
+                        "width": 1600,
+                        "scale": 2,
+                    },
+                },
+            ),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Relación entre métricas de error", style=estilo_titulo),
+            html.P(
+                "Los diagramas de dispersión permiten comparar simultáneamente las métricas. "
+                "Los modelos ubicados hacia la parte inferior izquierda presentan menores errores "
+                "en las dos métricas comparadas.",
+                style=estilo_parrafo,
+            ),
+            dcc.Graph(
+                figure=fig_dispersion,
+                config={
+                    "displayModeBar": True,
+                    "scrollZoom": True,
+                    "displaylogo": False,
+                    "toImageButtonOptions": {
+                        "format": "png",
+                        "filename": "relacion_metricas_modelos",
                         "height": 900,
+                        "width": 1600,
+                        "scale": 2,
+                    },
+                },
+            ),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Distribución del error absoluto", style=estilo_titulo),
+            html.P(
+                "El boxplot muestra la dispersión de los errores absolutos por modelo. "
+                "Permite identificar modelos con errores concentrados y modelos con valores extremos.",
+                style=estilo_parrafo,
+            ),
+            dcc.Graph(
+                figure=fig_boxplot_error,
+                config={
+                    "displayModeBar": True,
+                    "scrollZoom": True,
+                    "displaylogo": False,
+                    "toImageButtonOptions": {
+                        "format": "png",
+                        "filename": "boxplot_error_absoluto_modelos",
+                        "height": 900,
+                        "width": 1600,
+                        "scale": 2,
+                    },
+                },
+            ),
+        ]),
+            
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Observado vs predicho en los mejores modelos", style=estilo_titulo),
+            html.P(
+                "La gráfica compara los niveles observados contra los predichos para los cinco mejores modelos según MAE. "
+                "Mientras más cerca estén los puntos de la línea 1:1, mejor es la correspondencia entre predicción y observación.",
+                style=estilo_parrafo,
+            ),
+            dcc.Graph(
+                figure=fig_real_predicho,
+                config={
+                    "displayModeBar": True,
+                    "scrollZoom": True,
+                    "displaylogo": False,
+                    "toImageButtonOptions": {
+                        "format": "png",
+                        "filename": "observado_vs_predicho_mejores_modelos",
+                        "height": 1000,
                         "width": 1400,
-                        "scale": 2
-                    }
-                }
-            )
+                        "scale": 2,
+                    },
+                },
+            ),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
-            html.H2("Serie observada vs predicha", style=estilo_titulo),
-            html.P("La gráfica compara el nivel observado en Calamar con la predicción del modelo RNN durante el periodo reservado como test externo.", style=estilo_parrafo),
-            dcc.Graph(figure=fig_serie, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+            html.H2("Serie observada vs predicciones de los modelos", style=estilo_titulo),
+            html.P(
+                "La gráfica muestra la serie observada y las predicciones de los modelos durante el test externo. "
+                "Para evitar saturación visual, inicialmente se muestran los tres mejores modelos según MAE; "
+                "los demás pueden activarse desde la leyenda de Plotly.",
+                style=estilo_parrafo,
+            ),
+            dcc.Graph(
+                figure=fig_series,
+                config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False},
+            ),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
-            html.H2("Diagnóstico de residuos", style=estilo_titulo),
-            html.P("El diagnóstico de residuos permite revisar la distribución de los errores y su posible dependencia temporal. Idealmente, los residuos deberían concentrarse alrededor de cero y no mostrar autocorrelación marcada.", style=estilo_parrafo),
-            dcc.Graph(figure=fig_hist, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
-            dcc.Graph(figure=fig_acf, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+            html.H2("Interpretación comparativa", style=estilo_titulo),
+            html.P(texto_conclusion, style=estilo_parrafo),
         ]),
     ])
-
 
 def layout_modelos(modelos=None):
     return html.Div([
@@ -2397,6 +3040,7 @@ def layout_modelos(modelos=None):
             dcc.Dropdown(
                 id="selector-modelo",
                 options=[
+                    {"label": "Todos", "value": "todos"},
                     {"label": "Máquina de Vectores de Soporte (SVR)", "value": "svr_calamar"},
                     {"label": "K-Vecinos más Cercanos (KNN)", "value": "knn_calamar"},
                     {"label": "XARIMA/ARIMA", "value": "xarima_calamar"},
@@ -2406,7 +3050,6 @@ def layout_modelos(modelos=None):
                     {"label": "Random Forest", "value": "rf_calamar"},
                     {"label": "XGBoost", "value": "xgb_calamar"},
                     {"label": "Multi-Layer Perceptron (MLP)", "value": "mlp_calamar"},
-                    {"label": "Recurrent neural network (RNN)", "value": "rnn_calamar"},
                 ],
                 value="svr_calamar",
                 clearable=False,
@@ -2420,6 +3063,9 @@ def layout_modelos(modelos=None):
 def registrar_callbacks_modelos(app, df, serie_objetivo, modelos=None):
     @app.callback(Output("contenido-modelo", "children"), Input("selector-modelo", "value"))
     def mostrar_modelo(modelo):
+        if modelo == "todos":
+            return layout_todos_modelos()
+
         if modelo == "svr_calamar":
             return layout_svr_calamar()
 
@@ -2446,9 +3092,6 @@ def registrar_callbacks_modelos(app, df, serie_objetivo, modelos=None):
 
         if modelo == "mlp_calamar":
             return layout_mlp_calamar()
-
-        if modelo == "rnn_calamar":
-            return layout_rnn_calamar()
 
         return html.Div(style=estilo_tarjeta, children=[
             html.H2("Modelo no disponible", style=estilo_titulo),
