@@ -75,6 +75,16 @@ RUTA_SERIE_COMPLETA = Path("data/Niveles_imputados_completo.csv")
 
 RUTA_SERIE_COMPLETA = Path("data/Niveles_imputados_completo.csv")
 
+RUTAS_DM_ABSOLUTA = [
+    Path("Resultados/matriz_pvalues_dm_absoluta.csv"),
+    Path("Resultados/matriz_pvalues_dm_absoluta.xlsx"),
+]
+
+RUTAS_DM_CUADRATICA = [
+    Path("Resultados/matriz_pvalues_dm_cuadratica.csv"),
+    Path("Resultados/matriz_pvalues_dm_cuadratica.xlsx"),
+]
+
 
 def crear_tabla_simple(df, page_size=10):
     return dash_table.DataTable(
@@ -3256,6 +3266,113 @@ def figura_series_todos_modelos(predicciones, df_metricas):
     return fig
 
 
+
+MAPA_NOMBRES_DM = {
+    "RandomForest": "Random Forest",
+    "DecisionTree": "Árbol de Decisión",
+    "XARIMA": "XARIMA/ARIMA",
+}
+
+
+def leer_matriz_pvalues_dm(rutas_posibles):
+    ruta_encontrada = None
+
+    for ruta in rutas_posibles:
+        if ruta.exists():
+            ruta_encontrada = ruta
+            break
+
+    if ruta_encontrada is None:
+        rutas_txt = ", ".join(str(ruta) for ruta in rutas_posibles)
+        raise FileNotFoundError(f"No se encontró la matriz de p-valores DM. Rutas revisadas: {rutas_txt}")
+
+    if ruta_encontrada.suffix.lower() in [".xlsx", ".xls"]:
+        df = pd.read_excel(ruta_encontrada)
+    else:
+        df = pd.read_csv(
+            ruta_encontrada,
+            sep=None,
+            engine="python",
+            encoding="utf-8-sig",
+        )
+
+    df.columns = df.columns.astype(str).str.strip()
+
+    primera_columna = df.columns[0]
+    if primera_columna.startswith("Unnamed") or primera_columna == "":
+        df = df.set_index(primera_columna)
+    elif primera_columna not in df.columns[1:].tolist():
+        df = df.set_index(primera_columna)
+
+    df.index = df.index.astype(str).str.strip()
+    df.columns = df.columns.astype(str).str.strip()
+
+    df = df.rename(index=MAPA_NOMBRES_DM, columns=MAPA_NOMBRES_DM)
+
+    for col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    return df
+
+
+def figura_heatmap_pvalues_dm(df_pvalues):
+    z = df_pvalues.copy()
+    texto = df_pvalues.copy()
+
+    for i in range(min(z.shape)):
+        z.iat[i, i] = np.nan
+        texto.iat[i, i] = ""
+
+    texto = texto.applymap(
+        lambda valor: "" if pd.isna(valor) or valor == "" else f"{float(valor):.3g}"
+    )
+
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=z.values,
+            x=df_pvalues.columns,
+            y=df_pvalues.index,
+            text=texto.values,
+            texttemplate="%{text}",
+            textfont=dict(size=10, color=AZUL),
+            zmin=0,
+            zmax=1,
+            colorscale=[
+                [0.00, "#B23A48"],
+                [0.05, "#F4D7D7"],
+                [0.25, "#EAF1F8"],
+                [1.00, AZUL],
+            ],
+            colorbar=dict(
+                title="p-valor",
+                tickfont=dict(family=FUENTE, size=12, color=AZUL),
+            ),
+            hovertemplate=(
+                "<b>Modelo fila:</b> %{y}<br>"
+                "<b>Modelo columna:</b> %{x}<br>"
+                "<b>p-valor:</b> %{z:.4g}"
+                "<extra></extra>"
+            ),
+        )
+    )
+
+    fig.update_layout(
+        title=None,
+        xaxis_title="Modelo",
+        yaxis_title="Modelo",
+        plot_bgcolor=BLANCO,
+        paper_bgcolor=BLANCO,
+        font=dict(family=FUENTE, size=13, color=AZUL),
+        margin=dict(l=140, r=80, t=40, b=120),
+        height=720,
+    )
+
+    fig.update_xaxes(tickangle=-35, showgrid=False)
+    fig.update_yaxes(autorange="reversed", showgrid=False)
+
+    return fig
+
+
 def layout_todos_modelos():
     df_metricas, predicciones = cargar_comparacion_modelos()
 
@@ -3270,13 +3387,19 @@ def layout_todos_modelos():
     fig_heatmap_metricas = figura_heatmap_metricas_normalizadas(df_metricas)
     fig_real_predicho = figura_real_vs_predicho_mejores(predicciones, df_metricas, n_modelos=5)
     fig_series = figura_series_todos_modelos(predicciones, df_metricas)
+    df_dm_absoluta = leer_matriz_pvalues_dm(RUTAS_DM_ABSOLUTA)
+    df_dm_cuadratica = leer_matriz_pvalues_dm(RUTAS_DM_CUADRATICA)
+    fig_dm_absoluta = figura_heatmap_pvalues_dm(df_dm_absoluta)
+    fig_dm_cuadratica = figura_heatmap_pvalues_dm(df_dm_cuadratica)
 
     texto_conclusion = (
-        f"Con base en el test externo, el modelo con menor MAE fue {mejor_mae['Modelo']} "
-        f"(MAE = {mejor_mae['MAE']:.3f}). El menor RMSE fue obtenido por {mejor_rmse['Modelo']} "
-        f"(RMSE = {mejor_rmse['RMSE']:.3f}) y el menor MAPE por {mejor_mape['Modelo']} "
-        f"(MAPE = {mejor_mape['MAPE']:.3f} %). En conjunto, estas métricas permiten comparar "
-        "el desempeño de los modelos bajo el mismo periodo de test externo."
+    "Con el fin de evaluar la eficacia de cada modelo para predecir el nivel del río, se hizo uso de un test externo correspondiente "
+    "a un año de datos 2025 y se midieron las métricas de MAE, RMSE y MAPE. Se observa que el modelo SVR presentó el mejor desempeño "
+    "global frente a los demás modelos analizados. Este obtuvo el menor valor de MAE = 1.604, lo que indica que, en promedio, sus "
+    "predicciones se desviaron menos de los valores reales del nivel en Calamar. Asimismo, este modelo alcanzó el menor RMSE = 2.144 y "
+    "el menor MAPE = 0.304 %, lo que refleja un error porcentual relativo muy bajo. En conjunto, estos resultados sugieren que el modelo "
+    "SVR logró una mejor capacidad predictiva en el periodo de prueba externo, por lo que puede considerarse como el más apto para la "
+    "tarea de predicción en la estación de estudio."
     )
 
     return html.Div([
@@ -3451,6 +3574,68 @@ def layout_todos_modelos():
             html.H2("Interpretación comparativa", style=estilo_titulo),
             html.P(texto_conclusion, style=estilo_parrafo),
         ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Mapas de calor de p-valores DM", style=estilo_titulo),
+            html.Div(
+                style={
+                    "display": "grid",
+                    "gridTemplateColumns": "repeat(2, minmax(0, 1fr))",
+                    "gap": "18px",
+                    "alignItems": "start",
+                },
+                children=[
+                    html.Div(children=[
+                        html.H3("Diferencia absoluta", style={**estilo_titulo, "fontSize": "18px"}),
+                        html.P(
+                            "Este mapa presenta los p-valores de la prueba Diebold-Mariano calculada sobre "
+                            "la diferencia absoluta entre errores. Valores menores que 0.05 indican diferencias "
+                            "estadísticamente significativas entre el desempeño predictivo de los modelos comparados.",
+                            style=estilo_parrafo,
+                        ),
+                        dcc.Graph(
+                            figure=fig_dm_absoluta,
+                            config={
+                                "displayModeBar": True,
+                                "scrollZoom": True,
+                                "displaylogo": False,
+                                "toImageButtonOptions": {
+                                    "format": "png",
+                                    "filename": "heatmap_pvalues_dm_absoluta",
+                                    "height": 1100,
+                                    "width": 1400,
+                                    "scale": 2,
+                                },
+                            },
+                        ),
+                    ]),
+                    html.Div(children=[
+                        html.H3("Diferencia cuadrática", style={**estilo_titulo, "fontSize": "18px"}),
+                        html.P(
+                            "Este mapa presenta los p-valores de la prueba Diebold-Mariano calculada sobre "
+                            "la diferencia cuadrática entre errores. Valores menores que 0.05 indican diferencias "
+                            "estadísticamente significativas entre el desempeño predictivo de los modelos comparados.",
+                            style=estilo_parrafo,
+                        ),
+                        dcc.Graph(
+                            figure=fig_dm_cuadratica,
+                            config={
+                                "displayModeBar": True,
+                                "scrollZoom": True,
+                                "displaylogo": False,
+                                "toImageButtonOptions": {
+                                    "format": "png",
+                                    "filename": "heatmap_pvalues_dm_cuadratica",
+                                    "height": 1100,
+                                    "width": 1400,
+                                    "scale": 2,
+                                },
+                            },
+                        ),
+                    ]),
+                ],
+            ),
+        ]),
     ])
 
 def layout_modelos(modelos=None):
@@ -3458,9 +3643,21 @@ def layout_modelos(modelos=None):
         html.Div(style=estilo_tarjeta, children=[
             html.H2("Modelos implementados", style=estilo_titulo),
             html.P(
-                "Seleccione un modelo para visualizar su configuración, validación temporal, métricas, predicciones y diagnóstico de residuos.",
-                style=estilo_parrafo_sec,
+                "Debido a la alta multicolinealidad observada entre las series de nivel de las diferentes estaciones, se decidió "
+                "construir los modelos utilizando únicamente la información temporal y el nivel registrado en Calamar. Esta "
+                "decisión se tomó especialmente para evitar problemas en los modelos lineales, como Ridge y Lasso, en los "
+                "que la presencia de variables altamente correlacionadas puede afectar la estabilidad e interpretación de los "
+                "coeficientes. De esta forma, se trabajó bajo un esquema univariado, donde el nivel futuro se predice a partir de "
+                "la memoria reciente de la propia serie. ",
+                style=estilo_parrafo,
             ),
+            
+            html.P(
+                "A continuación seleccione un modelo para visualizar su configuración, validación temporal, métricas, predicciones y diagnóstico de residuos " 
+                "en la estación de Calamar.",
+                style=estilo_parrafo,
+            ),
+            
             dcc.Dropdown(
                 id="selector-modelo",
                 options=[

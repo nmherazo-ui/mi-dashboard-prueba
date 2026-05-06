@@ -6,10 +6,11 @@ import plotly.graph_objects as go
 from dash import html, dcc, Input, Output, dash_table
 from plotly.subplots import make_subplots
 from statsmodels.stats.outliers_influence import variance_inflation_factor
-from scipy.stats import gaussian_kde
+from scipy.stats import gaussian_kde, mannwhitneyu
 from statsmodels.tsa.stattools import acf
 from statsmodels.stats.diagnostic import acorr_ljungbox
 import pymannkendall as mk
+from pathlib import Path
 
 from datos import COLORES_ESTACIONES, NOMBRES_ESTACIONES
 from estilos import (
@@ -2394,6 +2395,55 @@ def registrar_callbacks_eda(app, df, columnas_estaciones, serie_objetivo):
                 zeroline=False,
                 range=[min_val - margen_val, max_val + margen_val]
             )
+
+            # ====================================================
+            # Test Mann-Whitney U: serie original vs serie imputada
+            # ====================================================
+
+            resultados_mannwhitney = []
+
+            for est in estaciones_imp:
+                col_original = f"{est}_original"
+
+                serie_original = pd.to_numeric(
+                    df_imp[col_original],
+                    errors="coerce"
+                )
+
+                serie_imputada = pd.to_numeric(
+                    df_imp[est],
+                    errors="coerce"
+                )
+
+                serie_no_imputada = serie_original.dropna()
+                serie_imputada_completa = serie_imputada.dropna()
+
+                estadistico_u, p_valor = mannwhitneyu(
+                    serie_no_imputada,
+                    serie_imputada_completa,
+                    alternative="two-sided"
+                )
+
+                resultados_mannwhitney.append({
+                    "Estación": NOMBRES_ESTACIONES.get(est, est),
+                    "N No Imputada": int(len(serie_no_imputada)),
+                    "N Imputada": int(len(serie_imputada_completa)),
+                    "Faltantes originales": int(serie_original.isna().sum()),
+                    "Porcentaje faltantes": round(float(serie_original.isna().mean() * 100), 2),
+                    "U": round(float(estadistico_u), 2),
+                    "P-valor": round(float(p_valor), 6),
+                    "Diferencia significativa": "Sí" if p_valor < 0.05 else "No"
+                })
+
+            df_mannwhitney = pd.DataFrame(resultados_mannwhitney)
+
+            ruta_resultados_mannwhitney = Path("Resultados")
+            ruta_resultados_mannwhitney.mkdir(parents=True, exist_ok=True)
+            df_mannwhitney.to_csv(
+                ruta_resultados_mannwhitney / "1_resultados_mannwhitney.csv",
+                index=False,
+                encoding="utf-8-sig"
+            )
             
 
             contenido = html.Div([
@@ -2718,6 +2768,55 @@ def registrar_callbacks_eda(app, df, columnas_estaciones, serie_objetivo):
                                 "width": 1200,
                                 "scale": 2
                             }
+                        }
+                    )
+
+                ]),
+
+                html.Div(style=estilo_tarjeta, children=[
+
+                    html.H2(
+                        "Test Mann–Whitney U: serie original vs serie imputada",
+                        style=estilo_titulo
+                    ),
+
+                    html.P(
+                        "La prueba Mann–Whitney U se aplicó para comparar la serie original no imputada "
+                        "con la serie imputada. El objetivo fue evaluar si la imputación generó diferencias "
+                        "estadísticamente significativas en la distribución de los datos.",
+                        style=estilo_parrafo
+                    ),
+
+                    crear_tabla(
+                        df_mannwhitney,
+                        page_size=10,
+                        style_data_conditional=[
+                            {
+                                "if": {
+                                    "filter_query": '{Diferencia significativa} = "Sí"'
+                                },
+                                "backgroundColor": "#F4D7D7",
+                                "color": "#7A1F1F",
+                                "fontWeight": "bold"
+                            },
+                            {
+                                "if": {
+                                    "filter_query": '{Diferencia significativa} = "No"'
+                                },
+                                "backgroundColor": "#DDEEE3",
+                                "color": "#1F5C3A"
+                            }
+                        ]
+                    ),
+
+                    html.P(
+                        "Nota: Se considera diferencia estadísticamente significativa cuando el p-valor "
+                        "es menor que 0.05.",
+                        style={
+                            **estilo_parrafo,
+                            "fontSize": "13px",
+                            "color": "#8A8A8A",
+                            "marginTop": "18px"
                         }
                     )
 

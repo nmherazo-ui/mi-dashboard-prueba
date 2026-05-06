@@ -1,0 +1,7 @@
+﻿Estación,N No Imputada,N Imputada,Faltantes originales,Porcentaje faltantes,U,P-valor,Diferencia significativa
+Calamar,18248,18398,150,0.82,168275144.0,0.684241,No
+Achi,14831,18398,3567,19.39,140458354.5,4e-06,Sí
+El Banco,17978,18398,420,2.28,165883906.0,0.614534,No
+Salado Blanco,18240,18398,158,0.86,167676463.0,0.910879,No
+Puerto Berrío,18015,18398,383,2.08,165185078.5,0.593773,No
+Barrancabermeja,17461,18398,937,5.09,163094721.5,0.011671,Sí
