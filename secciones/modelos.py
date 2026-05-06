@@ -277,6 +277,24 @@ def cargar_resultados_mlp_calamar():
 
 
 
+
+def cargar_resultados_rnn_calamar():
+    with open(RUTA_METADATA_RNN, "r", encoding="utf-8") as f:
+        metadata = json.load(f)
+
+    df_test = pd.read_csv(RUTA_TEST_RNN, sep=None, engine="python", encoding="utf-8-sig")
+    df_test.columns = df_test.columns.str.strip()
+
+    if "Fecha" in df_test.columns:
+        df_test["Fecha"] = pd.to_datetime(df_test["Fecha"], errors="coerce")
+
+    if "Residuo" not in df_test.columns and {"Calamar_real", "Calamar_predicho"}.issubset(df_test.columns):
+        df_test["Residuo"] = df_test["Calamar_real"] - df_test["Calamar_predicho"]
+
+    return metadata, df_test
+
+
+
 def cargar_resultados_lstm_calamar():
     with open(RUTA_METADATA_LSTM, "r", encoding="utf-8") as f:
         metadata = json.load(f)
@@ -738,6 +756,54 @@ def figura_serie_mlp(df_test):
     return fig
 
 
+
+
+
+def figura_serie_rnn(df_test):
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=df_test["Fecha"],
+        y=df_test["Calamar_real"],
+        mode="lines",
+        name="Calamar real",
+        line=dict(color=AZUL, width=2),
+        hovertemplate="<b>Fecha:</b> %{x|%Y-%m-%d}<br><b>Nivel real:</b> %{y:.2f} cm<br><extra></extra>",
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=df_test["Fecha"],
+        y=df_test["Calamar_predicho"],
+        mode="lines",
+        name="Calamar predicho - RNN",
+        line=dict(color=CELESTE, width=2, dash="dash"),
+        hovertemplate="<b>Fecha:</b> %{x|%Y-%m-%d}<br><b>Nivel predicho:</b> %{y:.2f} cm<br><extra></extra>",
+    ))
+
+    fig.update_layout(
+        title=None,
+        xaxis_title="Fecha",
+        yaxis_title="Nivel en Calamar [cm]",
+        plot_bgcolor=BLANCO,
+        paper_bgcolor=BLANCO,
+        font=dict(family=FUENTE, size=13, color=AZUL),
+        hovermode="x unified",
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            bgcolor="rgba(255,255,255,0.85)",
+            bordercolor="rgba(26,58,92,0.18)",
+            borderwidth=1,
+        ),
+        margin=dict(l=70, r=40, t=70, b=60),
+        height=520,
+    )
+    fig.update_xaxes(showgrid=True, gridcolor="#D9E2EF")
+    fig.update_yaxes(showgrid=True, gridcolor="#D9E2EF", zeroline=False)
+    return fig
 
 
 def figura_serie_lstm(df_test):
@@ -1250,6 +1316,28 @@ def figura_particion_temporal_mlp(metadata, df_serie, df_test):
     return fig
 
 
+
+
+
+def figura_particion_temporal_rnn(metadata, df_serie, df_test):
+    fig = figura_particion_temporal_svr(metadata, df_serie, df_test)
+
+    # Ajustar etiquetas del modelo para RNN sin duplicar toda la lógica
+    for trace in fig.data:
+        if trace.name == "Predicción SVR":
+            trace.name = "Predicción RNN"
+            trace.hovertemplate = (
+                "<b>Predicción RNN</b><br>"
+                "<b>Fecha:</b> %{x|%Y-%m-%d}<br>"
+                "<b>Nivel predicho:</b> %{y:.2f} cm<br>"
+                "<extra></extra>"
+            )
+
+    for anot in fig.layout.annotations:
+        if getattr(anot, "text", None) == "observado<br>SVR":
+            anot.text = "observado<br>RNN"
+
+    return fig
 
 
 def figura_particion_temporal_lstm(metadata, df_serie, df_test):
@@ -2392,6 +2480,121 @@ def layout_mlp_calamar():
         ]),
     ])
 
+
+
+
+
+
+def layout_rnn_calamar():
+    metadata, df_test = cargar_resultados_rnn_calamar()
+
+    mae = float(metadata["MAE_test_externo"])
+    mse = float(metadata["MSE_test_externo"])
+    rmse = float(np.sqrt(mse))
+
+    df_serie_completa = leer_serie_completa_calamar()
+
+    fig_particion = figura_particion_temporal_rnn(
+        metadata,
+        df_serie_completa,
+        df_test
+    )
+
+    fig_serie = figura_serie_rnn(df_test)
+    fig_hist = figura_histograma_residuos(df_test)
+    fig_acf = figura_acf_residuos(df_test, nlags=60)
+
+    df_validacion = pd.DataFrame([
+        {"Conjunto": "Train / validación", "Fecha inicial": metadata["fecha_inicio_trainval"], "Fecha final": metadata["fecha_fin_trainval"]},
+        {"Conjunto": "Test externo", "Fecha inicial": metadata["fecha_inicio_test_externo"], "Fecha final": metadata["fecha_fin_test_externo"]},
+    ])
+
+    best_params = metadata["best_params"]
+    df_hiper = pd.DataFrame([
+        {"Parámetro": "Ventana seleccionada", "Valor": f"{metadata['numInputs']} días"},
+        {"Parámetro": "units", "Valor": best_params["units"]},
+        {"Parámetro": "dropout", "Valor": best_params["dropout"]},
+        {"Parámetro": "learning_rate", "Valor": best_params["learning_rate"]},
+        {"Parámetro": "Ventanas evaluadas", "Valor": ", ".join(map(str, metadata["ventanas_evaluadas"]))},
+        {"Parámetro": "Modelos entrenados en búsqueda", "Valor": metadata["modelos_entrenados_busqueda"]},
+    ])
+
+    df_metricas = pd.DataFrame([
+        {"Etapa": "Test externo", "MAE": round(mae, 4), "MSE": round(mse, 4), "RMSE": round(rmse, 4)}
+    ])
+
+    return html.Div([
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Recurrent Neural Network (RNN) - Calamar", style=estilo_titulo),
+            html.P(
+                "Este modelo corresponde a una red recurrente RNN implementada en Keras con capa de normalización, aplicada a la predicción del nivel en la estación Calamar. La configuración final se seleccionó usando MAE como criterio principal de validación y MSE como métrica complementaria.",
+                style=estilo_parrafo,
+            ),
+            html.P(metadata["criterio_final"], style=estilo_parrafo),
+        ]),
+
+        html.Div(style=estilo_flex, children=[
+            tarjeta_metrica("MAE test externo", f"{mae:.3f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo", f"{mse:.3f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Validación temporal", style=estilo_titulo),
+            html.P("El último año disponible se reservó como test externo final. El resto de la serie se empleó para entrenamiento y validación interna.", style=estilo_parrafo),
+            crear_tabla_simple(df_validacion, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Búsqueda y mejores hiperparámetros", style=estilo_titulo),
+            html.P("La búsqueda evaluó distintas ventanas de entrada y combinaciones de hiperparámetros de la red RNN. La tabla resume la configuración seleccionada y el tamaño de la búsqueda.", style=estilo_parrafo),
+            crear_tabla_simple(df_hiper, page_size=10),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Métricas del test externo", style=estilo_titulo),
+            crear_tabla_simple(df_metricas, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Partición temporal del modelado", style=estilo_titulo),
+            html.P(
+                "La serie se dividió temporalmente en un bloque de entrenamiento y validación interna, "
+                "seguido por un test externo final. El último año fue reservado como conjunto externo "
+                "para evaluar el desempeño del modelo sobre datos no utilizados durante la selección "
+                "de hiperparámetros.",
+                style=estilo_parrafo_sec
+            ),
+            dcc.Graph(
+                figure=fig_particion,
+                config={
+                    "displayModeBar": True,
+                    "scrollZoom": True,
+                    "displaylogo": False,
+                    "toImageButtonOptions": {
+                        "format": "png",
+                        "filename": "particion_temporal_rnn_calamar",
+                        "height": 900,
+                        "width": 1400,
+                        "scale": 2
+                    }
+                }
+            )
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Serie observada vs predicha", style=estilo_titulo),
+            html.P("La gráfica compara el nivel observado en Calamar con la predicción del modelo RNN durante el periodo reservado como test externo.", style=estilo_parrafo),
+            dcc.Graph(figure=fig_serie, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Diagnóstico de residuos", style=estilo_titulo),
+            html.P("El diagnóstico de residuos permite revisar la distribución de los errores y su posible dependencia temporal. Idealmente, los residuos deberían concentrarse alrededor de cero y no mostrar autocorrelación marcada.", style=estilo_parrafo),
+            dcc.Graph(figure=fig_hist, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+            dcc.Graph(figure=fig_acf, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+        ]),
+    ])
 
 
 
@@ -4037,6 +4240,7 @@ def layout_modelos(modelos=None):
                     {"label": "Random Forest", "value": "rf_calamar"},
                     {"label": "XGBoost", "value": "xgb_calamar"},
                     {"label": "Multi-Layer Perceptron (MLP)", "value": "mlp_calamar"},
+                    {"label": "Recurrent Neural Network (RNN)", "value": "rnn_calamar"},
                     {"label": "Long Short-Term Memory (LSTM)", "value": "lstm_calamar"},
                     {"label": "Convolutional Neural Network (CNN)", "value": "cnn_calamar"},
                 ],
@@ -4081,6 +4285,9 @@ def registrar_callbacks_modelos(app, df, serie_objetivo, modelos=None):
 
         if modelo == "mlp_calamar":
             return layout_mlp_calamar()
+
+        if modelo == "rnn_calamar":
+            return layout_rnn_calamar()
 
         if modelo == "lstm_calamar":
             return layout_lstm_calamar()
