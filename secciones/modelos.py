@@ -3543,7 +3543,7 @@ def figura_heatmap_pvalues_dm(df_pvalues):
         z.iat[i, i] = np.nan
         texto.iat[i, i] = ""
 
-    texto = texto.applymap(
+    texto = texto.map(
         lambda valor: "" if pd.isna(valor) or valor == "" else f"{float(valor):.3g}"
     )
 
