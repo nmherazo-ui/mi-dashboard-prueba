@@ -3535,7 +3535,9 @@ def leer_matriz_pvalues_dm(rutas_posibles):
 
 def figura_heatmap_pvalues_dm(df_pvalues):
     z = df_pvalues.copy()
-    texto = df_pvalues.copy()
+
+    # Crear matriz de texto como object para permitir strings vacíos
+    texto = df_pvalues.copy().astype(object)
 
     for i in range(min(z.shape)):
         z.iat[i, i] = np.nan
@@ -3589,9 +3591,6 @@ def figura_heatmap_pvalues_dm(df_pvalues):
     fig.update_yaxes(autorange="reversed", showgrid=False)
 
     return fig
-
-
-
 
 MAPA_NOMBRES_MANNWHITNEY = {
     "RandomForest": "Random Forest",
