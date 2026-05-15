@@ -2921,6 +2921,127 @@ def calcular_mape(y_real, y_pred):
     return np.mean(np.abs((y_real[mask] - y_pred[mask]) / y_real[mask])) * 100
 
 
+def _formatear_ventana_comparacion(metadata):
+    """Obtiene la ventana seleccionada usando los nombres nuevos y antiguos del metadata."""
+    ventana = metadata.get("numInputs_seleccionado", None)
+
+    if ventana is None:
+        best_params = metadata.get("best_params", {})
+        if isinstance(best_params, dict):
+            ventana = best_params.get("numInputs_cv", None)
+
+    if ventana is None:
+        ventana = metadata.get("numInputs", None)
+
+    if ventana is None:
+        ventana = metadata.get("train_size", None)
+
+    if ventana is None:
+        ventanas = metadata.get("numInputs_cv_list", metadata.get("ventanas_evaluadas", None))
+        if isinstance(ventanas, (list, tuple)) and len(ventanas) > 0:
+            ventana = ventanas[0]
+
+    if ventana is None:
+        return "N/A"
+
+    if isinstance(ventana, (int, float)) and not pd.isna(ventana):
+        return f"{int(ventana)} días"
+
+    ventana_txt = str(ventana).strip()
+    if ventana_txt.upper() == "N/A" or ventana_txt == "":
+        return "N/A"
+    if "día" not in ventana_txt.lower() and "dia" not in ventana_txt.lower():
+        return f"{ventana_txt} días"
+    return ventana_txt
+
+
+def _producto_grid_hiperparametros(grid):
+    """Calcula el número de combinaciones de un diccionario de hiperparámetros."""
+    if not isinstance(grid, dict) or len(grid) == 0:
+        return None
+
+    total = 1
+    for valores in grid.values():
+        if isinstance(valores, (list, tuple, set)):
+            total *= max(1, len(valores))
+        else:
+            total *= 1
+    return total
+
+
+def _resolver_ruta_desde_metadata(ruta_metadata, valor_ruta):
+    """Resuelve archivos referenciados en metadata, incluso si vienen con ruta absoluta de Windows."""
+    if not valor_ruta:
+        return None
+
+    nombre_archivo = Path(str(valor_ruta).replace("\\", "/")).name
+    if not nombre_archivo:
+        return None
+
+    candidatos = []
+    ruta_metadata = Path(ruta_metadata)
+
+    if ruta_metadata.parent:
+        candidatos.append(ruta_metadata.parent / nombre_archivo)
+
+    candidatos.append(Path("Resultados") / nombre_archivo)
+
+    for ruta in candidatos:
+        if ruta.exists():
+            return ruta
+
+    resultados = Path("Resultados")
+    if resultados.exists():
+        encontrados = list(resultados.rglob(nombre_archivo))
+        if encontrados:
+            return encontrados[0]
+
+    return None
+
+
+def _calcular_modelos_entrenados_comparacion(metadata, ruta_metadata):
+    """Obtiene o estima los modelos entrenados para la tabla de la opción Todos."""
+    for clave in [
+        "modelos_entrenados_busqueda",
+        "n_modelos_entrenados",
+        "total_modelos_entrenados",
+        "modelos_entrenados",
+    ]:
+        valor = metadata.get(clave, None)
+        if valor is not None and not pd.isna(valor):
+            return valor
+
+    grid = metadata.get("grid_hiperparametros", None)
+    total_grid = _producto_grid_hiperparametros(grid)
+    if total_grid is not None:
+        ventanas = metadata.get(
+            "ventanas_evaluadas",
+            metadata.get("numInputs_cv_list", metadata.get("numInputs_list", []))
+        )
+        if isinstance(ventanas, (list, tuple, set)) and len(ventanas) > 0:
+            total_grid *= len(ventanas)
+        return int(total_grid)
+
+    ruta_resultados = _resolver_ruta_desde_metadata(
+        ruta_metadata,
+        metadata.get("archivo_resultados", None),
+    )
+
+    if ruta_resultados is not None and Path(ruta_resultados).exists():
+        try:
+            df_resultados = pd.read_csv(
+                ruta_resultados,
+                sep=None,
+                engine="python",
+                encoding="utf-8-sig",
+            )
+            return int(len(df_resultados))
+        except Exception:
+            return "N/A"
+
+    return "N/A"
+
+
 def cargar_comparacion_modelos():
     registros = []
     predicciones = {}
@@ -2955,9 +3076,11 @@ def cargar_comparacion_modelos():
         rmse = float(np.sqrt(mse))
         mape = float(calcular_mape(df_test["Calamar_real"], df_test["Calamar_predicho"]))
 
-        ventana = metadata.get("numInputs", metadata.get("train_size", "N/A"))
-        if isinstance(ventana, (int, float)):
-            ventana = f"{int(ventana)} días"
+        ventana = _formatear_ventana_comparacion(metadata)
+        modelos_entrenados = _calcular_modelos_entrenados_comparacion(
+            metadata,
+            spec["ruta_metadata"],
+        )
 
         registros.append({
             "Modelo": spec["nombre"],
@@ -2966,7 +3089,7 @@ def cargar_comparacion_modelos():
             "RMSE": rmse,
             "MAPE": mape,
             "Ventana": ventana,
-            "Modelos entrenados": metadata.get("modelos_entrenados_busqueda", "N/A"),
+            "Modelos entrenados": modelos_entrenados,
         })
 
         columnas_pred = ["Fecha", "Calamar_real", "Calamar_predicho", "Residuo", "Error absoluto"]
@@ -2977,7 +3100,6 @@ def cargar_comparacion_modelos():
     df_metricas.insert(0, "Ranking", np.arange(1, len(df_metricas) + 1))
 
     return df_metricas, predicciones
-
 
 def tabla_comparativa_modelos(df_metricas):
     df_tabla = df_metricas.copy()
@@ -2996,7 +3118,7 @@ def tabla_comparativa_modelos(df_metricas):
             {"name": "MSE", "id": "MSE", "type": "numeric", "format": {"specifier": ".4f"}},
             {"name": "RMSE", "id": "RMSE", "type": "numeric", "format": {"specifier": ".4f"}},
             {"name": "MAPE [%]", "id": "MAPE", "type": "numeric", "format": {"specifier": ".4f"}},
-            {"name": "Ventana", "id": "Ventana"},
+            {"name": "Ventana seleccionada", "id": "Ventana"},
             {"name": "Modelos entrenados", "id": "Modelos entrenados"},
         ],
         page_size=12,
