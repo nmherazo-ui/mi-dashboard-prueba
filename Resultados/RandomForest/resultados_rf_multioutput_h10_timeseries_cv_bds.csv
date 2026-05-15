@@ -1,0 +1,3 @@
+﻿numInputs,ventana,numOutputs,numJumps,n_estimators,max_depth,min_samples_leaf,max_features,random_state,n_jobs,MAE_val_h10_mean,MAE_val_h10_std,MSE_val_h10_mean,MSE_val_h10_std,BDS_pvalue_mean,BDS_pvalue_min,BDS_folds_pass,BDS_all_folds_pass,BDS_any_fold_pass
+30,30 días,10,1,300,,1,sqrt,42,-1,22.2932506964291,0.3171312117916016,1016.1948768143138,21.00079211712524,1.8700053314109277e-08,1.2728715078140146e-14,0,False,False
+60,60 días,10,1,300,,1,sqrt,42,-1,29.370544687387962,0.8012979194816447,1599.2402265438927,71.53190415812907,0.0,0.0,0,False,False

@@ -1,0 +1,39 @@
+{
+    "target": "Calamar",
+    "numInputs_seleccionado": 30,
+    "numOutputs": 10,
+    "numJumps": 1,
+    "ventanas_evaluadas": [
+        30,
+        60
+    ],
+    "horizontes_eval_test": [
+        1,
+        5,
+        10
+    ],
+    "best_params": {
+        "random_state": 42,
+        "max_depth": null,
+        "min_samples_split": 2,
+        "min_samples_leaf": 1,
+        "max_features": null
+    },
+    "modelo": "DecisionTreeRegressor multioutput nativo",
+    "criterio_final": "Menor MAE de validación acumulado sobre la salida completa H10, usando BDS como criterio de diagnóstico/filtro. El modelo final fue entrenado sin incluir los últimos 10 registros, reservados como test externo final.",
+    "validacion_cruzada": "split_train_val_groupKFold de timeseries-cv",
+    "fecha_inicio_trainval": "1975-06-29 00:00:00",
+    "fecha_fin_trainval": "2025-10-31 00:00:00",
+    "fecha_inicio_test_externo": "2025-11-01 00:00:00",
+    "fecha_fin_test_externo": "2025-11-10 00:00:00",
+    "MAE_test_externo": 1.60625,
+    "MSE_test_externo": 3.286328125,
+    "archivo_resultados": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosDT_MultiOutput_H10\\resultados_dt_multioutput_h10_timeseries_cv_bds.csv",
+    "archivo_resumen": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosDT_MultiOutput_H10\\resumen_dt_multioutput_h10_timeseries_cv_bds.csv",
+    "archivo_test_final": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosDT_MultiOutput_H10\\test_final_externo_dt_multioutput_h10_calamar.csv",
+    "archivo_metricas_horizontes": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosDT_MultiOutput_H10\\metricas_horizontes_1_5_10_dt_multioutput_h10.csv",
+    "archivo_modelo": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosDT_MultiOutput_H10\\modelo_dt_multioutput_h10_calamar.joblib",
+    "archivo_figura_test": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosDT_MultiOutput_H10\\dt_multioutput_h10_test_final_externo.png",
+    "archivo_acf_residuos": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosDT_MultiOutput_H10\\acf_residuos_dt_multioutput_h10_test_externo.png",
+    "archivo_hist_residuos": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosDT_MultiOutput_H10\\histograma_residuos_dt_multioutput_h10_test_externo.png"
+}

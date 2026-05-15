@@ -1,0 +1,3 @@
+﻿criterio,criterio_bds_usado,numInputs,ventana,numOutputs,numJumps,alpha,MAE_val_h10_mean,MAE_val_h10_std,MSE_val_h10_mean,MSE_val_h10_std,BDS_pvalue_mean,BDS_pvalue_min,BDS_folds_pass,BDS_all_folds_pass,BDS_any_fold_pass
+MAE_h10,BDS_all_folds_pass,60,60 días,10,1,0.01,15.523120995176129,0.7460258511451997,647.3705211092931,35.45195829658511,0.10910067182208658,0.08877501260506726,5,True,True
+MSE_h10,BDS_all_folds_pass,60,60 días,10,1,0.01,15.523120995176129,0.7460258511451997,647.3705211092931,35.45195829658511,0.10910067182208658,0.08877501260506726,5,True,True

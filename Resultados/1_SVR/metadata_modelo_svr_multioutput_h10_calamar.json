@@ -1,0 +1,43 @@
+{
+    "target": "Calamar",
+    "numInputs_seleccionado": 30,
+    "numOutputs": 10,
+    "numJumps": 1,
+    "ventanas_evaluadas": [
+        30,
+        60
+    ],
+    "horizontes_eval_test": [
+        1,
+        5,
+        10
+    ],
+    "best_params": {
+        "modelo__estimator__kernel": "rbf",
+        "modelo__estimator__C": 60,
+        "modelo__estimator__epsilon": 0.01,
+        "modelo__estimator__gamma": 0.03
+    },
+    "modelo": "Pipeline(StandardScaler + MultiOutputRegressor(SVR RBF))",
+    "criterio_final": "Menor MAE de validación acumulado sobre la salida completa H10, usando BDS como criterio de diagnóstico/filtro. El modelo final fue entrenado sin incluir los últimos 10 registros, reservados como test externo final.",
+    "validacion_cruzada": "split_train_val_groupKFold de timeseries-cv",
+    "fecha_inicio_trainval": "1975-06-29 00:00:00",
+    "fecha_fin_trainval": "2025-10-31 00:00:00",
+    "fecha_inicio_test_externo": "2025-11-01 00:00:00",
+    "fecha_fin_test_externo": "2025-11-10 00:00:00",
+    "MAE_test_externo": 1.8709877164744513,
+    "MSE_test_externo": 4.228335601772643,
+    "archivo_resultados": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\resultados_svr_multioutput_h10_fijo_timeseries_cv_bds.csv",
+    "archivo_resumen": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\resumen_svr_multioutput_h10_fijo_timeseries_cv_bds.csv",
+    "archivo_test_final": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\test_final_externo_svr_multioutput_h10_calamar.csv",
+    "archivo_metricas_horizontes": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\metricas_horizontes_1_5_10_svr_multioutput_h10.csv",
+    "archivo_modelo": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\modelo_svr_multioutput_h10_calamar.joblib",
+    "archivo_plotly_pliegues_todas": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\plotly_pliegues_groupkfold_svr_multioutput_h10.csv",
+    "archivo_plotly_pliegues_mejor": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\plotly_pliegues_reales_mejor_ventana_svr_multioutput_h10.csv",
+    "archivo_info_pliegues": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\info_pliegues_groupkfold_svr_multioutput_h10.csv",
+    "archivo_html_pliegues_mejor": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\plotly_pliegues_reales_mejor_ventana_svr_multioutput_h10.html",
+    "archivo_figura_test": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\svr_multioutput_h10_test_final_externo.png",
+    "archivo_acf_residuos": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\acf_residuos_svr_multioutput_h10_test_externo.png",
+    "archivo_hist_residuos": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\histograma_residuos_svr_multioutput_h10_test_externo.png",
+    "nota_pliegues": "El HTML Plotly y el CSV de la mejor ventana contienen los pliegues REALES de train/validación interna generados con split_train_val_groupKFold. No incluyen test interno, porque en esta metodología el único test es el test externo final de 10 días."
+}

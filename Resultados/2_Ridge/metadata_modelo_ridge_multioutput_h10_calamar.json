@@ -1,0 +1,35 @@
+{
+    "target": "Calamar",
+    "numInputs_seleccionado": 60,
+    "numOutputs": 10,
+    "numJumps": 1,
+    "ventanas_evaluadas": [
+        30,
+        60
+    ],
+    "horizontes_eval_test": [
+        1,
+        5,
+        10
+    ],
+    "best_params": {
+        "ridge__alpha": 0.1
+    },
+    "modelo": "Pipeline(StandardScaler + Ridge)",
+    "criterio_final": "Menor MAE de validación acumulado sobre la salida completa H10, usando BDS como criterio de diagnóstico/filtro. El modelo final fue entrenado sin incluir los últimos 10 registros, reservados como test externo final.",
+    "validacion_cruzada": "split_train_val_groupKFold de timeseries-cv",
+    "fecha_inicio_trainval": "1975-06-29 00:00:00",
+    "fecha_fin_trainval": "2025-10-31 00:00:00",
+    "fecha_inicio_test_externo": "2025-11-01 00:00:00",
+    "fecha_fin_test_externo": "2025-11-10 00:00:00",
+    "MAE_test_externo": 6.03044250445123,
+    "MSE_test_externo": 55.00252804248011,
+    "archivo_resultados": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\resultados_ridge_multioutput_h10_timeseries_cv_bds.csv",
+    "archivo_resumen": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\resumen_ridge_multioutput_h10_timeseries_cv_bds.csv",
+    "archivo_test_final": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\test_final_externo_ridge_multioutput_h10_calamar.csv",
+    "archivo_metricas_horizontes": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\metricas_horizontes_1_5_10_ridge_multioutput_h10.csv",
+    "archivo_modelo": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\modelo_ridge_multioutput_h10_calamar.joblib",
+    "archivo_figura_test": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\ridge_multioutput_h10_test_final_externo.png",
+    "archivo_acf_residuos": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\acf_residuos_ridge_multioutput_h10_test_externo.png",
+    "archivo_hist_residuos": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\histograma_residuos_ridge_multioutput_h10_test_externo.png"
+}

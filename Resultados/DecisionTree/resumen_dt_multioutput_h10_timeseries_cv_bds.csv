@@ -1,0 +1,3 @@
+﻿criterio,criterio_bds_usado,numInputs,ventana,numOutputs,numJumps,random_state,max_depth,min_samples_split,min_samples_leaf,max_features,MAE_val_h10_mean,MAE_val_h10_std,MSE_val_h10_mean,MSE_val_h10_std,BDS_pvalue_mean,BDS_pvalue_min,BDS_folds_pass,BDS_all_folds_pass,BDS_any_fold_pass
+MAE_h10,max_BDS_folds_pass,30,30 días,10,1,42,,2,1,,25.735026201153698,0.8435238062138539,1428.5293759844503,95.48196871064765,1.7174436327603017e-07,7.903991883887947e-08,0,False,False
+MSE_h10,max_BDS_folds_pass,30,30 días,10,1,42,,2,1,,25.735026201153698,0.8435238062138539,1428.5293759844503,95.48196871064765,1.7174436327603017e-07,7.903991883887947e-08,0,False,False
