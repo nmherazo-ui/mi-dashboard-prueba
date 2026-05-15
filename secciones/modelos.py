@@ -7010,8 +7010,102 @@ def cargar_tablas_lstm_multioutput():
     return df_resumen, df_resultados_cv, df_metricas_horizontes, df_historial_entrenamiento, df_historial_final
 
 
-def figura_curva_aprendizaje_lstm(df_historial_entrenamiento, df_historial_final=None, num_inputs=None):
-    """Curva de aprendizaje del LSTM usando el historial de entrenamiento."""
+
+
+def _normalizar_valor_config(valor):
+    """Normaliza valores de metadata/historial para comparar configuraciones."""
+    if isinstance(valor, float):
+        return round(valor, 10)
+    if isinstance(valor, (int, np.integer)):
+        return int(valor)
+    if isinstance(valor, (float, np.floating)):
+        return round(float(valor), 10)
+    if valor is None:
+        return None
+    texto = str(valor).strip()
+    try:
+        numero = float(texto)
+        if numero.is_integer():
+            return int(numero)
+        return round(numero, 10)
+    except Exception:
+        return texto
+
+
+def _filtrar_historial_mejor_configuracion(df_historial, metadata, num_inputs=None):
+    """Filtra el historial de CV usando la configuración seleccionada en metadata."""
+    df = df_historial.copy()
+    df.columns = df.columns.astype(str).str.strip()
+
+    columnas_numericas = [
+        "epoch", "loss_train", "loss_val", "mae_train", "mae_val",
+        "mse_train", "mse_val", "numInputs", "fold", "units", "filters",
+        "kernel_size", "dropout", "dense_units", "learning_rate", "batch_size",
+        "patience", "epochs_max", "epochs_usados", "epochs_usados_fold",
+    ]
+    for col in columnas_numericas:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    if metadata is None:
+        metadata = {}
+
+    best_params = metadata.get("best_params", {}) if isinstance(metadata, dict) else {}
+    if not isinstance(best_params, dict):
+        best_params = {}
+
+    ventana = metadata.get("numInputs_seleccionado", None) if isinstance(metadata, dict) else None
+    if ventana is None:
+        ventana = metadata.get("numInputs", None) if isinstance(metadata, dict) else None
+    if ventana is None:
+        ventana = num_inputs
+
+    filtros = {}
+    if ventana is not None:
+        filtros["numInputs"] = ventana
+
+    # Parámetros comunes de redes neuronales.
+    for col in ["units", "dropout", "learning_rate", "batch_size", "filters", "kernel_size", "dense_units", "patience", "epochs_max"]:
+        if col in best_params:
+            filtros[col] = best_params[col]
+
+    # MLP guarda el tamaño de capas como hidden_layers.
+    if "hidden_layers" in best_params:
+        filtros["hidden_layers"] = best_params["hidden_layers"]
+    elif "hidden_layer_sizes" in best_params:
+        filtros["hidden_layers"] = best_params["hidden_layer_sizes"]
+
+    # RNN puede guardar scaler en metadata y en historial.
+    if "scaler" in best_params:
+        filtros["scaler"] = best_params["scaler"]
+
+    df_filtrado = df.copy()
+    for col, valor in filtros.items():
+        if col not in df_filtrado.columns or valor is None:
+            continue
+
+        valor_norm = _normalizar_valor_config(valor)
+        serie_norm = df_filtrado[col].map(_normalizar_valor_config)
+        candidato = df_filtrado[serie_norm == valor_norm].copy()
+
+        # Si un parámetro no está guardado exactamente igual, no se rompe la curva.
+        if not candidato.empty:
+            df_filtrado = candidato
+
+    if df_filtrado.empty:
+        return df
+
+    return df_filtrado
+
+
+def _figura_curva_aprendizaje_nn(
+    df_historial_entrenamiento,
+    df_historial_final=None,
+    metadata=None,
+    num_inputs=None,
+    nombre_modelo="modelo",
+):
+    """Curva de aprendizaje usando solo la mejor configuración y promedio por época entre folds."""
     fig = go.Figure()
 
     if df_historial_entrenamiento is None or df_historial_entrenamiento.empty:
@@ -7032,21 +7126,36 @@ def figura_curva_aprendizaje_lstm(df_historial_entrenamiento, df_historial_final
         )
         return fig
 
-    df = df_historial_entrenamiento.copy()
-    df.columns = df.columns.astype(str).str.strip()
+    df = _filtrar_historial_mejor_configuracion(
+        df_historial_entrenamiento,
+        metadata=metadata,
+        num_inputs=num_inputs,
+    )
 
-    for col in ["epoch", "loss_train", "loss_val", "mae_train", "mae_val", "numInputs"]:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
-
-    if num_inputs is not None and "numInputs" in df.columns:
-        df_filtrado = df[df["numInputs"] == float(num_inputs)].copy()
-        if not df_filtrado.empty:
-            df = df_filtrado
-
-    columnas_agrupar = ["epoch"]
     columnas_media = [col for col in ["loss_train", "loss_val", "mae_train", "mae_val"] if col in df.columns]
-    df_prom = df.groupby(columnas_agrupar, as_index=False)[columnas_media].mean().sort_values("epoch")
+    if "epoch" not in df.columns or not columnas_media:
+        fig.add_annotation(
+            text="El historial de entrenamiento no contiene columnas suficientes para construir la curva.",
+            x=0.5,
+            y=0.5,
+            xref="paper",
+            yref="paper",
+            showarrow=False,
+            font=dict(family=FUENTE, size=14, color=AZUL),
+        )
+        fig.update_layout(
+            height=420,
+            plot_bgcolor=BLANCO,
+            paper_bgcolor=BLANCO,
+            font=dict(family=FUENTE, size=13, color=AZUL),
+        )
+        return fig
+
+    df_prom = (
+        df.groupby("epoch", as_index=False)[columnas_media]
+        .mean()
+        .sort_values("epoch")
+    )
 
     if "loss_train" in df_prom.columns:
         fig.add_trace(go.Scatter(
@@ -7055,7 +7164,7 @@ def figura_curva_aprendizaje_lstm(df_historial_entrenamiento, df_historial_final
             mode="lines",
             name="Train loss CV",
             line=dict(color=AZUL, width=2.5),
-            hovertemplate="<b>Época:</b> %{x}<br><b>Loss train:</b> %{y:.5f}<extra></extra>",
+            hovertemplate="<b>Época:</b> %{x}<br><b>Loss train promedio:</b> %{y:.6f}<extra></extra>",
         ))
 
     if "loss_val" in df_prom.columns:
@@ -7065,109 +7174,56 @@ def figura_curva_aprendizaje_lstm(df_historial_entrenamiento, df_historial_final
             mode="lines",
             name="Validation loss CV",
             line=dict(color=CELESTE, width=2.5, dash="dash"),
-            hovertemplate="<b>Época:</b> %{x}<br><b>Loss validación:</b> %{y:.5f}<extra></extra>",
+            hovertemplate="<b>Época:</b> %{x}<br><b>Loss validación promedio:</b> %{y:.6f}<extra></extra>",
         ))
 
-    epoca_final_usada = None
-    loss_epoca_final = None
+    if {"epoch", "loss_train", "loss_val"}.issubset(df_prom.columns):
+        df_gap = df_prom[["epoch", "loss_train", "loss_val"]].copy()
+        df_gap["loss_train"] = pd.to_numeric(df_gap["loss_train"], errors="coerce")
+        df_gap["loss_val"] = pd.to_numeric(df_gap["loss_val"], errors="coerce")
+        df_gap = df_gap.dropna(subset=["loss_train", "loss_val"])
 
-    if df_historial_final is not None and not df_historial_final.empty:
-        df_final = df_historial_final.copy()
-        df_final.columns = df_final.columns.astype(str).str.strip()
-        for col in ["epoch", "loss_train", "loss_val", "epochs_usados"]:
-            if col in df_final.columns:
-                df_final[col] = pd.to_numeric(df_final[col], errors="coerce")
+        if not df_gap.empty:
+            df_gap["gap_abs"] = (df_gap["loss_val"] - df_gap["loss_train"]).abs()
+            idx_min_gap = df_gap["gap_abs"].idxmin()
+            epoca_menor_gap = int(df_gap.loc[idx_min_gap, "epoch"])
+            valor_loss_val_gap = float(df_gap.loc[idx_min_gap, "loss_val"])
+            valor_loss_train_gap = float(df_gap.loc[idx_min_gap, "loss_train"])
+            valor_gap = float(df_gap.loc[idx_min_gap, "gap_abs"])
 
-        if "loss_train" in df_final.columns:
+            fig.add_vline(
+                x=epoca_menor_gap,
+                line_dash="dash",
+                line_width=2.5,
+                line_color="#8E44AD",
+                annotation_text=f"Menor gap train-val: época {epoca_menor_gap}",
+                annotation_position="top left",
+                annotation_font=dict(family=FUENTE, size=12, color="#8E44AD"),
+            )
+
             fig.add_trace(go.Scatter(
-                x=df_final["epoch"],
-                y=df_final["loss_train"],
-                mode="lines",
-                name="Train loss modelo final",
-                line=dict(color="#B23A48", width=2.2, dash="dot"),
-                hovertemplate="<b>Época:</b> %{x}<br><b>Loss modelo final:</b> %{y:.5f}<extra></extra>",
+                x=[epoca_menor_gap],
+                y=[valor_loss_val_gap],
+                mode="markers+text",
+                name=f"Menor gap train-val ({epoca_menor_gap})",
+                text=[f"mín gap<br>época {epoca_menor_gap}"],
+                textposition="bottom right",
+                marker=dict(
+                    size=14,
+                    color="#8E44AD",
+                    symbol="diamond",
+                    line=dict(width=2, color=AZUL),
+                ),
+                customdata=[[valor_loss_train_gap, valor_gap]],
+                hovertemplate=(
+                    "<b>Menor gap train-val</b><br>"
+                    "<b>Época:</b> %{x}<br>"
+                    "<b>loss_val promedio:</b> %{y:.6f}<br>"
+                    "<b>loss_train promedio:</b> %{customdata[0]:.6f}<br>"
+                    "<b>gap absoluto:</b> %{customdata[1]:.6f}"
+                    "<extra></extra>"
+                ),
             ))
-
-        if "epochs_usados" in df_final.columns and df_final["epochs_usados"].notna().any():
-            epoca_final_usada = int(df_final["epochs_usados"].dropna().max())
-        elif "epoch" in df_final.columns and df_final["epoch"].notna().any():
-            epoca_final_usada = int(df_final["epoch"].dropna().max())
-
-        if epoca_final_usada is not None and {"epoch", "loss_train"}.issubset(df_final.columns):
-            df_epoca_final = df_final[df_final["epoch"] == epoca_final_usada].copy()
-            if not df_epoca_final.empty:
-                loss_epoca_final = float(df_epoca_final["loss_train"].iloc[-1])
-                fig.add_trace(go.Scatter(
-                    x=[epoca_final_usada],
-                    y=[loss_epoca_final],
-                    mode="markers",
-                    name=f"Época final usada ({epoca_final_usada})",
-                    marker=dict(size=12, color="#B23A48", symbol="diamond", line=dict(width=2, color=AZUL)),
-                    hovertemplate=(
-                        "<b>Época final usada:</b> %{x}<br>"
-                        "<b>Loss final:</b> %{y:.5f}"
-                        "<extra></extra>"
-                    ),
-                ))
-
-    if epoca_final_usada is not None:
-        fig.add_vline(
-            x=epoca_final_usada,
-            line_dash="dash",
-            line_width=2,
-            line_color="#B23A48",
-            annotation_text=f"Época final usada: {epoca_final_usada}",
-            annotation_position="top right",
-            annotation_font=dict(family=FUENTE, size=12, color="#B23A48"),
-        )
-
-    # Señalar explícitamente la época con menor loss de validación (val_loss)
-    # usando el menor valor real del historial de validación, no el promedio por época.
-    epoca_menor_val_loss = None
-    valor_menor_val_loss = None
-    fold_menor_val_loss = None
-
-    if {"epoch", "loss_val"}.issubset(df.columns) and df["loss_val"].notna().any():
-        idx_min_val = df["loss_val"].idxmin()
-        epoca_menor_val_loss = int(df.loc[idx_min_val, "epoch"])
-        valor_menor_val_loss = float(df.loc[idx_min_val, "loss_val"])
-        if "fold" in df.columns and pd.notna(df.loc[idx_min_val, "fold"]):
-            fold_menor_val_loss = int(df.loc[idx_min_val, "fold"])
-
-        texto_menor_val = f"Menor val loss: época {epoca_menor_val_loss}"
-        if fold_menor_val_loss is not None:
-            texto_menor_val += f" | fold {fold_menor_val_loss}"
-
-        fig.add_vline(
-            x=epoca_menor_val_loss,
-            line_dash="dash",
-            line_width=2.5,
-            line_color="#8E44AD",
-            annotation_text=texto_menor_val,
-            annotation_position="top left",
-            annotation_font=dict(family=FUENTE, size=12, color="#8E44AD"),
-        )
-
-        fig.add_trace(go.Scatter(
-            x=[epoca_menor_val_loss],
-            y=[valor_menor_val_loss],
-            mode="markers+text",
-            name=f"Menor val loss ({epoca_menor_val_loss})",
-            text=[f"mín val loss<br>época {epoca_menor_val_loss}"],
-            textposition="bottom right",
-            marker=dict(
-                size=14,
-                color="#8E44AD",
-                symbol="diamond",
-                line=dict(width=2, color=AZUL),
-            ),
-            hovertemplate=(
-                "<b>Menor val loss</b><br>"
-                "<b>Época:</b> %{x}<br>"
-                "<b>val_loss:</b> %{y:.6f}"
-                "<extra></extra>"
-            ),
-        ))
 
     fig.update_layout(
         title=None,
@@ -7187,13 +7243,24 @@ def figura_curva_aprendizaje_lstm(df_historial_entrenamiento, df_historial_final
             bordercolor="rgba(26,58,92,0.18)",
             borderwidth=1,
         ),
-        margin=dict(l=70, r=40, t=80, b=60),
+        margin=dict(l=70, r=40, t=80, b=65),
         height=520,
     )
     fig.update_xaxes(showgrid=True, gridcolor="#D9E2EF", zeroline=False)
     fig.update_yaxes(showgrid=True, gridcolor="#D9E2EF", zeroline=False)
 
     return fig
+
+def figura_curva_aprendizaje_lstm(df_historial_entrenamiento, df_historial_final=None, num_inputs=None, metadata=None):
+    """Curva de aprendizaje de LSTM filtrada por la mejor configuración y promediada por época entre folds."""
+    return _figura_curva_aprendizaje_nn(
+        df_historial_entrenamiento=df_historial_entrenamiento,
+        df_historial_final=df_historial_final,
+        metadata=metadata,
+        num_inputs=num_inputs,
+        nombre_modelo="LSTM",
+    )
+
 
 
 def layout_lstm_calamar():
@@ -7215,6 +7282,7 @@ def layout_lstm_calamar():
         df_historial_entrenamiento,
         df_historial_final,
         num_inputs=metadata.get("numInputs_seleccionado", metadata.get("numInputs")),
+        metadata=metadata,
     )
 
     df_validacion = pd.DataFrame([
@@ -7334,8 +7402,8 @@ def layout_lstm_calamar():
             html.H2("Curva de aprendizaje", style=estilo_titulo),
             html.P(
                 "La curva de aprendizaje se construyó a partir del historial de entrenamiento. "
-                "Se muestran las pérdidas promedio de entrenamiento y validación durante la validación cruzada, "
-                "junto con la pérdida de entrenamiento del modelo final.",
+                "Se muestran las pérdidas promedio de entrenamiento y validación durante la validación cruzada. "
+                "La línea vertical resalta la época donde el gap absoluto entre train loss CV y val loss CV fue menor.",
                 style=estilo_parrafo,
             ),
             dcc.Graph(
@@ -8253,153 +8321,16 @@ def cargar_tablas_cnn_multioutput():
     return df_resumen, df_resultados_cv, df_metricas_horizontes, df_historial_entrenamiento, df_historial_final
 
 
-def figura_curva_aprendizaje_cnn(df_historial_entrenamiento, df_historial_final=None, num_inputs=None):
-    """Curva de aprendizaje de la CNN usando el historial de entrenamiento."""
-    fig = go.Figure()
-
-    if df_historial_entrenamiento is None or df_historial_entrenamiento.empty:
-        fig.add_annotation(
-            text="No hay datos disponibles para construir la curva de aprendizaje.",
-            x=0.5,
-            y=0.5,
-            xref="paper",
-            yref="paper",
-            showarrow=False,
-            font=dict(family=FUENTE, size=14, color=AZUL),
-        )
-        fig.update_layout(
-            height=420,
-            plot_bgcolor=BLANCO,
-            paper_bgcolor=BLANCO,
-            font=dict(family=FUENTE, size=13, color=AZUL),
-        )
-        return fig
-
-    df = df_historial_entrenamiento.copy()
-    df.columns = df.columns.astype(str).str.strip()
-
-    for col in ["epoch", "loss_train", "loss_val", "mae_train", "mae_val", "numInputs"]:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
-
-    if num_inputs is not None and "numInputs" in df.columns:
-        df_filtrado = df[df["numInputs"] == float(num_inputs)].copy()
-        if not df_filtrado.empty:
-            df = df_filtrado
-
-    columnas_media = [col for col in ["loss_train", "loss_val", "mae_train", "mae_val"] if col in df.columns]
-    df_prom = df.groupby(["epoch"], as_index=False)[columnas_media].mean().sort_values("epoch")
-
-    if "loss_train" in df_prom.columns:
-        fig.add_trace(go.Scatter(
-            x=df_prom["epoch"],
-            y=df_prom["loss_train"],
-            mode="lines",
-            name="Train loss CV",
-            line=dict(color=AZUL, width=2.5),
-            hovertemplate="<b>Época:</b> %{x}<br><b>Loss train:</b> %{y:.5f}<extra></extra>",
-        ))
-
-    if "loss_val" in df_prom.columns:
-        fig.add_trace(go.Scatter(
-            x=df_prom["epoch"],
-            y=df_prom["loss_val"],
-            mode="lines",
-            name="Validation loss CV",
-            line=dict(color=CELESTE, width=2.5, dash="dash"),
-            hovertemplate="<b>Época:</b> %{x}<br><b>Loss validación:</b> %{y:.5f}<extra></extra>",
-        ))
-
-    if df_historial_final is not None and not df_historial_final.empty:
-        df_final = df_historial_final.copy()
-        df_final.columns = df_final.columns.astype(str).str.strip()
-        for col in ["epoch", "loss_train", "mae_train", "mse_train", "epochs_usados"]:
-            if col in df_final.columns:
-                df_final[col] = pd.to_numeric(df_final[col], errors="coerce")
-
-        if "loss_train" in df_final.columns:
-            fig.add_trace(go.Scatter(
-                x=df_final["epoch"],
-                y=df_final["loss_train"],
-                mode="lines",
-                name="Train loss modelo final",
-                line=dict(color="#B23A48", width=2.2, dash="dot"),
-                hovertemplate="<b>Época:</b> %{x}<br><b>Loss modelo final:</b> %{y:.5f}<extra></extra>",
-            ))
-
-    # Señalar explícitamente la época con menor loss de validación (val_loss)
-    # usando el menor valor real del historial de validación, no el promedio por época.
-    epoca_menor_val_loss = None
-    valor_menor_val_loss = None
-    fold_menor_val_loss = None
-
-    if {"epoch", "loss_val"}.issubset(df.columns) and df["loss_val"].notna().any():
-        idx_min_val = df["loss_val"].idxmin()
-        epoca_menor_val_loss = int(df.loc[idx_min_val, "epoch"])
-        valor_menor_val_loss = float(df.loc[idx_min_val, "loss_val"])
-        if "fold" in df.columns and pd.notna(df.loc[idx_min_val, "fold"]):
-            fold_menor_val_loss = int(df.loc[idx_min_val, "fold"])
-
-        texto_menor_val = f"Menor val loss: época {epoca_menor_val_loss}"
-        if fold_menor_val_loss is not None:
-            texto_menor_val += f" | fold {fold_menor_val_loss}"
-
-        fig.add_vline(
-            x=epoca_menor_val_loss,
-            line_dash="dash",
-            line_width=2.5,
-            line_color="#8E44AD",
-            annotation_text=texto_menor_val,
-            annotation_position="top left",
-            annotation_font=dict(family=FUENTE, size=12, color="#8E44AD"),
-        )
-
-        fig.add_trace(go.Scatter(
-            x=[epoca_menor_val_loss],
-            y=[valor_menor_val_loss],
-            mode="markers+text",
-            name=f"Menor val loss ({epoca_menor_val_loss})",
-            text=[f"mín val loss<br>época {epoca_menor_val_loss}"],
-            textposition="bottom right",
-            marker=dict(
-                size=14,
-                color="#8E44AD",
-                symbol="diamond",
-                line=dict(width=2, color=AZUL),
-            ),
-            hovertemplate=(
-                "<b>Menor val loss</b><br>"
-                "<b>Época:</b> %{x}<br>"
-                "<b>val_loss:</b> %{y:.6f}"
-                "<extra></extra>"
-            ),
-        ))
-
-    fig.update_layout(
-        title=None,
-        xaxis_title="Época",
-        yaxis_title="Loss",
-        plot_bgcolor=BLANCO,
-        paper_bgcolor=BLANCO,
-        font=dict(family=FUENTE, size=13, color=AZUL),
-        hovermode="x unified",
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="right",
-            x=1,
-            bgcolor="rgba(255,255,255,0.85)",
-            bordercolor="rgba(26,58,92,0.18)",
-            borderwidth=1,
-        ),
-        margin=dict(l=70, r=40, t=80, b=60),
-        height=520,
+def figura_curva_aprendizaje_cnn(df_historial_entrenamiento, df_historial_final=None, num_inputs=None, metadata=None):
+    """Curva de aprendizaje de CNN filtrada por la mejor configuración y promediada por época entre folds."""
+    return _figura_curva_aprendizaje_nn(
+        df_historial_entrenamiento=df_historial_entrenamiento,
+        df_historial_final=df_historial_final,
+        metadata=metadata,
+        num_inputs=num_inputs,
+        nombre_modelo="CNN",
     )
-    fig.update_xaxes(showgrid=True, gridcolor="#D9E2EF", zeroline=False)
-    fig.update_yaxes(showgrid=True, gridcolor="#D9E2EF", zeroline=False)
 
-    return fig
 
 
 def layout_cnn_calamar():
@@ -8421,6 +8352,7 @@ def layout_cnn_calamar():
         df_historial_entrenamiento,
         df_historial_final,
         num_inputs=metadata.get("numInputs_seleccionado", metadata.get("numInputs")),
+        metadata=metadata,
     )
 
     df_validacion = pd.DataFrame([
@@ -8542,8 +8474,8 @@ def layout_cnn_calamar():
             html.H2("Curva de aprendizaje", style=estilo_titulo),
             html.P(
                 "La curva de aprendizaje se construyó a partir del historial de entrenamiento. "
-                "Se muestran las pérdidas promedio de entrenamiento y validación durante la validación cruzada, "
-                "junto con la pérdida de entrenamiento del modelo final. La línea vertical resalta la época donde se obtuvo el menor loss de validación.",
+                "Se muestran las pérdidas promedio de entrenamiento y validación durante la validación cruzada. "
+                "La línea vertical resalta la época donde el gap absoluto entre train loss CV y val loss CV fue menor.",
                 style=estilo_parrafo,
             ),
             dcc.Graph(
@@ -8761,153 +8693,16 @@ def cargar_tablas_rnn_multioutput():
     return df_resumen, df_resultados_cv, df_metricas_horizontes, df_historial_entrenamiento, df_historial_final
 
 
-def figura_curva_aprendizaje_rnn(df_historial_entrenamiento, df_historial_final=None, num_inputs=None):
-    """Curva de aprendizaje de la RNN usando el historial de entrenamiento."""
-    fig = go.Figure()
-
-    if df_historial_entrenamiento is None or df_historial_entrenamiento.empty:
-        fig.add_annotation(
-            text="No hay datos disponibles para construir la curva de aprendizaje.",
-            x=0.5,
-            y=0.5,
-            xref="paper",
-            yref="paper",
-            showarrow=False,
-            font=dict(family=FUENTE, size=14, color=AZUL),
-        )
-        fig.update_layout(
-            height=420,
-            plot_bgcolor=BLANCO,
-            paper_bgcolor=BLANCO,
-            font=dict(family=FUENTE, size=13, color=AZUL),
-        )
-        return fig
-
-    df = df_historial_entrenamiento.copy()
-    df.columns = df.columns.astype(str).str.strip()
-
-    for col in ["epoch", "loss_train", "loss_val", "mae_train", "mae_val", "numInputs"]:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
-
-    if num_inputs is not None and "numInputs" in df.columns:
-        df_filtrado = df[df["numInputs"] == float(num_inputs)].copy()
-        if not df_filtrado.empty:
-            df = df_filtrado
-
-    columnas_media = [col for col in ["loss_train", "loss_val", "mae_train", "mae_val"] if col in df.columns]
-    df_prom = df.groupby(["epoch"], as_index=False)[columnas_media].mean().sort_values("epoch")
-
-    if "loss_train" in df_prom.columns:
-        fig.add_trace(go.Scatter(
-            x=df_prom["epoch"],
-            y=df_prom["loss_train"],
-            mode="lines",
-            name="Train loss CV",
-            line=dict(color=AZUL, width=2.5),
-            hovertemplate="<b>Época:</b> %{x}<br><b>Loss train:</b> %{y:.5f}<extra></extra>",
-        ))
-
-    if "loss_val" in df_prom.columns:
-        fig.add_trace(go.Scatter(
-            x=df_prom["epoch"],
-            y=df_prom["loss_val"],
-            mode="lines",
-            name="Validation loss CV",
-            line=dict(color=CELESTE, width=2.5, dash="dash"),
-            hovertemplate="<b>Época:</b> %{x}<br><b>Loss validación:</b> %{y:.5f}<extra></extra>",
-        ))
-
-    if df_historial_final is not None and not df_historial_final.empty:
-        df_final = df_historial_final.copy()
-        df_final.columns = df_final.columns.astype(str).str.strip()
-        for col in ["epoch", "loss_train", "mae_train", "mse_train", "epochs_usados"]:
-            if col in df_final.columns:
-                df_final[col] = pd.to_numeric(df_final[col], errors="coerce")
-
-        if "loss_train" in df_final.columns:
-            fig.add_trace(go.Scatter(
-                x=df_final["epoch"],
-                y=df_final["loss_train"],
-                mode="lines",
-                name="Train loss modelo final",
-                line=dict(color="#B23A48", width=2.2, dash="dot"),
-                hovertemplate="<b>Época:</b> %{x}<br><b>Loss modelo final:</b> %{y:.5f}<extra></extra>",
-            ))
-
-    # Señalar explícitamente la época con menor loss de validación (val_loss)
-    # usando el menor valor real del historial de validación, no el promedio por época.
-    epoca_menor_val_loss = None
-    valor_menor_val_loss = None
-    fold_menor_val_loss = None
-
-    if {"epoch", "loss_val"}.issubset(df.columns) and df["loss_val"].notna().any():
-        idx_min_val = df["loss_val"].idxmin()
-        epoca_menor_val_loss = int(df.loc[idx_min_val, "epoch"])
-        valor_menor_val_loss = float(df.loc[idx_min_val, "loss_val"])
-        if "fold" in df.columns and pd.notna(df.loc[idx_min_val, "fold"]):
-            fold_menor_val_loss = int(df.loc[idx_min_val, "fold"])
-
-        texto_menor_val = f"Menor val loss: época {epoca_menor_val_loss}"
-        if fold_menor_val_loss is not None:
-            texto_menor_val += f" | fold {fold_menor_val_loss}"
-
-        fig.add_vline(
-            x=epoca_menor_val_loss,
-            line_dash="dash",
-            line_width=2.5,
-            line_color="#8E44AD",
-            annotation_text=texto_menor_val,
-            annotation_position="top left",
-            annotation_font=dict(family=FUENTE, size=12, color="#8E44AD"),
-        )
-
-        fig.add_trace(go.Scatter(
-            x=[epoca_menor_val_loss],
-            y=[valor_menor_val_loss],
-            mode="markers+text",
-            name=f"Menor val loss ({epoca_menor_val_loss})",
-            text=[f"mín val loss<br>época {epoca_menor_val_loss}"],
-            textposition="bottom right",
-            marker=dict(
-                size=14,
-                color="#8E44AD",
-                symbol="diamond",
-                line=dict(width=2, color=AZUL),
-            ),
-            hovertemplate=(
-                "<b>Menor val loss</b><br>"
-                "<b>Época:</b> %{x}<br>"
-                "<b>val_loss:</b> %{y:.6f}"
-                "<extra></extra>"
-            ),
-        ))
-
-    fig.update_layout(
-        title=None,
-        xaxis_title="Época",
-        yaxis_title="Loss",
-        plot_bgcolor=BLANCO,
-        paper_bgcolor=BLANCO,
-        font=dict(family=FUENTE, size=13, color=AZUL),
-        hovermode="x unified",
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="right",
-            x=1,
-            bgcolor="rgba(255,255,255,0.85)",
-            bordercolor="rgba(26,58,92,0.18)",
-            borderwidth=1,
-        ),
-        margin=dict(l=70, r=40, t=80, b=60),
-        height=520,
+def figura_curva_aprendizaje_rnn(df_historial_entrenamiento, df_historial_final=None, num_inputs=None, metadata=None):
+    """Curva de aprendizaje de RNN filtrada por la mejor configuración y promediada por época entre folds."""
+    return _figura_curva_aprendizaje_nn(
+        df_historial_entrenamiento=df_historial_entrenamiento,
+        df_historial_final=df_historial_final,
+        metadata=metadata,
+        num_inputs=num_inputs,
+        nombre_modelo="RNN",
     )
-    fig.update_xaxes(showgrid=True, gridcolor="#D9E2EF", zeroline=False)
-    fig.update_yaxes(showgrid=True, gridcolor="#D9E2EF", zeroline=False)
 
-    return fig
 
 
 def layout_rnn_calamar():
@@ -8929,6 +8724,7 @@ def layout_rnn_calamar():
         df_historial_entrenamiento,
         df_historial_final,
         num_inputs=metadata.get("numInputs_seleccionado", metadata.get("numInputs")),
+        metadata=metadata,
     )
 
     df_validacion = pd.DataFrame([
@@ -9049,8 +8845,8 @@ def layout_rnn_calamar():
             html.H2("Curva de aprendizaje", style=estilo_titulo),
             html.P(
                 "La curva de aprendizaje se construyó a partir del historial de entrenamiento. "
-                "Se muestran las pérdidas promedio de entrenamiento y validación durante la validación cruzada, "
-                "junto con la pérdida de entrenamiento del modelo final. La línea vertical resalta la época donde se obtuvo el menor loss de validación.",
+                "Se muestran las pérdidas promedio de entrenamiento y validación durante la validación cruzada. "
+                "La línea vertical resalta la época donde el gap absoluto entre train loss CV y val loss CV fue menor.",
                 style=estilo_parrafo,
             ),
             dcc.Graph(
@@ -9268,150 +9064,16 @@ def cargar_tablas_mlp_multioutput():
     return df_resumen, df_resultados_cv, df_metricas_horizontes, df_historial_entrenamiento, df_historial_final
 
 
-def figura_curva_aprendizaje_mlp(df_historial_entrenamiento, df_historial_final=None, num_inputs=None):
-    """Curva de aprendizaje del MLP usando el historial de entrenamiento."""
-    fig = go.Figure()
-
-    if df_historial_entrenamiento is None or df_historial_entrenamiento.empty:
-        fig.add_annotation(
-            text="No hay datos disponibles para construir la curva de aprendizaje.",
-            x=0.5,
-            y=0.5,
-            xref="paper",
-            yref="paper",
-            showarrow=False,
-            font=dict(family=FUENTE, size=14, color=AZUL),
-        )
-        fig.update_layout(
-            height=420,
-            plot_bgcolor=BLANCO,
-            paper_bgcolor=BLANCO,
-            font=dict(family=FUENTE, size=13, color=AZUL),
-        )
-        return fig
-
-    df = df_historial_entrenamiento.copy()
-    df.columns = df.columns.astype(str).str.strip()
-
-    for col in ["epoch", "loss_train", "loss_val", "mae_train", "mae_val", "numInputs"]:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
-
-    if num_inputs is not None and "numInputs" in df.columns:
-        df_filtrado = df[df["numInputs"] == float(num_inputs)].copy()
-        if not df_filtrado.empty:
-            df = df_filtrado
-
-    columnas_media = [col for col in ["loss_train", "loss_val", "mae_train", "mae_val"] if col in df.columns]
-    df_prom = df.groupby(["epoch"], as_index=False)[columnas_media].mean().sort_values("epoch")
-
-    if "loss_train" in df_prom.columns:
-        fig.add_trace(go.Scatter(
-            x=df_prom["epoch"],
-            y=df_prom["loss_train"],
-            mode="lines",
-            name="Train loss CV",
-            line=dict(color=AZUL, width=2.5),
-            hovertemplate="<b>Época:</b> %{x}<br><b>Loss train:</b> %{y:.5f}<extra></extra>",
-        ))
-
-    if "loss_val" in df_prom.columns:
-        fig.add_trace(go.Scatter(
-            x=df_prom["epoch"],
-            y=df_prom["loss_val"],
-            mode="lines",
-            name="Validation loss CV",
-            line=dict(color=CELESTE, width=2.5, dash="dash"),
-            hovertemplate="<b>Época:</b> %{x}<br><b>Loss validación:</b> %{y:.5f}<extra></extra>",
-        ))
-
-    if df_historial_final is not None and not df_historial_final.empty:
-        df_final = df_historial_final.copy()
-        df_final.columns = df_final.columns.astype(str).str.strip()
-        for col in ["epoch", "loss_train", "mae_train", "mse_train", "epochs_usados"]:
-            if col in df_final.columns:
-                df_final[col] = pd.to_numeric(df_final[col], errors="coerce")
-
-        if "loss_train" in df_final.columns:
-            fig.add_trace(go.Scatter(
-                x=df_final["epoch"],
-                y=df_final["loss_train"],
-                mode="lines",
-                name="Train loss modelo final",
-                line=dict(color="#B23A48", width=2.2, dash="dot"),
-                hovertemplate="<b>Época:</b> %{x}<br><b>Loss modelo final:</b> %{y:.5f}<extra></extra>",
-            ))
-
-    # Señalar explícitamente la época con menor loss de validación (val_loss)
-    # usando el menor valor real del historial de validación, no el promedio por época.
-    if {"epoch", "loss_val"}.issubset(df.columns) and df["loss_val"].notna().any():
-        idx_min_val = df["loss_val"].idxmin()
-        epoca_menor_val_loss = int(df.loc[idx_min_val, "epoch"])
-        valor_menor_val_loss = float(df.loc[idx_min_val, "loss_val"])
-        fold_menor_val_loss = None
-        if "fold" in df.columns and pd.notna(df.loc[idx_min_val, "fold"]):
-            fold_menor_val_loss = int(df.loc[idx_min_val, "fold"])
-
-        texto_menor_val = f"Menor val loss: época {epoca_menor_val_loss}"
-        if fold_menor_val_loss is not None:
-            texto_menor_val += f" | fold {fold_menor_val_loss}"
-
-        fig.add_vline(
-            x=epoca_menor_val_loss,
-            line_dash="dash",
-            line_width=2.5,
-            line_color="#8E44AD",
-            annotation_text=texto_menor_val,
-            annotation_position="top left",
-            annotation_font=dict(family=FUENTE, size=12, color="#8E44AD"),
-        )
-
-        fig.add_trace(go.Scatter(
-            x=[epoca_menor_val_loss],
-            y=[valor_menor_val_loss],
-            mode="markers+text",
-            name=f"Menor val loss ({epoca_menor_val_loss})",
-            text=[f"mín val loss<br>época {epoca_menor_val_loss}"],
-            textposition="bottom right",
-            marker=dict(
-                size=14,
-                color="#8E44AD",
-                symbol="diamond",
-                line=dict(width=2, color=AZUL),
-            ),
-            hovertemplate=(
-                "<b>Menor val loss</b><br>"
-                "<b>Época:</b> %{x}<br>"
-                "<b>val_loss:</b> %{y:.6f}"
-                "<extra></extra>"
-            ),
-        ))
-
-    fig.update_layout(
-        title=None,
-        xaxis_title="Época",
-        yaxis_title="Loss",
-        plot_bgcolor=BLANCO,
-        paper_bgcolor=BLANCO,
-        font=dict(family=FUENTE, size=13, color=AZUL),
-        hovermode="x unified",
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="right",
-            x=1,
-            bgcolor="rgba(255,255,255,0.85)",
-            bordercolor="rgba(26,58,92,0.18)",
-            borderwidth=1,
-        ),
-        margin=dict(l=70, r=40, t=80, b=60),
-        height=520,
+def figura_curva_aprendizaje_mlp(df_historial_entrenamiento, df_historial_final=None, num_inputs=None, metadata=None):
+    """Curva de aprendizaje de MLP filtrada por la mejor configuración y promediada por época entre folds."""
+    return _figura_curva_aprendizaje_nn(
+        df_historial_entrenamiento=df_historial_entrenamiento,
+        df_historial_final=df_historial_final,
+        metadata=metadata,
+        num_inputs=num_inputs,
+        nombre_modelo="MLP",
     )
-    fig.update_xaxes(showgrid=True, gridcolor="#D9E2EF", zeroline=False)
-    fig.update_yaxes(showgrid=True, gridcolor="#D9E2EF", zeroline=False)
 
-    return fig
 
 
 def layout_mlp_calamar():
@@ -9433,6 +9095,7 @@ def layout_mlp_calamar():
         df_historial_entrenamiento,
         df_historial_final,
         num_inputs=metadata.get("numInputs_seleccionado", metadata.get("numInputs")),
+        metadata=metadata,
     )
 
     df_validacion = pd.DataFrame([
@@ -9571,8 +9234,8 @@ def layout_mlp_calamar():
         html.Div(style=estilo_tarjeta, children=[
             html.H2("Curva de aprendizaje", style=estilo_titulo),
             html.P(
-                "La curva muestra la evolución del loss de entrenamiento y validación durante la validación cruzada, "
-                "junto con el loss de entrenamiento del modelo final. Se señala la época en la que se obtuvo el menor val_loss.",
+                "La curva muestra la evolución del loss de entrenamiento y validación durante la validación cruzada. "
+                "Se señala la época donde el gap absoluto entre train loss CV y val loss CV fue menor.",
                 style=estilo_parrafo,
             ),
             dcc.Graph(
