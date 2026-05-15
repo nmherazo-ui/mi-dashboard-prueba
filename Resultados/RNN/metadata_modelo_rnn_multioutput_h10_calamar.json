@@ -1,0 +1,66 @@
+{
+    "target": "Calamar",
+    "numInputs_seleccionado": 15,
+    "numOutputs": 10,
+    "numJumps": 1,
+    "ventanas_evaluadas": [
+        15,
+        30
+    ],
+    "horizontes_eval_test": [
+        1,
+        5,
+        10
+    ],
+    "best_params": {
+        "units": 128,
+        "dropout": 0.1,
+        "learning_rate": 0.0005,
+        "batch_size": 32,
+        "epochs_final": 61,
+        "early_stopping_monitor_cv": "val_loss",
+        "patience": 20,
+        "epochs_max": 150,
+        "scaler": "MinMaxScaler(-1,1)"
+    },
+    "grid_hiperparametros": {
+        "units": [
+            64,
+            128
+        ],
+        "dropout": [
+            0.1
+        ],
+        "learning_rate": [
+            0.0005
+        ],
+        "batch_size": [
+            32
+        ]
+    },
+    "modelo": "SimpleRNN Dense multioutput H10",
+    "criterio_final": "Menor MAE de validación acumulado sobre la salida completa H10, usando BDS como criterio de diagnóstico/filtro. El modelo final fue entrenado sin incluir los últimos 10 registros, reservados como test externo final.",
+    "early_stopping": "Durante validación cruzada se detiene cuando val_loss deja de mejorar, con patience=20 y epochs_max=150. La brecha abs(val_loss-loss_train) se conserva únicamente como diagnóstico. El modelo final se reentrena con todas las muestras train/val usando la mediana de la mejor época por val_loss en los folds.",
+    "validacion_cruzada": "split_train_val_groupKFold de timeseries-cv",
+    "escalado": "MinMaxScaler(feature_range=(-1,1)) ajustado solo con train de cada fold",
+    "fecha_inicio_trainval": "1975-06-29 00:00:00",
+    "fecha_fin_trainval": "2025-10-31 00:00:00",
+    "fecha_inicio_test_externo": "2025-11-01 00:00:00",
+    "fecha_fin_test_externo": "2025-11-10 00:00:00",
+    "MAE_test_externo": 13.561248779296875,
+    "MSE_test_externo": 242.86783728189766,
+    "archivo_resultados": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\RNN\\resultados_rnn_multioutput_h10_timeseries_cv_bds.csv",
+    "archivo_resumen": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\RNN\\resumen_rnn_multioutput_h10_timeseries_cv_bds.csv",
+    "archivo_test_final": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\RNN\\test_final_externo_rnn_multioutput_h10_calamar.csv",
+    "archivo_metricas_horizontes": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\RNN\\metricas_horizontes_1_5_10_rnn_multioutput_h10.csv",
+    "archivo_historial_cv": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\RNN\\historial_entrenamiento_rnn_multioutput_h10.csv",
+    "archivo_historial_final": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\RNN\\historial_modelo_final_rnn_multioutput_h10.csv",
+    "archivo_modelo_keras": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\RNN\\modelo_rnn_multioutput_h10_calamar.keras",
+    "archivo_scaler": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\RNN\\scaler_rnn_multioutput_h10_calamar.joblib",
+    "archivo_paquete": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\RNN\\paquete_rnn_multioutput_h10_calamar.joblib",
+    "archivo_figura_test": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\RNN\\rnn_multioutput_h10_test_final_externo.png",
+    "archivo_figura_learning_cv": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\RNN\\curva_aprendizaje_rnn_multioutput_h10_cv_mejor_config.png",
+    "archivo_figura_learning_final": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\RNN\\curva_aprendizaje_rnn_multioutput_h10_modelo_final.png",
+    "archivo_acf_residuos": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\RNN\\acf_residuos_rnn_multioutput_h10_test_externo.png",
+    "archivo_hist_residuos": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\RNN\\histograma_residuos_rnn_multioutput_h10_test_externo.png"
+}

@@ -1,0 +1,3 @@
+﻿numInputs,ventana,numOutputs,numJumps,hidden_layers,dropout,learning_rate,activation,epochs_max,batch_size,patience,MAE_val_h10_mean,MAE_val_h10_std,MSE_val_h10_mean,MSE_val_h10_std,BDS_pvalue_mean,BDS_pvalue_min,BDS_folds_pass,BDS_all_folds_pass,BDS_any_fold_pass
+30,30 días,10,1,"(64, 32)",0.1,0.001,relu,100,32,15,18.625990598196644,0.5123020910967001,713.1820224878745,24.76683079631604,2.825539485649763e-07,5.643758840803163e-13,0,False,False
+60,60 días,10,1,"(64, 32)",0.1,0.001,relu,100,32,15,23.829055409545397,1.3739549614254272,1052.7085104281166,94.74923804967001,0.0,0.0,0,False,False
