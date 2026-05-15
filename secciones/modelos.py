@@ -101,10 +101,72 @@ RUTAS_MW_TODOS_CONTRA_TODOS = [
 ]
 
 
+
+def _formatear_valor_metrica_tabla(valor, nombre_columna):
+    """Reduce ruido visual en tablas sin alterar hiperparámetros como learning_rate."""
+    if pd.isna(valor):
+        return ""
+
+    nombre = str(nombre_columna).lower()
+
+    # Conservar learning_rate exactamente como viene en los archivos.
+    if "learning_rate" in nombre or "learning rate" in nombre:
+        return valor
+
+    try:
+        valor_float = float(valor)
+    except (TypeError, ValueError):
+        return valor
+
+    if not np.isfinite(valor_float):
+        return valor
+
+    # Conteos e identificadores enteros.
+    if any(clave in nombre for clave in ["fold", "horizonte", "ranking", "entrada", "ventana", "modelos entrenados"]):
+        if valor_float.is_integer():
+            return int(valor_float)
+
+    # BDS y p-valores en notación compacta/científica.
+    if any(clave in nombre for clave in ["pvalue", "p_value", "p-valor", "p valor", "p_valor", "bds"]):
+        return f"{valor_float:.3g}"
+
+    # Métricas principales y estadísticos resumen con 2 decimales.
+    if any(clave in nombre for clave in ["mae", "mse", "rmse", "mape", "mean", "std"]):
+        return f"{valor_float:.2f}"
+
+    return valor
+
+
+def _formatear_dataframe_metricas_tabla(df):
+    """Aplica formato visual a tablas, manteniendo intacta la columna Valor de hiperparámetros."""
+    df_mostrar = df.copy()
+
+    for col in df_mostrar.columns:
+        nombre_col = str(col).lower()
+
+        # La columna Valor contiene hiperparámetros; se conserva para no cambiar learning_rate.
+        if nombre_col == "valor":
+            continue
+
+        # Conservar columnas explícitas de learning_rate.
+        if "learning_rate" in nombre_col or "learning rate" in nombre_col:
+            continue
+
+        serie_num = pd.to_numeric(df_mostrar[col], errors="coerce")
+        if serie_num.notna().any():
+            df_mostrar[col] = [
+                _formatear_valor_metrica_tabla(valor, col) if pd.notna(valor_num) else valor
+                for valor, valor_num in zip(df_mostrar[col], serie_num)
+            ]
+
+    return df_mostrar
+
 def crear_tabla_simple(df, page_size=10):
+    df_mostrar = _formatear_dataframe_metricas_tabla(df)
+
     return dash_table.DataTable(
-        data=df.to_dict("records"),
-        columns=[{"name": col, "id": col} for col in df.columns],
+        data=df_mostrar.to_dict("records"),
+        columns=[{"name": col, "id": col} for col in df_mostrar.columns],
         page_size=page_size,
         style_table={"overflowX": "auto", "marginTop": "14px"},
         style_cell={
@@ -3104,7 +3166,7 @@ def cargar_comparacion_modelos():
 def tabla_comparativa_modelos(df_metricas):
     df_tabla = df_metricas.copy()
     for col in ["MAE", "MSE", "RMSE", "MAPE"]:
-        df_tabla[col] = df_tabla[col].round(4)
+        df_tabla[col] = df_tabla[col].round(2)
 
     modelo_mejor = df_tabla.iloc[0]["Modelo"]
     modelo_peor = df_tabla.iloc[-1]["Modelo"]
@@ -3114,10 +3176,10 @@ def tabla_comparativa_modelos(df_metricas):
         columns=[
             {"name": "Ranking", "id": "Ranking"},
             {"name": "Modelo", "id": "Modelo"},
-            {"name": "MAE", "id": "MAE", "type": "numeric", "format": {"specifier": ".4f"}},
-            {"name": "MSE", "id": "MSE", "type": "numeric", "format": {"specifier": ".4f"}},
-            {"name": "RMSE", "id": "RMSE", "type": "numeric", "format": {"specifier": ".4f"}},
-            {"name": "MAPE [%]", "id": "MAPE", "type": "numeric", "format": {"specifier": ".4f"}},
+            {"name": "MAE", "id": "MAE", "type": "numeric", "format": {"specifier": ".2f"}},
+            {"name": "MSE", "id": "MSE", "type": "numeric", "format": {"specifier": ".2f"}},
+            {"name": "RMSE", "id": "RMSE", "type": "numeric", "format": {"specifier": ".2f"}},
+            {"name": "MAPE [%]", "id": "MAPE", "type": "numeric", "format": {"specifier": ".2f"}},
             {"name": "Ventana seleccionada", "id": "Ventana"},
             {"name": "Modelos entrenados", "id": "Modelos entrenados"},
         ],
