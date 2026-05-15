@@ -1,0 +1,45 @@
+{
+    "target": "Calamar",
+    "numInputs_seleccionado": 30,
+    "numOutputs": 10,
+    "numJumps": 1,
+    "ventanas_evaluadas": [
+        30,
+        60
+    ],
+    "horizontes_eval_test": [
+        1,
+        5,
+        10
+    ],
+    "best_params": {
+        "filters": 32,
+        "kernel_size": 3,
+        "dropout": 0.1,
+        "dense_units": 32,
+        "learning_rate": 0.001,
+        "epochs_max": 100,
+        "batch_size": 32,
+        "patience": 15
+    },
+    "modelo": "Keras Conv1D MultiOutput Dense(10)",
+    "criterio_final": "Menor MAE de validación acumulado sobre la salida completa H10, usando BDS como criterio de diagnóstico/filtro. El modelo final fue entrenado sin incluir los últimos 10 registros, reservados como test externo final.",
+    "validacion_cruzada": "split_train_val_groupKFold de timeseries-cv",
+    "fecha_inicio_trainval": "1975-06-29 00:00:00",
+    "fecha_fin_trainval": "2025-10-31 00:00:00",
+    "fecha_inicio_test_externo": "2025-11-01 00:00:00",
+    "fecha_fin_test_externo": "2025-11-10 00:00:00",
+    "MAE_test_externo": 3.154118728447645,
+    "MSE_test_externo": 15.8670896241223,
+    "archivo_resultados": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosCNN_MultiOutput_H10\\resultados_cnn_multioutput_h10_timeseries_cv_bds.csv",
+    "archivo_resumen": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosCNN_MultiOutput_H10\\resumen_cnn_multioutput_h10_timeseries_cv_bds.csv",
+    "archivo_test_final": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosCNN_MultiOutput_H10\\test_final_externo_cnn_multioutput_h10_calamar.csv",
+    "archivo_metricas_horizontes": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosCNN_MultiOutput_H10\\metricas_horizontes_1_5_10_cnn_multioutput_h10.csv",
+    "archivo_historial_entrenamiento": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosCNN_MultiOutput_H10\\historial_entrenamiento_cnn_multioutput_h10.csv",
+    "archivo_historial_modelo_final": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosCNN_MultiOutput_H10\\historial_modelo_final_cnn_multioutput_h10.csv",
+    "archivo_modelo": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosCNN_MultiOutput_H10\\modelo_cnn_multioutput_h10_calamar.keras",
+    "archivo_figura_test": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosCNN_MultiOutput_H10\\cnn_multioutput_h10_test_final_externo.png",
+    "archivo_acf_residuos": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosCNN_MultiOutput_H10\\acf_residuos_cnn_multioutput_h10_test_externo.png",
+    "archivo_hist_residuos": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosCNN_MultiOutput_H10\\histograma_residuos_cnn_multioutput_h10_test_externo.png",
+    "nota_y_scaling": "La salida multioutput y fue escalada por horizonte usando solo el conjunto de entrenamiento correspondiente."
+}

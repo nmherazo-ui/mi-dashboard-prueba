@@ -1,0 +1,48 @@
+{
+    "target": "Calamar",
+    "numOutputs": 10,
+    "numJumps": 1,
+    "horizontes_eval_test": [
+        1,
+        5,
+        10
+    ],
+    "numInputs_cv_list": [
+        30,
+        60
+    ],
+    "best_params": {
+        "order": [
+            2,
+            1,
+            1
+        ],
+        "seasonal_order": [
+            0,
+            0,
+            0,
+            0
+        ],
+        "trend": "c",
+        "usar_log": false,
+        "numInputs_cv": 30
+    },
+    "modelo": "SARIMAX usado como XARIMA/SARIMA univariado",
+    "criterio_final": "Menor MAE de validación acumulado sobre H10, usando BDS como criterio de diagnóstico/filtro. En XARIMA el BDS se calcula sobre los residuos agregados de todos los folds de validación, porque cada fold solo tiene 10 residuos. El modelo final fue entrenado sin incluir los últimos 10 registros, reservados como test externo final.",
+    "nota_metodologica": "A diferencia de SVR/Ridge/Lasso, XARIMA no usa ventanas como features ni requiere StandardScaler. Las ventanas numInputs_cv solo se usaron para definir los orígenes de validación con split_train_val_groupKFold.",
+    "validacion_cruzada": "split_train_val_groupKFold de timeseries-cv sobre índices temporales",
+    "fecha_inicio_trainval": "1975-06-29 00:00:00",
+    "fecha_fin_trainval": "2025-10-31 00:00:00",
+    "fecha_inicio_test_externo": "2025-11-01 00:00:00",
+    "fecha_fin_test_externo": "2025-11-10 00:00:00",
+    "MAE_test_externo": 4.604659977281699,
+    "MSE_test_externo": 31.96376958671388,
+    "archivo_resultados": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\XARIMA\\resultados_xarima_h10_timeseries_cv_bds.csv",
+    "archivo_resumen": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\XARIMA\\resumen_xarima_h10_timeseries_cv_bds.csv",
+    "archivo_test_final": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\XARIMA\\test_final_externo_xarima_h10_calamar.csv",
+    "archivo_metricas_horizontes": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\XARIMA\\metricas_horizontes_1_5_10_xarima_h10.csv",
+    "archivo_modelo": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\XARIMA\\modelo_xarima_h10_calamar.joblib",
+    "archivo_figura_test": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\XARIMA\\xarima_h10_test_final_externo.png",
+    "archivo_acf_residuos": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\XARIMA\\acf_residuos_xarima_h10_test_externo.png",
+    "archivo_hist_residuos": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\XARIMA\\histograma_residuos_xarima_h10_test_externo.png"
+}

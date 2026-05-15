@@ -4618,8 +4618,8 @@ def figura_heatmap_bds_residuos(df_resultados_cv):
     # cuando solo existen columnas resumen como p-valor mean y p-valor min.
     n_filas = max(1, len(y))
     n_columnas = max(1, len(x))
-    ancho_figura = min(950, max(560, 190 * n_columnas + 260))
-    alto_figura = max(260, 65 * n_filas + 120)
+    ancho_figura = 950
+    alto_figura = 360
 
     fig.update_layout(
         title=None,
@@ -4628,7 +4628,7 @@ def figura_heatmap_bds_residuos(df_resultados_cv):
         plot_bgcolor=BLANCO,
         paper_bgcolor=BLANCO,
         font=dict(family=FUENTE, size=13, color=AZUL),
-        margin=dict(l=120, r=80, t=45, b=95),
+        margin=dict(l=120, r=100, t=35, b=80),
         width=ancho_figura,
         height=alto_figura,
         autosize=False,
@@ -4816,7 +4816,7 @@ def layout_svr_calamar():
             ]),
             dcc.Graph(
                 figure=fig_bds_heatmap,
-                style={"width": "760px", "maxWidth": "100%", "margin": "0 auto"},
+                style={"width": "950px", "maxWidth": "100%", "margin": "0 auto", "display": "block"},
                 config={
                     "displayModeBar": True,
                     "scrollZoom": True,
@@ -5212,7 +5212,7 @@ def layout_ridge_calamar():
             ),
             dcc.Graph(
                 figure=fig_bds_heatmap,
-                style={"width": "760px", "maxWidth": "100%", "margin": "0 auto"},
+                style={"width": "950px", "maxWidth": "100%", "margin": "0 auto", "display": "block"},
                 config={
                     "displayModeBar": True,
                     "scrollZoom": True,
@@ -5548,7 +5548,7 @@ def layout_lasso_calamar():
             ),
             dcc.Graph(
                 figure=fig_bds_heatmap,
-                style={"width": "760px", "maxWidth": "100%", "margin": "0 auto"},
+                style={"width": "950px", "maxWidth": "100%", "margin": "0 auto", "display": "block"},
                 config={
                     "displayModeBar": True,
                     "scrollZoom": True,
@@ -5822,8 +5822,8 @@ def figura_heatmap_bds_dt_residuos(df_resultados_cv):
 
     n_filas = max(1, len(y))
     n_columnas = max(1, len(x))
-    ancho_figura = min(950, max(560, 190 * n_columnas + 260))
-    alto_figura = max(260, 65 * n_filas + 120)
+    ancho_figura = 950
+    alto_figura = 360
 
     fig.update_layout(
         title=None,
@@ -5832,7 +5832,7 @@ def figura_heatmap_bds_dt_residuos(df_resultados_cv):
         plot_bgcolor=BLANCO,
         paper_bgcolor=BLANCO,
         font=dict(family=FUENTE, size=13, color=AZUL),
-        margin=dict(l=120, r=80, t=45, b=95),
+        margin=dict(l=120, r=100, t=35, b=80),
         width=ancho_figura,
         height=alto_figura,
         autosize=False,
@@ -6057,7 +6057,7 @@ def layout_dt_calamar():
             ),
             dcc.Graph(
                 figure=fig_bds_heatmap,
-                style={"width": "760px", "maxWidth": "100%", "margin": "0 auto"},
+                style={"width": "950px", "maxWidth": "100%", "margin": "0 auto", "display": "block"},
                 config={
                     "displayModeBar": True,
                     "scrollZoom": True,
@@ -6394,7 +6394,7 @@ def layout_rf_calamar():
             ),
             dcc.Graph(
                 figure=fig_bds_heatmap,
-                style={"width": "760px", "maxWidth": "100%", "margin": "0 auto"},
+                style={"width": "950px", "maxWidth": "100%", "margin": "0 auto", "display": "block"},
                 config={
                     "displayModeBar": True,
                     "scrollZoom": True,
@@ -6459,6 +6459,2098 @@ def layout_rf_calamar():
             html.H2("Serie observada vs predicha", style=estilo_titulo),
             html.P(
                 "La gráfica compara el nivel observado en Calamar con la predicción del modelo Random Forest multioutput durante los 10 días del test externo.",
+                style=estilo_parrafo,
+            ),
+            dcc.Graph(figure=fig_serie, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Diagnóstico de residuos", style=estilo_titulo),
+            html.P(
+                "El diagnóstico de residuos permite revisar la distribución de los errores y su posible dependencia temporal. "
+                "En este caso debe interpretarse considerando que el test externo tiene 10 registros.",
+                style=estilo_parrafo,
+            ),
+            dcc.Graph(figure=fig_hist, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+            dcc.Graph(figure=fig_acf, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+        ]),
+    ])
+
+
+# =====================================================================
+# ACTUALIZACIÓN XGBOOST MULTIOUTPUT H10
+# Bloque agregado al final para no alterar las secciones anteriores.
+# =====================================================================
+
+# Nuevas rutas para XGBoost multioutput H10
+RUTA_METADATA_XGB = _resolver_archivo_resultados(
+    "metadata_modelo_xgb_multioutput_h10_calamar.json",
+    subcarpetas=("XGBoost", "6_XGBoost", "XGB", "XGBoost_MultiOutput"),
+)
+RUTA_TEST_XGB = _resolver_archivo_resultados(
+    "test_final_externo_xgb_multioutput_h10_calamar.csv",
+    subcarpetas=("XGBoost", "6_XGBoost", "XGB", "XGBoost_MultiOutput"),
+)
+RUTA_MODELO_XGB = _resolver_archivo_resultados(
+    "modelo_xgb_multioutput_h10_calamar.joblib",
+    subcarpetas=("XGBoost", "6_XGBoost", "XGB", "XGBoost_MultiOutput"),
+)
+RUTA_RESUMEN_XGB = _resolver_archivo_resultados(
+    "resumen_xgb_multioutput_h10_timeseries_cv_bds.csv",
+    subcarpetas=("XGBoost", "6_XGBoost", "XGB", "XGBoost_MultiOutput"),
+)
+RUTA_RESULTADOS_CV_XGB = _resolver_archivo_resultados(
+    "resultados_xgb_multioutput_h10_timeseries_cv_bds.csv",
+    subcarpetas=("XGBoost", "6_XGBoost", "XGB", "XGBoost_MultiOutput"),
+)
+RUTA_METRICAS_HORIZONTES_XGB = _resolver_archivo_resultados(
+    "metricas_horizontes_1_5_10_xgb_multioutput_h10.csv",
+    subcarpetas=("XGBoost", "6_XGBoost", "XGB", "XGBoost_MultiOutput"),
+)
+
+# Actualizar la entrada XGBoost de la comparación general, sin tocar las demás.
+for _spec in MODELOS_COMPARACION:
+    if _spec.get("codigo") == "xgb_calamar":
+        _spec["nombre"] = "XGBoost Multioutput H10"
+        _spec["ruta_metadata"] = RUTA_METADATA_XGB
+        _spec["ruta_test"] = RUTA_TEST_XGB
+
+
+def _leer_csv_xgb_modelos(ruta):
+    df = pd.read_csv(ruta, sep=None, engine="python", encoding="utf-8-sig")
+    df.columns = df.columns.astype(str).str.strip()
+    return df
+
+
+def cargar_resultados_xgb_calamar():
+    with open(RUTA_METADATA_XGB, "r", encoding="utf-8") as f:
+        metadata = json.load(f)
+
+    df_test = _leer_csv_xgb_modelos(RUTA_TEST_XGB)
+
+    if "Fecha" in df_test.columns:
+        df_test["Fecha"] = pd.to_datetime(df_test["Fecha"], errors="coerce")
+
+    for col in ["Calamar_real", "Calamar_predicho", "Residuo", "horizonte"]:
+        if col in df_test.columns:
+            df_test[col] = pd.to_numeric(df_test[col], errors="coerce")
+
+    if "Residuo" not in df_test.columns and {"Calamar_real", "Calamar_predicho"}.issubset(df_test.columns):
+        df_test["Residuo"] = df_test["Calamar_real"] - df_test["Calamar_predicho"]
+
+    return metadata, df_test
+
+
+def cargar_tablas_xgb_multioutput():
+    df_resumen = _leer_csv_xgb_modelos(RUTA_RESUMEN_XGB)
+    df_resultados_cv = _leer_csv_xgb_modelos(RUTA_RESULTADOS_CV_XGB)
+    df_metricas_horizontes = _leer_csv_xgb_modelos(RUTA_METRICAS_HORIZONTES_XGB)
+    return df_resumen, df_resultados_cv, df_metricas_horizontes
+
+
+def layout_xgb_calamar():
+    metadata, df_test = cargar_resultados_xgb_calamar()
+    df_resumen, df_resultados_cv, df_metricas_horizontes = cargar_tablas_xgb_multioutput()
+
+    mae = float(metadata["MAE_test_externo"])
+    mse = float(metadata["MSE_test_externo"])
+    rmse = float(np.sqrt(mse))
+
+    df_serie_completa = leer_serie_completa_calamar()
+    fig_particion = figura_particion_temporal_xgb(metadata, df_serie_completa, df_test)
+    fig_serie = figura_serie_xgb(df_test)
+    fig_hist = figura_histograma_residuos(df_test)
+    nlags_acf = max(1, min(9, len(df_test["Residuo"].dropna()) - 1))
+    fig_acf = figura_acf_residuos(df_test, nlags=nlags_acf)
+    fig_bds_heatmap = figura_heatmap_bds_residuos(df_resultados_cv)
+
+    df_validacion = pd.DataFrame([
+        {
+            "Conjunto": "Train / validación interna",
+            "Fecha inicial": metadata["fecha_inicio_trainval"],
+            "Fecha final": metadata["fecha_fin_trainval"],
+        },
+        {
+            "Conjunto": "Test externo final",
+            "Fecha inicial": metadata["fecha_inicio_test_externo"],
+            "Fecha final": metadata["fecha_fin_test_externo"],
+        },
+    ])
+
+    best_params = metadata.get("best_params", {})
+
+    df_hiper = pd.DataFrame([
+        {"Parámetro": "Modelo", "Valor": metadata.get("modelo", "MultiOutputRegressor(XGBRegressor)")},
+        {"Parámetro": "Validación cruzada", "Valor": metadata.get("validacion_cruzada", "split_train_val_groupKFold")},
+        {"Parámetro": "Ventana seleccionada", "Valor": f"{metadata.get('numInputs_seleccionado', metadata.get('numInputs', 'N/A'))} días"},
+        {"Parámetro": "Horizonte de salida", "Valor": f"H{metadata.get('numOutputs', 'N/A')}"},
+        {"Parámetro": "numJumps", "Valor": metadata.get("numJumps", "N/A")},
+        {"Parámetro": "objective", "Valor": best_params.get("objective", "N/A")},
+        {"Parámetro": "n_estimators", "Valor": best_params.get("n_estimators", "N/A")},
+        {"Parámetro": "max_depth", "Valor": best_params.get("max_depth", "N/A")},
+        {"Parámetro": "learning_rate", "Valor": best_params.get("learning_rate", "N/A")},
+        {"Parámetro": "subsample", "Valor": best_params.get("subsample", "N/A")},
+        {"Parámetro": "colsample_bytree", "Valor": best_params.get("colsample_bytree", "N/A")},
+        {"Parámetro": "reg_lambda", "Valor": best_params.get("reg_lambda", "N/A")},
+        {"Parámetro": "random_state", "Valor": best_params.get("random_state", "N/A")},
+        {"Parámetro": "n_jobs", "Valor": best_params.get("n_jobs", "N/A")},
+        {"Parámetro": "Ventanas evaluadas", "Valor": ", ".join(map(str, metadata.get("ventanas_evaluadas", [])))},
+    ])
+
+    df_metricas = pd.DataFrame([
+        {"Etapa": "Test externo H10", "MAE": round(mae, 4), "MSE": round(mse, 4), "RMSE": round(rmse, 4)}
+    ])
+
+    df_metricas_horizontes_tabla = df_metricas_horizontes.copy()
+    for col in ["MAE", "MSE", "RMSE", "R2", "MAPE_pct"]:
+        if col in df_metricas_horizontes_tabla.columns:
+            df_metricas_horizontes_tabla[col] = pd.to_numeric(
+                df_metricas_horizontes_tabla[col], errors="coerce"
+            ).round(4)
+
+    columnas_bds = [
+        "ventana",
+        "numInputs",
+        "MAE_val_h10_mean",
+        "MSE_val_h10_mean",
+        "BDS_pvalue_mean",
+        "BDS_pvalue_min",
+        "BDS_folds_pass",
+        "BDS_all_folds_pass",
+        "BDS_any_fold_pass",
+    ]
+    columnas_bds = [col for col in columnas_bds if col in df_resultados_cv.columns]
+    df_bds_tabla = df_resultados_cv[columnas_bds].copy() if columnas_bds else pd.DataFrame()
+
+    for col in ["MAE_val_h10_mean", "MSE_val_h10_mean", "BDS_pvalue_mean", "BDS_pvalue_min"]:
+        if col in df_bds_tabla.columns:
+            df_bds_tabla[col] = pd.to_numeric(df_bds_tabla[col], errors="coerce").round(6)
+
+    df_bds_tabla = df_bds_tabla.rename(columns={
+        "ventana": "Ventana",
+        "numInputs": "Entrada [días]",
+        "MAE_val_h10_mean": "MAE validación H10",
+        "MSE_val_h10_mean": "MSE validación H10",
+        "BDS_pvalue_mean": "BDS p-valor medio",
+        "BDS_pvalue_min": "BDS p-valor mínimo",
+        "BDS_folds_pass": "Folds que no rechazan H0",
+        "BDS_all_folds_pass": "Todos los folds pasan",
+        "BDS_any_fold_pass": "Algún fold pasa",
+    })
+
+    bds_resumen = df_resumen.iloc[0].to_dict() if len(df_resumen) > 0 else {}
+
+    def _formato_bds_xgb(valor, decimales=6):
+        if pd.isna(valor):
+            return "N/A"
+        try:
+            return f"{float(valor):.{decimales}g}"
+        except (TypeError, ValueError):
+            return str(valor)
+
+    bds_pmean_txt = _formato_bds_xgb(bds_resumen.get("BDS_pvalue_mean", np.nan))
+    bds_pmin_txt = _formato_bds_xgb(bds_resumen.get("BDS_pvalue_min", np.nan))
+    bds_folds_txt = str(bds_resumen.get("BDS_folds_pass", "N/A"))
+
+    return html.Div([
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("XGBoost - Calamar", style=estilo_titulo),
+            html.P(
+                "Este modelo corresponde a un MultiOutputRegressor(XGBRegressor), configurado para predecir "
+                "simultáneamente un horizonte de 10 días del nivel en la estación Calamar. La selección se realizó "
+                "con validación cruzada temporal mediante split_train_val_groupKFold.",
+                style=estilo_parrafo,
+            ),
+            html.P(metadata.get("criterio_final", ""), style=estilo_parrafo),
+        ]),
+
+        html.Div(style=estilo_flex, children=[
+            tarjeta_metrica("MAE test externo H10", f"{mae:.3f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo H10", f"{mse:.3f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo H10", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Validación temporal", style=estilo_titulo),
+            html.P(
+                "El modelo se entrenó con el bloque de train/validación interna y los últimos 10 registros se reservaron "
+                "como test externo final, en coherencia con el horizonte H10.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_validacion, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Búsqueda y mejores hiperparámetros", style=estilo_titulo),
+            html.P(
+                "La búsqueda evaluó ventanas de entrada e hiperparámetros del XGBoost dentro de un esquema multioutput. "
+                "La tabla resume la configuración seleccionada.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_hiper, page_size=15),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Resumen de validación cruzada", style=estilo_titulo),
+            html.P(
+                "Esta tabla resume el criterio de selección, las métricas promedio de validación y el diagnóstico BDS "
+                "obtenido durante la validación cruzada temporal.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_resumen, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Resultados por ventana evaluada", style=estilo_titulo),
+            html.P(
+                "Se muestran los resultados de validación para cada ventana de entrada evaluada en el modelo XGBoost multioutput.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_resultados_cv, page_size=8),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Test BDS de los residuos", style=estilo_titulo),
+            html.P(
+                "El test BDS se usó como diagnóstico de independencia de los residuos durante la validación cruzada temporal. "
+                "La hipótesis nula plantea que los residuos son independientes e idénticamente distribuidos. Por tanto, "
+                "p-valores mayores o iguales a 0.05 indican que no se rechaza esa hipótesis; p-valores menores a 0.05 sugieren "
+                "dependencia remanente o estructura no explicada por el modelo.",
+                style=estilo_parrafo,
+            ),
+            html.Div(style=estilo_flex, children=[
+                tarjeta_metrica("BDS p-valor medio", bds_pmean_txt, "Promedio entre folds"),
+                tarjeta_metrica("BDS p-valor mínimo", bds_pmin_txt, "Valor más exigente"),
+                tarjeta_metrica("Folds que pasan BDS", bds_folds_txt, "p-valor ≥ 0.05"),
+            ]),
+            html.P(
+                "El mapa de calor resume los p-valores BDS por ventana evaluada. "
+                "Los valores por encima de 0.05 indican que no se rechaza la hipótesis nula de residuos i.i.d.",
+                style=estilo_parrafo,
+            ),
+            dcc.Graph(
+                figure=fig_bds_heatmap,
+                style={"width": "950px", "maxWidth": "100%", "margin": "0 auto", "display": "block"},
+                config={
+                    "displayModeBar": True,
+                    "scrollZoom": True,
+                    "displaylogo": False,
+                    "toImageButtonOptions": {
+                        "format": "png",
+                        "filename": "heatmap_bds_xgb_multioutput_h10",
+                        "height": 380,
+                        "width": 1400,
+                        "scale": 2,
+                    },
+                },
+            ),
+            html.P(
+                "La tabla permite revisar el resultado BDS por ventana evaluada junto con las métricas de validación H10. "
+                "Este diagnóstico no reemplaza las métricas predictivas, sino que complementa la selección del modelo al evaluar "
+                "si los errores conservan dependencia temporal.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_bds_tabla, page_size=8),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Métricas del test externo", style=estilo_titulo),
+            crear_tabla_simple(df_metricas, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Métricas por horizonte", style=estilo_titulo),
+            html.P(
+                "Además del desempeño acumulado H10, se reportan las métricas para los horizontes 1, 5 y 10 días.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_metricas_horizontes_tabla, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Partición temporal del modelado", style=estilo_titulo),
+            html.P(
+                "La serie se dividió temporalmente en un bloque de entrenamiento y validación interna, seguido por un test externo final de 10 días. "
+                "Este periodo no fue usado durante la selección de hiperparámetros.",
+                style=estilo_parrafo_sec,
+            ),
+            dcc.Graph(
+                figure=fig_particion,
+                config={
+                    "displayModeBar": True,
+                    "scrollZoom": True,
+                    "displaylogo": False,
+                    "toImageButtonOptions": {
+                        "format": "png",
+                        "filename": "particion_temporal_xgb_multioutput_h10_calamar",
+                        "height": 900,
+                        "width": 1400,
+                        "scale": 2,
+                    },
+                },
+            ),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Serie observada vs predicha", style=estilo_titulo),
+            html.P(
+                "La gráfica compara el nivel observado en Calamar con la predicción del modelo XGBoost multioutput durante los 10 días del test externo.",
+                style=estilo_parrafo,
+            ),
+            dcc.Graph(figure=fig_serie, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Diagnóstico de residuos", style=estilo_titulo),
+            html.P(
+                "El diagnóstico de residuos permite revisar la distribución de los errores y su posible dependencia temporal. "
+                "En este caso debe interpretarse considerando que el test externo tiene 10 registros.",
+                style=estilo_parrafo,
+            ),
+            dcc.Graph(figure=fig_hist, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+            dcc.Graph(figure=fig_acf, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+        ]),
+    ])
+
+
+# =====================================================================
+# ACTUALIZACIÓN LSTM MULTIOUTPUT H10 + CURVA DE APRENDIZAJE
+# Bloque agregado al final para no alterar las secciones anteriores.
+# =====================================================================
+
+# Nuevas rutas para LSTM multioutput H10
+RUTA_METADATA_LSTM = _resolver_archivo_resultados(
+    "metadata_modelo_lstm_multioutput_h10_calamar.json",
+    subcarpetas=("LSTM", "7_LSTM", "ResultadosLSTM_MultiOutput_H10"),
+)
+RUTA_TEST_LSTM = _resolver_archivo_resultados(
+    "test_final_externo_lstm_multioutput_h10_calamar.csv",
+    subcarpetas=("LSTM", "7_LSTM", "ResultadosLSTM_MultiOutput_H10"),
+)
+RUTA_MODELO_LSTM = _resolver_archivo_resultados(
+    "modelo_lstm_multioutput_h10_calamar.keras",
+    subcarpetas=("LSTM", "7_LSTM", "ResultadosLSTM_MultiOutput_H10"),
+)
+RUTA_RESUMEN_LSTM = _resolver_archivo_resultados(
+    "resumen_lstm_multioutput_h10_timeseries_cv_bds.csv",
+    subcarpetas=("LSTM", "7_LSTM", "ResultadosLSTM_MultiOutput_H10"),
+)
+RUTA_RESULTADOS_CV_LSTM = _resolver_archivo_resultados(
+    "resultados_lstm_multioutput_h10_timeseries_cv_bds.csv",
+    subcarpetas=("LSTM", "7_LSTM", "ResultadosLSTM_MultiOutput_H10"),
+)
+RUTA_METRICAS_HORIZONTES_LSTM = _resolver_archivo_resultados(
+    "metricas_horizontes_1_5_10_lstm_multioutput_h10.csv",
+    subcarpetas=("LSTM", "7_LSTM", "ResultadosLSTM_MultiOutput_H10"),
+)
+RUTA_HISTORIAL_ENTRENAMIENTO_LSTM = _resolver_archivo_resultados(
+    "historial_entrenamiento_lstm_multioutput_h10.csv",
+    subcarpetas=("LSTM", "7_LSTM", "ResultadosLSTM_MultiOutput_H10"),
+)
+RUTA_HISTORIAL_MODELO_FINAL_LSTM = _resolver_archivo_resultados(
+    "historial_modelo_final_lstm_multioutput_h10.csv",
+    subcarpetas=("LSTM", "7_LSTM", "ResultadosLSTM_MultiOutput_H10"),
+)
+
+# Actualizar la entrada LSTM de la comparación general, sin tocar las demás.
+for _spec in MODELOS_COMPARACION:
+    if _spec.get("codigo") == "lstm_calamar":
+        _spec["nombre"] = "LSTM Multioutput H10"
+        _spec["ruta_metadata"] = RUTA_METADATA_LSTM
+        _spec["ruta_test"] = RUTA_TEST_LSTM
+
+
+def cargar_resultados_lstm_calamar():
+    with open(RUTA_METADATA_LSTM, "r", encoding="utf-8") as f:
+        metadata = json.load(f)
+
+    df_test = _leer_csv_modelos(RUTA_TEST_LSTM)
+
+    if "Fecha" in df_test.columns:
+        df_test["Fecha"] = pd.to_datetime(df_test["Fecha"], errors="coerce")
+
+    for col in ["Calamar_real", "Calamar_predicho", "Residuo", "horizonte"]:
+        if col in df_test.columns:
+            df_test[col] = pd.to_numeric(df_test[col], errors="coerce")
+
+    if "Residuo" not in df_test.columns and {"Calamar_real", "Calamar_predicho"}.issubset(df_test.columns):
+        df_test["Residuo"] = df_test["Calamar_real"] - df_test["Calamar_predicho"]
+
+    return metadata, df_test
+
+
+def cargar_tablas_lstm_multioutput():
+    df_resumen = _leer_csv_modelos(RUTA_RESUMEN_LSTM)
+    df_resultados_cv = _leer_csv_modelos(RUTA_RESULTADOS_CV_LSTM)
+    df_metricas_horizontes = _leer_csv_modelos(RUTA_METRICAS_HORIZONTES_LSTM)
+    df_historial_entrenamiento = _leer_csv_modelos(RUTA_HISTORIAL_ENTRENAMIENTO_LSTM)
+    df_historial_final = _leer_csv_modelos(RUTA_HISTORIAL_MODELO_FINAL_LSTM)
+    return df_resumen, df_resultados_cv, df_metricas_horizontes, df_historial_entrenamiento, df_historial_final
+
+
+def figura_curva_aprendizaje_lstm(df_historial_entrenamiento, df_historial_final=None, num_inputs=None):
+    """Curva de aprendizaje del LSTM usando el historial de entrenamiento."""
+    fig = go.Figure()
+
+    if df_historial_entrenamiento is None or df_historial_entrenamiento.empty:
+        fig.add_annotation(
+            text="No hay datos disponibles para construir la curva de aprendizaje.",
+            x=0.5,
+            y=0.5,
+            xref="paper",
+            yref="paper",
+            showarrow=False,
+            font=dict(family=FUENTE, size=14, color=AZUL),
+        )
+        fig.update_layout(
+            height=420,
+            plot_bgcolor=BLANCO,
+            paper_bgcolor=BLANCO,
+            font=dict(family=FUENTE, size=13, color=AZUL),
+        )
+        return fig
+
+    df = df_historial_entrenamiento.copy()
+    df.columns = df.columns.astype(str).str.strip()
+
+    for col in ["epoch", "loss_train", "loss_val", "mae_train", "mae_val", "numInputs"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    if num_inputs is not None and "numInputs" in df.columns:
+        df_filtrado = df[df["numInputs"] == float(num_inputs)].copy()
+        if not df_filtrado.empty:
+            df = df_filtrado
+
+    columnas_agrupar = ["epoch"]
+    columnas_media = [col for col in ["loss_train", "loss_val", "mae_train", "mae_val"] if col in df.columns]
+    df_prom = df.groupby(columnas_agrupar, as_index=False)[columnas_media].mean().sort_values("epoch")
+
+    if "loss_train" in df_prom.columns:
+        fig.add_trace(go.Scatter(
+            x=df_prom["epoch"],
+            y=df_prom["loss_train"],
+            mode="lines",
+            name="Train loss CV",
+            line=dict(color=AZUL, width=2.5),
+            hovertemplate="<b>Época:</b> %{x}<br><b>Loss train:</b> %{y:.5f}<extra></extra>",
+        ))
+
+    if "loss_val" in df_prom.columns:
+        fig.add_trace(go.Scatter(
+            x=df_prom["epoch"],
+            y=df_prom["loss_val"],
+            mode="lines",
+            name="Validation loss CV",
+            line=dict(color=CELESTE, width=2.5, dash="dash"),
+            hovertemplate="<b>Época:</b> %{x}<br><b>Loss validación:</b> %{y:.5f}<extra></extra>",
+        ))
+
+    epoca_final_usada = None
+    loss_epoca_final = None
+
+    if df_historial_final is not None and not df_historial_final.empty:
+        df_final = df_historial_final.copy()
+        df_final.columns = df_final.columns.astype(str).str.strip()
+        for col in ["epoch", "loss_train", "loss_val", "epochs_usados"]:
+            if col in df_final.columns:
+                df_final[col] = pd.to_numeric(df_final[col], errors="coerce")
+
+        if "loss_train" in df_final.columns:
+            fig.add_trace(go.Scatter(
+                x=df_final["epoch"],
+                y=df_final["loss_train"],
+                mode="lines",
+                name="Train loss modelo final",
+                line=dict(color="#B23A48", width=2.2, dash="dot"),
+                hovertemplate="<b>Época:</b> %{x}<br><b>Loss modelo final:</b> %{y:.5f}<extra></extra>",
+            ))
+
+        if "epochs_usados" in df_final.columns and df_final["epochs_usados"].notna().any():
+            epoca_final_usada = int(df_final["epochs_usados"].dropna().max())
+        elif "epoch" in df_final.columns and df_final["epoch"].notna().any():
+            epoca_final_usada = int(df_final["epoch"].dropna().max())
+
+        if epoca_final_usada is not None and {"epoch", "loss_train"}.issubset(df_final.columns):
+            df_epoca_final = df_final[df_final["epoch"] == epoca_final_usada].copy()
+            if not df_epoca_final.empty:
+                loss_epoca_final = float(df_epoca_final["loss_train"].iloc[-1])
+                fig.add_trace(go.Scatter(
+                    x=[epoca_final_usada],
+                    y=[loss_epoca_final],
+                    mode="markers",
+                    name=f"Época final usada ({epoca_final_usada})",
+                    marker=dict(size=12, color="#B23A48", symbol="diamond", line=dict(width=2, color=AZUL)),
+                    hovertemplate=(
+                        "<b>Época final usada:</b> %{x}<br>"
+                        "<b>Loss final:</b> %{y:.5f}"
+                        "<extra></extra>"
+                    ),
+                ))
+
+    if epoca_final_usada is not None:
+        fig.add_vline(
+            x=epoca_final_usada,
+            line_dash="dash",
+            line_width=2,
+            line_color="#B23A48",
+            annotation_text=f"Época final usada: {epoca_final_usada}",
+            annotation_position="top right",
+            annotation_font=dict(family=FUENTE, size=12, color="#B23A48"),
+        )
+
+    # Señalar explícitamente la época con menor loss de validación (val_loss)
+    # usando el menor valor real del historial de validación, no el promedio por época.
+    epoca_menor_val_loss = None
+    valor_menor_val_loss = None
+    fold_menor_val_loss = None
+
+    if {"epoch", "loss_val"}.issubset(df.columns) and df["loss_val"].notna().any():
+        idx_min_val = df["loss_val"].idxmin()
+        epoca_menor_val_loss = int(df.loc[idx_min_val, "epoch"])
+        valor_menor_val_loss = float(df.loc[idx_min_val, "loss_val"])
+        if "fold" in df.columns and pd.notna(df.loc[idx_min_val, "fold"]):
+            fold_menor_val_loss = int(df.loc[idx_min_val, "fold"])
+
+        texto_menor_val = f"Menor val loss: época {epoca_menor_val_loss}"
+        if fold_menor_val_loss is not None:
+            texto_menor_val += f" | fold {fold_menor_val_loss}"
+
+        fig.add_vline(
+            x=epoca_menor_val_loss,
+            line_dash="dash",
+            line_width=2.5,
+            line_color="#8E44AD",
+            annotation_text=texto_menor_val,
+            annotation_position="top left",
+            annotation_font=dict(family=FUENTE, size=12, color="#8E44AD"),
+        )
+
+        fig.add_trace(go.Scatter(
+            x=[epoca_menor_val_loss],
+            y=[valor_menor_val_loss],
+            mode="markers+text",
+            name=f"Menor val loss ({epoca_menor_val_loss})",
+            text=[f"mín val loss<br>época {epoca_menor_val_loss}"],
+            textposition="bottom right",
+            marker=dict(
+                size=14,
+                color="#8E44AD",
+                symbol="diamond",
+                line=dict(width=2, color=AZUL),
+            ),
+            hovertemplate=(
+                "<b>Menor val loss</b><br>"
+                "<b>Época:</b> %{x}<br>"
+                "<b>val_loss:</b> %{y:.6f}"
+                "<extra></extra>"
+            ),
+        ))
+
+    fig.update_layout(
+        title=None,
+        xaxis_title="Época",
+        yaxis_title="Loss",
+        plot_bgcolor=BLANCO,
+        paper_bgcolor=BLANCO,
+        font=dict(family=FUENTE, size=13, color=AZUL),
+        hovermode="x unified",
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            bgcolor="rgba(255,255,255,0.85)",
+            bordercolor="rgba(26,58,92,0.18)",
+            borderwidth=1,
+        ),
+        margin=dict(l=70, r=40, t=80, b=60),
+        height=520,
+    )
+    fig.update_xaxes(showgrid=True, gridcolor="#D9E2EF", zeroline=False)
+    fig.update_yaxes(showgrid=True, gridcolor="#D9E2EF", zeroline=False)
+
+    return fig
+
+
+def layout_lstm_calamar():
+    metadata, df_test = cargar_resultados_lstm_calamar()
+    df_resumen, df_resultados_cv, df_metricas_horizontes, df_historial_entrenamiento, df_historial_final = cargar_tablas_lstm_multioutput()
+
+    mae = float(metadata["MAE_test_externo"])
+    mse = float(metadata["MSE_test_externo"])
+    rmse = float(np.sqrt(mse))
+
+    df_serie_completa = leer_serie_completa_calamar()
+    fig_particion = figura_particion_temporal_lstm(metadata, df_serie_completa, df_test)
+    fig_serie = figura_serie_lstm(df_test)
+    fig_hist = figura_histograma_residuos(df_test)
+    nlags_acf = max(1, min(9, len(df_test["Residuo"].dropna()) - 1))
+    fig_acf = figura_acf_residuos(df_test, nlags=nlags_acf)
+    fig_bds_heatmap = figura_heatmap_bds_residuos(df_resultados_cv)
+    fig_curva_aprendizaje = figura_curva_aprendizaje_lstm(
+        df_historial_entrenamiento,
+        df_historial_final,
+        num_inputs=metadata.get("numInputs_seleccionado", metadata.get("numInputs")),
+    )
+
+    df_validacion = pd.DataFrame([
+        {"Conjunto": "Train / validación interna", "Fecha inicial": metadata["fecha_inicio_trainval"], "Fecha final": metadata["fecha_fin_trainval"]},
+        {"Conjunto": "Test externo final", "Fecha inicial": metadata["fecha_inicio_test_externo"], "Fecha final": metadata["fecha_fin_test_externo"]},
+    ])
+
+    best_params = metadata.get("best_params", {})
+    df_hiper = pd.DataFrame([
+        {"Parámetro": "Modelo", "Valor": metadata.get("modelo", "Keras LSTM MultiOutput Dense(10)")},
+        {"Parámetro": "Validación cruzada", "Valor": metadata.get("validacion_cruzada", "split_train_val_groupKFold")},
+        {"Parámetro": "Ventana seleccionada", "Valor": f"{metadata.get('numInputs_seleccionado', metadata.get('numInputs', 'N/A'))} días"},
+        {"Parámetro": "Horizonte de salida", "Valor": f"H{metadata.get('numOutputs', 'N/A')}"},
+        {"Parámetro": "numJumps", "Valor": metadata.get("numJumps", "N/A")},
+        {"Parámetro": "units", "Valor": best_params.get("units", "N/A")},
+        {"Parámetro": "dropout", "Valor": best_params.get("dropout", "N/A")},
+        {"Parámetro": "learning_rate", "Valor": best_params.get("learning_rate", "N/A")},
+        {"Parámetro": "batch_size", "Valor": best_params.get("batch_size", "N/A")},
+        {"Parámetro": "epochs_max", "Valor": best_params.get("epochs_max", "N/A")},
+        {"Parámetro": "patience", "Valor": best_params.get("patience", "N/A")},
+        {"Parámetro": "Ventanas evaluadas", "Valor": ", ".join(map(str, metadata.get("ventanas_evaluadas", [])))},
+    ])
+
+    df_metricas = pd.DataFrame([
+        {"Etapa": "Test externo H10", "MAE": round(mae, 4), "MSE": round(mse, 4), "RMSE": round(rmse, 4)}
+    ])
+
+    df_metricas_horizontes_tabla = df_metricas_horizontes.copy()
+    for col in ["MAE", "MSE", "RMSE", "R2", "MAPE_pct"]:
+        if col in df_metricas_horizontes_tabla.columns:
+            df_metricas_horizontes_tabla[col] = pd.to_numeric(df_metricas_horizontes_tabla[col], errors="coerce").round(4)
+
+    columnas_bds = [
+        "ventana",
+        "numInputs",
+        "MAE_val_h10_mean",
+        "MSE_val_h10_mean",
+        "BDS_pvalue_mean",
+        "BDS_pvalue_min",
+        "BDS_folds_pass",
+        "BDS_all_folds_pass",
+        "BDS_any_fold_pass",
+    ]
+    columnas_bds = [col for col in columnas_bds if col in df_resultados_cv.columns]
+    df_bds_tabla = df_resultados_cv[columnas_bds].copy() if columnas_bds else pd.DataFrame()
+
+    for col in ["MAE_val_h10_mean", "MSE_val_h10_mean", "BDS_pvalue_mean", "BDS_pvalue_min"]:
+        if col in df_bds_tabla.columns:
+            df_bds_tabla[col] = pd.to_numeric(df_bds_tabla[col], errors="coerce").round(6)
+
+    df_bds_tabla = df_bds_tabla.rename(columns={
+        "ventana": "Ventana",
+        "numInputs": "Entrada [días]",
+        "MAE_val_h10_mean": "MAE validación H10",
+        "MSE_val_h10_mean": "MSE validación H10",
+        "BDS_pvalue_mean": "BDS p-valor medio",
+        "BDS_pvalue_min": "BDS p-valor mínimo",
+        "BDS_folds_pass": "Folds que no rechazan H0",
+        "BDS_all_folds_pass": "Todos los folds pasan",
+        "BDS_any_fold_pass": "Algún fold pasa",
+    })
+
+    bds_resumen = df_resumen.iloc[0].to_dict() if len(df_resumen) > 0 else {}
+
+    def _formato_bds(valor, decimales=6):
+        if pd.isna(valor):
+            return "N/A"
+        try:
+            return f"{float(valor):.{decimales}g}"
+        except (TypeError, ValueError):
+            return str(valor)
+
+    bds_pmean_txt = _formato_bds(bds_resumen.get("BDS_pvalue_mean", np.nan))
+    bds_pmin_txt = _formato_bds(bds_resumen.get("BDS_pvalue_min", np.nan))
+    bds_folds_txt = str(bds_resumen.get("BDS_folds_pass", "N/A"))
+
+    return html.Div([
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Long Short-Term Memory (LSTM) - Calamar", style=estilo_titulo),
+            html.P(
+                "Este modelo corresponde a una red LSTM implementada en Keras, configurada para predecir simultáneamente "
+                "un horizonte de 10 días del nivel en la estación Calamar. La selección se realizó con validación cruzada "
+                "temporal mediante split_train_val_groupKFold y diagnóstico BDS de residuos.",
+                style=estilo_parrafo,
+            ),
+            html.P(metadata.get("criterio_final", ""), style=estilo_parrafo),
+            html.P(metadata.get("nota_y_scaling", ""), style=estilo_parrafo),
+        ]),
+
+        html.Div(style=estilo_flex, children=[
+            tarjeta_metrica("MAE test externo H10", f"{mae:.3f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo H10", f"{mse:.3f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo H10", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Validación temporal", style=estilo_titulo),
+            html.P(
+                "El modelo se entrenó con el bloque de train/validación interna y los últimos 10 registros se reservaron "
+                "como test externo final, en coherencia con el horizonte H10.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_validacion, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Búsqueda y mejores hiperparámetros", style=estilo_titulo),
+            html.P(
+                "La búsqueda evaluó ventanas de entrada e hiperparámetros de la red LSTM. "
+                "La tabla resume la configuración seleccionada.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_hiper, page_size=12),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Curva de aprendizaje", style=estilo_titulo),
+            html.P(
+                "La curva de aprendizaje se construyó a partir del historial de entrenamiento. "
+                "Se muestran las pérdidas promedio de entrenamiento y validación durante la validación cruzada, "
+                "junto con la pérdida de entrenamiento del modelo final.",
+                style=estilo_parrafo,
+            ),
+            dcc.Graph(
+                figure=fig_curva_aprendizaje,
+                config={
+                    "displayModeBar": True,
+                    "scrollZoom": True,
+                    "displaylogo": False,
+                    "toImageButtonOptions": {
+                        "format": "png",
+                        "filename": "curva_aprendizaje_lstm_multioutput_h10",
+                        "height": 900,
+                        "width": 1400,
+                        "scale": 2,
+                    },
+                },
+            ),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Resumen de validación cruzada", style=estilo_titulo),
+            html.P(
+                "Esta tabla resume el criterio de selección, las métricas promedio de validación y el diagnóstico BDS "
+                "obtenido durante la validación cruzada temporal.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_resumen, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Resultados por ventana evaluada", style=estilo_titulo),
+            html.P(
+                "Se muestran los resultados de validación para cada ventana de entrada evaluada en el modelo LSTM multioutput.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_resultados_cv, page_size=8),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Test BDS de los residuos", style=estilo_titulo),
+            html.P(
+                "El test BDS se usó como diagnóstico de independencia de los residuos durante la validación cruzada temporal. "
+                "La hipótesis nula plantea que los residuos son independientes e idénticamente distribuidos. Por tanto, "
+                "p-valores mayores o iguales a 0.05 indican que no se rechaza esa hipótesis; p-valores menores a 0.05 sugieren "
+                "dependencia remanente o estructura no explicada por el modelo.",
+                style=estilo_parrafo,
+            ),
+            html.Div(style=estilo_flex, children=[
+                tarjeta_metrica("BDS p-valor medio", bds_pmean_txt, "Promedio entre folds"),
+                tarjeta_metrica("BDS p-valor mínimo", bds_pmin_txt, "Valor más exigente"),
+                tarjeta_metrica("Folds que pasan BDS", bds_folds_txt, "p-valor ≥ 0.05"),
+            ]),
+            html.P(
+                "El mapa de calor resume los p-valores BDS por ventana evaluada. "
+                "Los valores por encima de 0.05 indican que no se rechaza la hipótesis nula de residuos i.i.d.",
+                style=estilo_parrafo,
+            ),
+            dcc.Graph(
+                figure=fig_bds_heatmap,
+                style={"width": "950px", "maxWidth": "100%", "margin": "0 auto", "display": "block"},
+                config={
+                    "displayModeBar": True,
+                    "scrollZoom": True,
+                    "displaylogo": False,
+                    "toImageButtonOptions": {
+                        "format": "png",
+                        "filename": "heatmap_bds_lstm_multioutput_h10",
+                        "height": 380,
+                        "width": 1400,
+                        "scale": 2,
+                    },
+                },
+            ),
+            html.P(
+                "La tabla permite revisar el resultado BDS por ventana evaluada junto con las métricas de validación H10. "
+                "Este diagnóstico no reemplaza las métricas predictivas, sino que complementa la selección del modelo al evaluar "
+                "si los errores conservan dependencia temporal.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_bds_tabla, page_size=8),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Métricas del test externo", style=estilo_titulo),
+            crear_tabla_simple(df_metricas, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Métricas por horizonte", style=estilo_titulo),
+            html.P(
+                "Además del desempeño acumulado H10, se reportan las métricas para los horizontes 1, 5 y 10 días.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_metricas_horizontes_tabla, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Partición temporal del modelado", style=estilo_titulo),
+            html.P(
+                "La serie se dividió temporalmente en un bloque de entrenamiento y validación interna, seguido por un test externo final de 10 días. "
+                "Este periodo no fue usado durante la selección de hiperparámetros.",
+                style=estilo_parrafo_sec,
+            ),
+            dcc.Graph(
+                figure=fig_particion,
+                config={
+                    "displayModeBar": True,
+                    "scrollZoom": True,
+                    "displaylogo": False,
+                    "toImageButtonOptions": {
+                        "format": "png",
+                        "filename": "particion_temporal_lstm_multioutput_h10_calamar",
+                        "height": 900,
+                        "width": 1400,
+                        "scale": 2,
+                    },
+                },
+            ),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Serie observada vs predicha", style=estilo_titulo),
+            html.P(
+                "La gráfica compara el nivel observado en Calamar con la predicción del modelo LSTM multioutput durante los 10 días del test externo.",
+                style=estilo_parrafo,
+            ),
+            dcc.Graph(figure=fig_serie, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Diagnóstico de residuos", style=estilo_titulo),
+            html.P(
+                "El diagnóstico de residuos permite revisar la distribución de los errores y su posible dependencia temporal. "
+                "En este caso debe interpretarse considerando que el test externo tiene 10 registros.",
+                style=estilo_parrafo,
+            ),
+            dcc.Graph(figure=fig_hist, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+            dcc.Graph(figure=fig_acf, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+        ]),
+    ])
+
+
+# =====================================================================
+# ACTUALIZACIÓN KNN MULTIOUTPUT H10
+# Bloque agregado al final para no alterar las secciones anteriores.
+# =====================================================================
+
+# Nuevas rutas para KNN multioutput H10
+RUTA_METADATA_KNN = _resolver_archivo_resultados(
+    "metadata_modelo_knn_multioutput_h10_calamar.json",
+    subcarpetas=("KNN", "8_KNN", "7_KNN"),
+)
+RUTA_TEST_KNN = _resolver_archivo_resultados(
+    "test_final_externo_knn_multioutput_h10_calamar.csv",
+    subcarpetas=("KNN", "8_KNN", "7_KNN"),
+)
+RUTA_MODELO_KNN = _resolver_archivo_resultados(
+    "modelo_knn_multioutput_h10_calamar.joblib",
+    subcarpetas=("KNN", "8_KNN", "7_KNN"),
+)
+RUTA_RESUMEN_KNN = _resolver_archivo_resultados(
+    "resumen_knn_multioutput_h10_timeseries_cv_bds.csv",
+    subcarpetas=("KNN", "8_KNN", "7_KNN"),
+)
+RUTA_RESULTADOS_CV_KNN = _resolver_archivo_resultados(
+    "resultados_knn_multioutput_h10_timeseries_cv_bds.csv",
+    subcarpetas=("KNN", "8_KNN", "7_KNN"),
+)
+RUTA_METRICAS_HORIZONTES_KNN = _resolver_archivo_resultados(
+    "metricas_horizontes_1_5_10_knn_multioutput_h10.csv",
+    subcarpetas=("KNN", "8_KNN", "7_KNN"),
+)
+
+# Actualizar la entrada KNN de la comparación general, sin tocar las demás.
+for _spec in MODELOS_COMPARACION:
+    if _spec.get("codigo") == "knn_calamar":
+        _spec["nombre"] = "KNN Multioutput H10"
+        _spec["ruta_metadata"] = RUTA_METADATA_KNN
+        _spec["ruta_test"] = RUTA_TEST_KNN
+
+
+def _leer_csv_knn_modelos(ruta):
+    df = pd.read_csv(ruta, sep=None, engine="python", encoding="utf-8-sig")
+    df.columns = df.columns.astype(str).str.strip()
+    return df
+
+
+def cargar_resultados_knn_calamar():
+    with open(RUTA_METADATA_KNN, "r", encoding="utf-8") as f:
+        metadata = json.load(f)
+
+    df_test = _leer_csv_knn_modelos(RUTA_TEST_KNN)
+
+    if "Fecha" in df_test.columns:
+        df_test["Fecha"] = pd.to_datetime(df_test["Fecha"], errors="coerce")
+
+    for col in ["Calamar_real", "Calamar_predicho", "Residuo", "horizonte"]:
+        if col in df_test.columns:
+            df_test[col] = pd.to_numeric(df_test[col], errors="coerce")
+
+    if "Residuo" not in df_test.columns and {"Calamar_real", "Calamar_predicho"}.issubset(df_test.columns):
+        df_test["Residuo"] = df_test["Calamar_real"] - df_test["Calamar_predicho"]
+
+    return metadata, df_test
+
+
+def cargar_tablas_knn_multioutput():
+    df_resumen = _leer_csv_knn_modelos(RUTA_RESUMEN_KNN)
+    df_resultados_cv = _leer_csv_knn_modelos(RUTA_RESULTADOS_CV_KNN)
+    df_metricas_horizontes = _leer_csv_knn_modelos(RUTA_METRICAS_HORIZONTES_KNN)
+    return df_resumen, df_resultados_cv, df_metricas_horizontes
+
+
+def layout_knn_calamar():
+    metadata, df_test = cargar_resultados_knn_calamar()
+    df_resumen, df_resultados_cv, df_metricas_horizontes = cargar_tablas_knn_multioutput()
+
+    mae = float(metadata["MAE_test_externo"])
+    mse = float(metadata["MSE_test_externo"])
+    rmse = float(np.sqrt(mse))
+
+    df_serie_completa = leer_serie_completa_calamar()
+    fig_particion = figura_particion_temporal_knn(metadata, df_serie_completa, df_test)
+    fig_serie = figura_serie_knn(df_test)
+    fig_hist = figura_histograma_residuos(df_test)
+    nlags_acf = max(1, min(9, len(df_test["Residuo"].dropna()) - 1))
+    fig_acf = figura_acf_residuos(df_test, nlags=nlags_acf)
+    fig_bds_heatmap = figura_heatmap_bds_residuos(df_resultados_cv)
+
+    df_validacion = pd.DataFrame([
+        {
+            "Conjunto": "Train / validación interna",
+            "Fecha inicial": metadata["fecha_inicio_trainval"],
+            "Fecha final": metadata["fecha_fin_trainval"],
+        },
+        {
+            "Conjunto": "Test externo final",
+            "Fecha inicial": metadata["fecha_inicio_test_externo"],
+            "Fecha final": metadata["fecha_fin_test_externo"],
+        },
+    ])
+
+    best_params = metadata.get("best_params", {})
+    df_hiper = pd.DataFrame([
+        {"Parámetro": "Modelo", "Valor": metadata.get("modelo", "Pipeline(StandardScaler + KNeighborsRegressor)")},
+        {"Parámetro": "Validación cruzada", "Valor": metadata.get("validacion_cruzada", "split_train_val_groupKFold")},
+        {"Parámetro": "Ventana seleccionada", "Valor": f"{metadata.get('numInputs_seleccionado', metadata.get('numInputs', 'N/A'))} días"},
+        {"Parámetro": "Horizonte de salida", "Valor": f"H{metadata.get('numOutputs', 'N/A')}"},
+        {"Parámetro": "numJumps", "Valor": metadata.get("numJumps", "N/A")},
+        {"Parámetro": "n_neighbors", "Valor": best_params.get("knn__n_neighbors", best_params.get("n_neighbors", "N/A"))},
+        {"Parámetro": "weights", "Valor": best_params.get("knn__weights", best_params.get("weights", "N/A"))},
+        {"Parámetro": "p", "Valor": best_params.get("knn__p", best_params.get("p", "N/A"))},
+        {"Parámetro": "metric", "Valor": best_params.get("knn__metric", best_params.get("metric", "N/A"))},
+        {"Parámetro": "Ventanas evaluadas", "Valor": ", ".join(map(str, metadata.get("ventanas_evaluadas", [])))},
+    ])
+
+    df_metricas = pd.DataFrame([
+        {"Etapa": "Test externo H10", "MAE": round(mae, 4), "MSE": round(mse, 4), "RMSE": round(rmse, 4)}
+    ])
+
+    df_metricas_horizontes_tabla = df_metricas_horizontes.copy()
+    for col in ["MAE", "MSE", "RMSE", "R2", "MAPE_pct"]:
+        if col in df_metricas_horizontes_tabla.columns:
+            df_metricas_horizontes_tabla[col] = pd.to_numeric(
+                df_metricas_horizontes_tabla[col], errors="coerce"
+            ).round(4)
+
+    columnas_bds = [
+        "ventana",
+        "numInputs",
+        "MAE_val_h10_mean",
+        "MSE_val_h10_mean",
+        "BDS_pvalue_mean",
+        "BDS_pvalue_min",
+        "BDS_folds_pass",
+        "BDS_all_folds_pass",
+        "BDS_any_fold_pass",
+    ]
+    columnas_bds = [col for col in columnas_bds if col in df_resultados_cv.columns]
+    df_bds_tabla = df_resultados_cv[columnas_bds].copy() if columnas_bds else pd.DataFrame()
+
+    for col in ["MAE_val_h10_mean", "MSE_val_h10_mean", "BDS_pvalue_mean", "BDS_pvalue_min"]:
+        if col in df_bds_tabla.columns:
+            df_bds_tabla[col] = pd.to_numeric(df_bds_tabla[col], errors="coerce").round(6)
+
+    df_bds_tabla = df_bds_tabla.rename(columns={
+        "ventana": "Ventana",
+        "numInputs": "Entrada [días]",
+        "MAE_val_h10_mean": "MAE validación H10",
+        "MSE_val_h10_mean": "MSE validación H10",
+        "BDS_pvalue_mean": "BDS p-valor medio",
+        "BDS_pvalue_min": "BDS p-valor mínimo",
+        "BDS_folds_pass": "Folds que no rechazan H0",
+        "BDS_all_folds_pass": "Todos los folds pasan",
+        "BDS_any_fold_pass": "Algún fold pasa",
+    })
+
+    bds_resumen = df_resumen.iloc[0].to_dict() if len(df_resumen) > 0 else {}
+
+    def _formato_bds_knn(valor, decimales=6):
+        if pd.isna(valor):
+            return "N/A"
+        try:
+            return f"{float(valor):.{decimales}g}"
+        except (TypeError, ValueError):
+            return str(valor)
+
+    bds_pmean_txt = _formato_bds_knn(bds_resumen.get("BDS_pvalue_mean", np.nan))
+    bds_pmin_txt = _formato_bds_knn(bds_resumen.get("BDS_pvalue_min", np.nan))
+    bds_folds_txt = str(bds_resumen.get("BDS_folds_pass", "N/A"))
+
+    return html.Div([
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("K-Vecinos más Cercanos (KNN) - Calamar", style=estilo_titulo),
+            html.P(
+                "Este modelo corresponde a un pipeline compuesto por StandardScaler y KNeighborsRegressor, "
+                "configurado para predecir simultáneamente un horizonte de 10 días del nivel en la estación Calamar. "
+                "La selección se realizó con validación cruzada temporal mediante split_train_val_groupKFold.",
+                style=estilo_parrafo,
+            ),
+            html.P(metadata.get("criterio_final", ""), style=estilo_parrafo),
+        ]),
+
+        html.Div(style=estilo_flex, children=[
+            tarjeta_metrica("MAE test externo H10", f"{mae:.3f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo H10", f"{mse:.3f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo H10", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Validación temporal", style=estilo_titulo),
+            html.P(
+                "El modelo se entrenó con el bloque de train/validación interna y los últimos 10 registros se reservaron "
+                "como test externo final, en coherencia con el horizonte H10.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_validacion, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Búsqueda y mejores hiperparámetros", style=estilo_titulo),
+            html.P(
+                "La búsqueda evaluó ventanas de entrada y combinaciones de hiperparámetros del KNN. "
+                "La tabla resume la configuración seleccionada.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_hiper, page_size=12),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Resumen de validación cruzada", style=estilo_titulo),
+            html.P(
+                "Esta tabla resume el criterio de selección, las métricas promedio de validación y el diagnóstico BDS "
+                "obtenido durante la validación cruzada temporal.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_resumen, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Resultados por ventana evaluada", style=estilo_titulo),
+            html.P(
+                "Se muestran los resultados de validación para cada ventana de entrada evaluada en el modelo KNN multioutput.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_resultados_cv, page_size=8),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Test BDS de los residuos", style=estilo_titulo),
+            html.P(
+                "El test BDS se usó como diagnóstico de independencia de los residuos durante la validación cruzada temporal. "
+                "La hipótesis nula plantea que los residuos son independientes e idénticamente distribuidos. Por tanto, "
+                "p-valores mayores o iguales a 0.05 indican que no se rechaza esa hipótesis; p-valores menores a 0.05 sugieren "
+                "dependencia remanente o estructura no explicada por el modelo.",
+                style=estilo_parrafo,
+            ),
+            html.Div(style=estilo_flex, children=[
+                tarjeta_metrica("BDS p-valor medio", bds_pmean_txt, "Promedio entre folds"),
+                tarjeta_metrica("BDS p-valor mínimo", bds_pmin_txt, "Valor más exigente"),
+                tarjeta_metrica("Folds que pasan BDS", bds_folds_txt, "p-valor ≥ 0.05"),
+            ]),
+            html.P(
+                "El mapa de calor resume los p-valores BDS por ventana evaluada. "
+                "Los valores por encima de 0.05 indican que no se rechaza la hipótesis nula de residuos i.i.d.",
+                style=estilo_parrafo,
+            ),
+            dcc.Graph(
+                figure=fig_bds_heatmap,
+                style={"width": "950px", "maxWidth": "100%", "margin": "0 auto", "display": "block"},
+                config={
+                    "displayModeBar": True,
+                    "scrollZoom": True,
+                    "displaylogo": False,
+                    "toImageButtonOptions": {
+                        "format": "png",
+                        "filename": "heatmap_bds_knn_multioutput_h10",
+                        "height": 380,
+                        "width": 1400,
+                        "scale": 2,
+                    },
+                },
+            ),
+            html.P(
+                "La tabla permite revisar el resultado BDS por ventana evaluada junto con las métricas de validación H10. "
+                "Este diagnóstico no reemplaza las métricas predictivas, sino que complementa la selección del modelo al evaluar "
+                "si los errores conservan dependencia temporal.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_bds_tabla, page_size=8),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Métricas del test externo", style=estilo_titulo),
+            crear_tabla_simple(df_metricas, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Métricas por horizonte", style=estilo_titulo),
+            html.P(
+                "Además del desempeño acumulado H10, se reportan las métricas para los horizontes 1, 5 y 10 días.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_metricas_horizontes_tabla, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Partición temporal del modelado", style=estilo_titulo),
+            html.P(
+                "La serie se dividió temporalmente en un bloque de entrenamiento y validación interna, seguido por un test externo final de 10 días. "
+                "Este periodo no fue usado durante la selección de hiperparámetros.",
+                style=estilo_parrafo_sec,
+            ),
+            dcc.Graph(
+                figure=fig_particion,
+                config={
+                    "displayModeBar": True,
+                    "scrollZoom": True,
+                    "displaylogo": False,
+                    "toImageButtonOptions": {
+                        "format": "png",
+                        "filename": "particion_temporal_knn_multioutput_h10_calamar",
+                        "height": 900,
+                        "width": 1400,
+                        "scale": 2,
+                    },
+                },
+            ),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Serie observada vs predicha", style=estilo_titulo),
+            html.P(
+                "La gráfica compara el nivel observado en Calamar con la predicción del modelo KNN multioutput durante los 10 días del test externo.",
+                style=estilo_parrafo,
+            ),
+            dcc.Graph(figure=fig_serie, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Diagnóstico de residuos", style=estilo_titulo),
+            html.P(
+                "El diagnóstico de residuos permite revisar la distribución de los errores y su posible dependencia temporal. "
+                "En este caso debe interpretarse considerando que el test externo tiene 10 registros.",
+                style=estilo_parrafo,
+            ),
+            dcc.Graph(figure=fig_hist, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+            dcc.Graph(figure=fig_acf, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+        ]),
+    ])
+
+
+# =====================================================================
+# ACTUALIZACIÓN XARIMA MULTIOUTPUT H10
+# Bloque agregado al final para no alterar las secciones anteriores.
+# =====================================================================
+
+# Nuevas rutas para XARIMA H10
+RUTA_METADATA_XARIMA = _resolver_archivo_resultados(
+    "metadata_modelo_xarima_h10_calamar.json",
+    subcarpetas=("XARIMA", "9_XARIMA", "8_XARIMA"),
+)
+RUTA_TEST_XARIMA = _resolver_archivo_resultados(
+    "test_final_externo_xarima_h10_calamar.csv",
+    subcarpetas=("XARIMA", "9_XARIMA", "8_XARIMA"),
+)
+RUTA_MODELO_XARIMA = _resolver_archivo_resultados(
+    "modelo_xarima_h10_calamar.joblib",
+    subcarpetas=("XARIMA", "9_XARIMA", "8_XARIMA"),
+)
+RUTA_RESUMEN_XARIMA = _resolver_archivo_resultados(
+    "resumen_xarima_h10_timeseries_cv_bds.csv",
+    subcarpetas=("XARIMA", "9_XARIMA", "8_XARIMA"),
+)
+RUTA_RESULTADOS_CV_XARIMA = _resolver_archivo_resultados(
+    "resultados_xarima_h10_timeseries_cv_bds.csv",
+    subcarpetas=("XARIMA", "9_XARIMA", "8_XARIMA"),
+)
+RUTA_METRICAS_HORIZONTES_XARIMA = _resolver_archivo_resultados(
+    "metricas_horizontes_1_5_10_xarima_h10.csv",
+    subcarpetas=("XARIMA", "9_XARIMA", "8_XARIMA"),
+)
+
+# Actualizar la entrada XARIMA de la comparación general, sin tocar las demás.
+for _spec in MODELOS_COMPARACION:
+    if _spec.get("codigo") == "xarima_calamar":
+        _spec["nombre"] = "XARIMA H10"
+        _spec["ruta_metadata"] = RUTA_METADATA_XARIMA
+        _spec["ruta_test"] = RUTA_TEST_XARIMA
+
+
+def _leer_csv_xarima_modelos(ruta):
+    df = pd.read_csv(ruta, sep=None, engine="python", encoding="utf-8-sig")
+    df.columns = df.columns.astype(str).str.strip()
+    return df
+
+
+def cargar_resultados_xarima_calamar():
+    with open(RUTA_METADATA_XARIMA, "r", encoding="utf-8") as f:
+        metadata = json.load(f)
+
+    df_test = _leer_csv_xarima_modelos(RUTA_TEST_XARIMA)
+
+    if "Fecha" in df_test.columns:
+        df_test["Fecha"] = pd.to_datetime(df_test["Fecha"], errors="coerce")
+
+    for col in ["Calamar_real", "Calamar_predicho", "Residuo", "horizonte"]:
+        if col in df_test.columns:
+            df_test[col] = pd.to_numeric(df_test[col], errors="coerce")
+
+    if "Residuo" not in df_test.columns and {"Calamar_real", "Calamar_predicho"}.issubset(df_test.columns):
+        df_test["Residuo"] = df_test["Calamar_real"] - df_test["Calamar_predicho"]
+
+    return metadata, df_test
+
+
+def cargar_tablas_xarima_h10():
+    df_resumen = _leer_csv_xarima_modelos(RUTA_RESUMEN_XARIMA)
+    df_resultados_cv = _leer_csv_xarima_modelos(RUTA_RESULTADOS_CV_XARIMA)
+    df_metricas_horizontes = _leer_csv_xarima_modelos(RUTA_METRICAS_HORIZONTES_XARIMA)
+    return df_resumen, df_resultados_cv, df_metricas_horizontes
+
+
+def _preparar_df_bds_xarima_para_heatmap(df_resultados_cv):
+    df_heatmap = df_resultados_cv.copy()
+    df_heatmap.columns = df_heatmap.columns.astype(str).str.strip()
+
+    if "ventana" not in df_heatmap.columns:
+        if "ventana_cv" in df_heatmap.columns:
+            df_heatmap["ventana"] = df_heatmap["ventana_cv"].astype(str)
+        elif "numInputs_cv" in df_heatmap.columns:
+            df_heatmap["ventana"] = df_heatmap["numInputs_cv"].astype(str) + " días"
+
+    if "order" in df_heatmap.columns and "ventana" in df_heatmap.columns:
+        df_heatmap["ventana"] = (
+            df_heatmap["ventana"].astype(str)
+            + " | orden "
+            + df_heatmap["order"].astype(str)
+        )
+
+    return df_heatmap
+
+
+def layout_xarima_calamar():
+    metadata, df_test = cargar_resultados_xarima_calamar()
+    df_resumen, df_resultados_cv, df_metricas_horizontes = cargar_tablas_xarima_h10()
+
+    mae = float(metadata["MAE_test_externo"])
+    mse = float(metadata["MSE_test_externo"])
+    rmse = float(np.sqrt(mse))
+
+    df_serie_completa = leer_serie_completa_calamar()
+    fig_particion = figura_particion_temporal_xarima(metadata, df_serie_completa, df_test)
+    fig_serie = figura_serie_xarima(df_test)
+    fig_hist = figura_histograma_residuos(df_test)
+    nlags_acf = max(1, min(9, len(df_test["Residuo"].dropna()) - 1))
+    fig_acf = figura_acf_residuos(df_test, nlags=nlags_acf)
+    fig_bds_heatmap = figura_heatmap_bds_residuos(
+        _preparar_df_bds_xarima_para_heatmap(df_resultados_cv)
+    )
+    fig_bds_heatmap.update_layout(
+        width=780,
+        height=700,
+        margin=dict(l=160, r=100, t=35, b=90),
+    )
+
+    df_validacion = pd.DataFrame([
+        {
+            "Conjunto": "Train / validación interna",
+            "Fecha inicial": metadata["fecha_inicio_trainval"],
+            "Fecha final": metadata["fecha_fin_trainval"],
+        },
+        {
+            "Conjunto": "Test externo final",
+            "Fecha inicial": metadata["fecha_inicio_test_externo"],
+            "Fecha final": metadata["fecha_fin_test_externo"],
+        },
+    ])
+
+    best_params = metadata.get("best_params", {})
+    order = best_params.get("order", metadata.get("order", "N/A"))
+    seasonal_order = best_params.get("seasonal_order", metadata.get("seasonal_order", "N/A"))
+
+    df_hiper = pd.DataFrame([
+        {"Parámetro": "Modelo", "Valor": metadata.get("modelo", "SARIMAX usado como XARIMA/SARIMA univariado")},
+        {"Parámetro": "Validación cruzada", "Valor": metadata.get("validacion_cruzada", "split_train_val_groupKFold")},
+        {"Parámetro": "Ventana CV seleccionada", "Valor": f"{best_params.get('numInputs_cv', metadata.get('numInputs_cv', 'N/A'))} días"},
+        {"Parámetro": "Horizonte de salida", "Valor": f"H{metadata.get('numOutputs', 'N/A')}"},
+        {"Parámetro": "numJumps", "Valor": metadata.get("numJumps", "N/A")},
+        {"Parámetro": "Orden ARIMA (p, d, q)", "Valor": str(tuple(order)) if isinstance(order, list) else str(order)},
+        {"Parámetro": "Orden estacional", "Valor": str(tuple(seasonal_order)) if isinstance(seasonal_order, list) else str(seasonal_order)},
+        {"Parámetro": "Tendencia", "Valor": best_params.get("trend", metadata.get("trend", "N/A"))},
+        {"Parámetro": "Transformación log", "Valor": best_params.get("usar_log", metadata.get("usar_log", "N/A"))},
+        {"Parámetro": "Ventanas evaluadas", "Valor": ", ".join(map(str, metadata.get("numInputs_cv_list", metadata.get("ventanas_evaluadas", []))))},
+    ])
+
+    df_metricas = pd.DataFrame([
+        {"Etapa": "Test externo H10", "MAE": round(mae, 4), "MSE": round(mse, 4), "RMSE": round(rmse, 4)}
+    ])
+
+    df_metricas_horizontes_tabla = df_metricas_horizontes.copy()
+    for col in ["MAE", "MSE", "RMSE", "R2", "MAPE_pct"]:
+        if col in df_metricas_horizontes_tabla.columns:
+            df_metricas_horizontes_tabla[col] = pd.to_numeric(
+                df_metricas_horizontes_tabla[col], errors="coerce"
+            ).round(4)
+
+    columnas_bds = [
+        "criterio",
+        "criterio_bds_usado",
+        "ventana_cv",
+        "numInputs_cv",
+        "order",
+        "seasonal_order",
+        "trend",
+        "usar_log",
+        "MAE_val_h10_mean",
+        "MSE_val_h10_mean",
+        "BDS_pvalue_mean",
+        "BDS_pvalue_min",
+        "BDS_folds_pass",
+        "BDS_all_folds_pass",
+        "BDS_any_fold_pass",
+    ]
+    columnas_bds = [col for col in columnas_bds if col in df_resumen.columns]
+    df_bds_tabla = df_resumen[columnas_bds].copy() if columnas_bds else pd.DataFrame()
+
+    for col in ["MAE_val_h10_mean", "MSE_val_h10_mean", "BDS_pvalue_mean", "BDS_pvalue_min"]:
+        if col in df_bds_tabla.columns:
+            df_bds_tabla[col] = pd.to_numeric(df_bds_tabla[col], errors="coerce").round(6)
+
+    df_bds_tabla = df_bds_tabla.rename(columns={
+        "criterio": "Criterio",
+        "criterio_bds_usado": "Criterio BDS usado",
+        "ventana_cv": "Ventana CV",
+        "numInputs_cv": "Entrada CV [días]",
+        "order": "Orden ARIMA",
+        "seasonal_order": "Orden estacional",
+        "trend": "Tendencia",
+        "usar_log": "Log",
+        "MAE_val_h10_mean": "MAE validación H10",
+        "MSE_val_h10_mean": "MSE validación H10",
+        "BDS_pvalue_mean": "BDS p-valor medio",
+        "BDS_pvalue_min": "BDS p-valor mínimo",
+        "BDS_folds_pass": "Folds que no rechazan H0",
+        "BDS_all_folds_pass": "Todos los folds pasan",
+        "BDS_any_fold_pass": "Algún fold pasa",
+    })
+
+    bds_resumen = df_resumen.iloc[0].to_dict() if len(df_resumen) > 0 else {}
+
+    def _formato_bds_xarima(valor, decimales=6):
+        if pd.isna(valor):
+            return "N/A"
+        try:
+            return f"{float(valor):.{decimales}g}"
+        except (TypeError, ValueError):
+            return str(valor)
+
+    bds_pmean_txt = _formato_bds_xarima(bds_resumen.get("BDS_pvalue_mean", np.nan))
+    bds_pmin_txt = _formato_bds_xarima(bds_resumen.get("BDS_pvalue_min", np.nan))
+    bds_folds_txt = str(bds_resumen.get("BDS_folds_pass", "N/A"))
+
+    return html.Div([
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("XARIMA/ARIMA con SARIMAX - Calamar", style=estilo_titulo),
+            html.P(
+                "Este modelo corresponde a una formulación XARIMA/ARIMA implementada mediante SARIMAX, "
+                "configurada para predecir un horizonte de 10 días del nivel en la estación Calamar. "
+                "La selección se realizó con validación cruzada temporal mediante split_train_val_groupKFold.",
+                style=estilo_parrafo,
+            ),
+            html.P(metadata.get("criterio_final", ""), style=estilo_parrafo),
+            html.P(metadata.get("nota_metodologica", ""), style=estilo_parrafo),
+        ]),
+
+        html.Div(style=estilo_flex, children=[
+            tarjeta_metrica("MAE test externo H10", f"{mae:.3f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo H10", f"{mse:.3f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo H10", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Validación temporal", style=estilo_titulo),
+            html.P(
+                "El modelo se entrenó con el bloque de train/validación interna y los últimos 10 registros se reservaron "
+                "como test externo final, en coherencia con el horizonte H10.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_validacion, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Búsqueda y mejores hiperparámetros", style=estilo_titulo),
+            html.P(
+                "La búsqueda evaluó ventanas de validación temporal y órdenes ARIMA/SARIMAX. "
+                "La tabla resume la configuración seleccionada.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_hiper, page_size=12),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Resumen de validación cruzada", style=estilo_titulo),
+            html.P(
+                "Esta tabla resume el criterio de selección, las métricas promedio de validación y el diagnóstico BDS "
+                "obtenido durante la validación cruzada temporal.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_resumen, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Resultados por configuración evaluada", style=estilo_titulo),
+            html.P(
+                "Se muestran los resultados de validación para cada combinación de ventana, orden ARIMA y configuración evaluada "
+                "en el modelo XARIMA H10.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_resultados_cv, page_size=8),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Test BDS de los residuos", style=estilo_titulo),
+            html.P(
+                "El test BDS se usó como diagnóstico de independencia de los residuos durante la validación cruzada temporal. "
+                "La hipótesis nula plantea que los residuos son independientes e idénticamente distribuidos. Por tanto, "
+                "p-valores mayores o iguales a 0.05 indican que no se rechaza esa hipótesis; p-valores menores a 0.05 sugieren "
+                "dependencia remanente o estructura no explicada por el modelo.",
+                style=estilo_parrafo,
+            ),
+            html.Div(style=estilo_flex, children=[
+                tarjeta_metrica("BDS p-valor medio", bds_pmean_txt, "Promedio entre folds"),
+                tarjeta_metrica("BDS p-valor mínimo", bds_pmin_txt, "Valor más exigente"),
+                tarjeta_metrica("Folds que pasan BDS", bds_folds_txt, "p-valor ≥ 0.05"),
+            ]),
+            html.P(
+                "El mapa de calor resume los p-valores BDS por configuración evaluada. "
+                "Los valores por encima de 0.05 indican que no se rechaza la hipótesis nula de residuos i.i.d.",
+                style=estilo_parrafo,
+            ),
+            dcc.Graph(
+                figure=fig_bds_heatmap,
+                style={"width": "780px", "maxWidth": "100%", "margin": "0 auto", "display": "block"},
+                config={
+                    "displayModeBar": True,
+                    "scrollZoom": True,
+                    "displaylogo": False,
+                    "toImageButtonOptions": {
+                        "format": "png",
+                        "filename": "heatmap_bds_xarima_h10",
+                        "height": 850,
+                        "width": 1100,
+                        "scale": 2,
+                    },
+                },
+            ),
+            html.P(
+                "La tabla permite revisar el resultado BDS de la configuración seleccionada junto con las métricas de validación H10. "
+                "Este diagnóstico no reemplaza las métricas predictivas, sino que complementa la selección del modelo al evaluar "
+                "si los errores conservan dependencia temporal.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_bds_tabla, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Métricas del test externo", style=estilo_titulo),
+            crear_tabla_simple(df_metricas, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Métricas por horizonte", style=estilo_titulo),
+            html.P(
+                "Además del desempeño acumulado H10, se reportan las métricas para los horizontes 1, 5 y 10 días.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_metricas_horizontes_tabla, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Partición temporal del modelado", style=estilo_titulo),
+            html.P(
+                "La serie se dividió temporalmente en un bloque de entrenamiento y validación interna, seguido por un test externo final de 10 días. "
+                "Este periodo no fue usado durante la selección de hiperparámetros.",
+                style=estilo_parrafo_sec,
+            ),
+            dcc.Graph(
+                figure=fig_particion,
+                config={
+                    "displayModeBar": True,
+                    "scrollZoom": True,
+                    "displaylogo": False,
+                    "toImageButtonOptions": {
+                        "format": "png",
+                        "filename": "particion_temporal_xarima_h10_calamar",
+                        "height": 900,
+                        "width": 1400,
+                        "scale": 2,
+                    },
+                },
+            ),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Serie observada vs predicha", style=estilo_titulo),
+            html.P(
+                "La gráfica compara el nivel observado en Calamar con la predicción del modelo XARIMA durante los 10 días del test externo.",
+                style=estilo_parrafo,
+            ),
+            dcc.Graph(figure=fig_serie, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Diagnóstico de residuos", style=estilo_titulo),
+            html.P(
+                "El diagnóstico de residuos permite revisar la distribución de los errores y su posible dependencia temporal. "
+                "En este caso debe interpretarse considerando que el test externo tiene 10 registros.",
+                style=estilo_parrafo,
+            ),
+            dcc.Graph(figure=fig_hist, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+            dcc.Graph(figure=fig_acf, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+        ]),
+    ])
+
+
+
+# =====================================================================
+# ACTUALIZACIÓN CNN MULTIOUTPUT H10 + CURVA DE APRENDIZAJE
+# Bloque agregado al final para no alterar las secciones anteriores.
+# =====================================================================
+
+# Nuevas rutas para CNN multioutput H10
+RUTA_METADATA_CNN = _resolver_archivo_resultados(
+    "metadata_modelo_cnn_multioutput_h10_calamar.json",
+    subcarpetas=("CNN", "8_CNN", "ResultadosCNN_MultiOutput_H10"),
+)
+RUTA_TEST_CNN = _resolver_archivo_resultados(
+    "test_final_externo_cnn_multioutput_h10_calamar.csv",
+    subcarpetas=("CNN", "8_CNN", "ResultadosCNN_MultiOutput_H10"),
+)
+RUTA_MODELO_CNN = _resolver_archivo_resultados(
+    "modelo_cnn_multioutput_h10_calamar.keras",
+    subcarpetas=("CNN", "8_CNN", "ResultadosCNN_MultiOutput_H10"),
+)
+RUTA_RESUMEN_CNN = _resolver_archivo_resultados(
+    "resumen_cnn_multioutput_h10_timeseries_cv_bds.csv",
+    subcarpetas=("CNN", "8_CNN", "ResultadosCNN_MultiOutput_H10"),
+)
+RUTA_RESULTADOS_CV_CNN = _resolver_archivo_resultados(
+    "resultados_cnn_multioutput_h10_timeseries_cv_bds.csv",
+    subcarpetas=("CNN", "8_CNN", "ResultadosCNN_MultiOutput_H10"),
+)
+RUTA_METRICAS_HORIZONTES_CNN = _resolver_archivo_resultados(
+    "metricas_horizontes_1_5_10_cnn_multioutput_h10.csv",
+    subcarpetas=("CNN", "8_CNN", "ResultadosCNN_MultiOutput_H10"),
+)
+RUTA_HISTORIAL_ENTRENAMIENTO_CNN = _resolver_archivo_resultados(
+    "historial_entrenamiento_cnn_multioutput_h10.csv",
+    subcarpetas=("CNN", "8_CNN", "ResultadosCNN_MultiOutput_H10"),
+)
+RUTA_HISTORIAL_MODELO_FINAL_CNN = _resolver_archivo_resultados(
+    "historial_modelo_final_cnn_multioutput_h10.csv",
+    subcarpetas=("CNN", "8_CNN", "ResultadosCNN_MultiOutput_H10"),
+)
+
+# Actualizar la entrada CNN de la comparación general, sin tocar las demás.
+for _spec in MODELOS_COMPARACION:
+    if _spec.get("codigo") == "cnn_calamar":
+        _spec["nombre"] = "CNN Multioutput H10"
+        _spec["ruta_metadata"] = RUTA_METADATA_CNN
+        _spec["ruta_test"] = RUTA_TEST_CNN
+
+
+def cargar_resultados_cnn_calamar():
+    with open(RUTA_METADATA_CNN, "r", encoding="utf-8") as f:
+        metadata = json.load(f)
+
+    df_test = _leer_csv_modelos(RUTA_TEST_CNN)
+
+    if "Fecha" in df_test.columns:
+        df_test["Fecha"] = pd.to_datetime(df_test["Fecha"], errors="coerce")
+
+    for col in ["Calamar_real", "Calamar_predicho", "Residuo", "horizonte"]:
+        if col in df_test.columns:
+            df_test[col] = pd.to_numeric(df_test[col], errors="coerce")
+
+    if "Residuo" not in df_test.columns and {"Calamar_real", "Calamar_predicho"}.issubset(df_test.columns):
+        df_test["Residuo"] = df_test["Calamar_real"] - df_test["Calamar_predicho"]
+
+    return metadata, df_test
+
+
+def cargar_tablas_cnn_multioutput():
+    df_resumen = _leer_csv_modelos(RUTA_RESUMEN_CNN)
+    df_resultados_cv = _leer_csv_modelos(RUTA_RESULTADOS_CV_CNN)
+    df_metricas_horizontes = _leer_csv_modelos(RUTA_METRICAS_HORIZONTES_CNN)
+    df_historial_entrenamiento = _leer_csv_modelos(RUTA_HISTORIAL_ENTRENAMIENTO_CNN)
+    df_historial_final = _leer_csv_modelos(RUTA_HISTORIAL_MODELO_FINAL_CNN)
+    return df_resumen, df_resultados_cv, df_metricas_horizontes, df_historial_entrenamiento, df_historial_final
+
+
+def figura_curva_aprendizaje_cnn(df_historial_entrenamiento, df_historial_final=None, num_inputs=None):
+    """Curva de aprendizaje de la CNN usando el historial de entrenamiento."""
+    fig = go.Figure()
+
+    if df_historial_entrenamiento is None or df_historial_entrenamiento.empty:
+        fig.add_annotation(
+            text="No hay datos disponibles para construir la curva de aprendizaje.",
+            x=0.5,
+            y=0.5,
+            xref="paper",
+            yref="paper",
+            showarrow=False,
+            font=dict(family=FUENTE, size=14, color=AZUL),
+        )
+        fig.update_layout(
+            height=420,
+            plot_bgcolor=BLANCO,
+            paper_bgcolor=BLANCO,
+            font=dict(family=FUENTE, size=13, color=AZUL),
+        )
+        return fig
+
+    df = df_historial_entrenamiento.copy()
+    df.columns = df.columns.astype(str).str.strip()
+
+    for col in ["epoch", "loss_train", "loss_val", "mae_train", "mae_val", "numInputs"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    if num_inputs is not None and "numInputs" in df.columns:
+        df_filtrado = df[df["numInputs"] == float(num_inputs)].copy()
+        if not df_filtrado.empty:
+            df = df_filtrado
+
+    columnas_media = [col for col in ["loss_train", "loss_val", "mae_train", "mae_val"] if col in df.columns]
+    df_prom = df.groupby(["epoch"], as_index=False)[columnas_media].mean().sort_values("epoch")
+
+    if "loss_train" in df_prom.columns:
+        fig.add_trace(go.Scatter(
+            x=df_prom["epoch"],
+            y=df_prom["loss_train"],
+            mode="lines",
+            name="Train loss CV",
+            line=dict(color=AZUL, width=2.5),
+            hovertemplate="<b>Época:</b> %{x}<br><b>Loss train:</b> %{y:.5f}<extra></extra>",
+        ))
+
+    if "loss_val" in df_prom.columns:
+        fig.add_trace(go.Scatter(
+            x=df_prom["epoch"],
+            y=df_prom["loss_val"],
+            mode="lines",
+            name="Validation loss CV",
+            line=dict(color=CELESTE, width=2.5, dash="dash"),
+            hovertemplate="<b>Época:</b> %{x}<br><b>Loss validación:</b> %{y:.5f}<extra></extra>",
+        ))
+
+    if df_historial_final is not None and not df_historial_final.empty:
+        df_final = df_historial_final.copy()
+        df_final.columns = df_final.columns.astype(str).str.strip()
+        for col in ["epoch", "loss_train", "mae_train", "mse_train", "epochs_usados"]:
+            if col in df_final.columns:
+                df_final[col] = pd.to_numeric(df_final[col], errors="coerce")
+
+        if "loss_train" in df_final.columns:
+            fig.add_trace(go.Scatter(
+                x=df_final["epoch"],
+                y=df_final["loss_train"],
+                mode="lines",
+                name="Train loss modelo final",
+                line=dict(color="#B23A48", width=2.2, dash="dot"),
+                hovertemplate="<b>Época:</b> %{x}<br><b>Loss modelo final:</b> %{y:.5f}<extra></extra>",
+            ))
+
+    # Señalar explícitamente la época con menor loss de validación (val_loss)
+    # usando el menor valor real del historial de validación, no el promedio por época.
+    epoca_menor_val_loss = None
+    valor_menor_val_loss = None
+    fold_menor_val_loss = None
+
+    if {"epoch", "loss_val"}.issubset(df.columns) and df["loss_val"].notna().any():
+        idx_min_val = df["loss_val"].idxmin()
+        epoca_menor_val_loss = int(df.loc[idx_min_val, "epoch"])
+        valor_menor_val_loss = float(df.loc[idx_min_val, "loss_val"])
+        if "fold" in df.columns and pd.notna(df.loc[idx_min_val, "fold"]):
+            fold_menor_val_loss = int(df.loc[idx_min_val, "fold"])
+
+        texto_menor_val = f"Menor val loss: época {epoca_menor_val_loss}"
+        if fold_menor_val_loss is not None:
+            texto_menor_val += f" | fold {fold_menor_val_loss}"
+
+        fig.add_vline(
+            x=epoca_menor_val_loss,
+            line_dash="dash",
+            line_width=2.5,
+            line_color="#8E44AD",
+            annotation_text=texto_menor_val,
+            annotation_position="top left",
+            annotation_font=dict(family=FUENTE, size=12, color="#8E44AD"),
+        )
+
+        fig.add_trace(go.Scatter(
+            x=[epoca_menor_val_loss],
+            y=[valor_menor_val_loss],
+            mode="markers+text",
+            name=f"Menor val loss ({epoca_menor_val_loss})",
+            text=[f"mín val loss<br>época {epoca_menor_val_loss}"],
+            textposition="bottom right",
+            marker=dict(
+                size=14,
+                color="#8E44AD",
+                symbol="diamond",
+                line=dict(width=2, color=AZUL),
+            ),
+            hovertemplate=(
+                "<b>Menor val loss</b><br>"
+                "<b>Época:</b> %{x}<br>"
+                "<b>val_loss:</b> %{y:.6f}"
+                "<extra></extra>"
+            ),
+        ))
+
+    fig.update_layout(
+        title=None,
+        xaxis_title="Época",
+        yaxis_title="Loss",
+        plot_bgcolor=BLANCO,
+        paper_bgcolor=BLANCO,
+        font=dict(family=FUENTE, size=13, color=AZUL),
+        hovermode="x unified",
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            bgcolor="rgba(255,255,255,0.85)",
+            bordercolor="rgba(26,58,92,0.18)",
+            borderwidth=1,
+        ),
+        margin=dict(l=70, r=40, t=80, b=60),
+        height=520,
+    )
+    fig.update_xaxes(showgrid=True, gridcolor="#D9E2EF", zeroline=False)
+    fig.update_yaxes(showgrid=True, gridcolor="#D9E2EF", zeroline=False)
+
+    return fig
+
+
+def layout_cnn_calamar():
+    metadata, df_test = cargar_resultados_cnn_calamar()
+    df_resumen, df_resultados_cv, df_metricas_horizontes, df_historial_entrenamiento, df_historial_final = cargar_tablas_cnn_multioutput()
+
+    mae = float(metadata["MAE_test_externo"])
+    mse = float(metadata["MSE_test_externo"])
+    rmse = float(np.sqrt(mse))
+
+    df_serie_completa = leer_serie_completa_calamar()
+    fig_particion = figura_particion_temporal_cnn(metadata, df_serie_completa, df_test)
+    fig_serie = figura_serie_cnn(df_test)
+    fig_hist = figura_histograma_residuos(df_test)
+    nlags_acf = max(1, min(9, len(df_test["Residuo"].dropna()) - 1))
+    fig_acf = figura_acf_residuos(df_test, nlags=nlags_acf)
+    fig_bds_heatmap = figura_heatmap_bds_residuos(df_resultados_cv)
+    fig_curva_aprendizaje = figura_curva_aprendizaje_cnn(
+        df_historial_entrenamiento,
+        df_historial_final,
+        num_inputs=metadata.get("numInputs_seleccionado", metadata.get("numInputs")),
+    )
+
+    df_validacion = pd.DataFrame([
+        {"Conjunto": "Train / validación interna", "Fecha inicial": metadata["fecha_inicio_trainval"], "Fecha final": metadata["fecha_fin_trainval"]},
+        {"Conjunto": "Test externo final", "Fecha inicial": metadata["fecha_inicio_test_externo"], "Fecha final": metadata["fecha_fin_test_externo"]},
+    ])
+
+    best_params = metadata.get("best_params", {})
+    df_hiper = pd.DataFrame([
+        {"Parámetro": "Modelo", "Valor": metadata.get("modelo", "Keras Conv1D MultiOutput Dense(10)")},
+        {"Parámetro": "Validación cruzada", "Valor": metadata.get("validacion_cruzada", "split_train_val_groupKFold")},
+        {"Parámetro": "Ventana seleccionada", "Valor": f"{metadata.get('numInputs_seleccionado', metadata.get('numInputs', 'N/A'))} días"},
+        {"Parámetro": "Horizonte de salida", "Valor": f"H{metadata.get('numOutputs', 'N/A')}"},
+        {"Parámetro": "numJumps", "Valor": metadata.get("numJumps", "N/A")},
+        {"Parámetro": "filters", "Valor": best_params.get("filters", "N/A")},
+        {"Parámetro": "kernel_size", "Valor": best_params.get("kernel_size", "N/A")},
+        {"Parámetro": "dropout", "Valor": best_params.get("dropout", "N/A")},
+        {"Parámetro": "dense_units", "Valor": best_params.get("dense_units", "N/A")},
+        {"Parámetro": "learning_rate", "Valor": best_params.get("learning_rate", "N/A")},
+        {"Parámetro": "batch_size", "Valor": best_params.get("batch_size", "N/A")},
+        {"Parámetro": "epochs_max", "Valor": best_params.get("epochs_max", "N/A")},
+        {"Parámetro": "patience", "Valor": best_params.get("patience", "N/A")},
+        {"Parámetro": "Ventanas evaluadas", "Valor": ", ".join(map(str, metadata.get("ventanas_evaluadas", [])))},
+    ])
+
+    df_metricas = pd.DataFrame([
+        {"Etapa": "Test externo H10", "MAE": round(mae, 4), "MSE": round(mse, 4), "RMSE": round(rmse, 4)}
+    ])
+
+    df_metricas_horizontes_tabla = df_metricas_horizontes.copy()
+    for col in ["MAE", "MSE", "RMSE", "R2", "MAPE_pct"]:
+        if col in df_metricas_horizontes_tabla.columns:
+            df_metricas_horizontes_tabla[col] = pd.to_numeric(df_metricas_horizontes_tabla[col], errors="coerce").round(4)
+
+    columnas_bds = [
+        "ventana",
+        "numInputs",
+        "MAE_val_h10_mean",
+        "MSE_val_h10_mean",
+        "BDS_pvalue_mean",
+        "BDS_pvalue_min",
+        "BDS_folds_pass",
+        "BDS_all_folds_pass",
+        "BDS_any_fold_pass",
+    ]
+    columnas_bds = [col for col in columnas_bds if col in df_resultados_cv.columns]
+    df_bds_tabla = df_resultados_cv[columnas_bds].copy() if columnas_bds else pd.DataFrame()
+
+    for col in ["MAE_val_h10_mean", "MSE_val_h10_mean", "BDS_pvalue_mean", "BDS_pvalue_min"]:
+        if col in df_bds_tabla.columns:
+            df_bds_tabla[col] = pd.to_numeric(df_bds_tabla[col], errors="coerce").round(6)
+
+    df_bds_tabla = df_bds_tabla.rename(columns={
+        "ventana": "Ventana",
+        "numInputs": "Entrada [días]",
+        "MAE_val_h10_mean": "MAE validación H10",
+        "MSE_val_h10_mean": "MSE validación H10",
+        "BDS_pvalue_mean": "BDS p-valor medio",
+        "BDS_pvalue_min": "BDS p-valor mínimo",
+        "BDS_folds_pass": "Folds que no rechazan H0",
+        "BDS_all_folds_pass": "Todos los folds pasan",
+        "BDS_any_fold_pass": "Algún fold pasa",
+    })
+
+    bds_resumen = df_resumen.iloc[0].to_dict() if len(df_resumen) > 0 else {}
+
+    def _formato_bds(valor, decimales=6):
+        if pd.isna(valor):
+            return "N/A"
+        try:
+            return f"{float(valor):.{decimales}g}"
+        except (TypeError, ValueError):
+            return str(valor)
+
+    bds_pmean_txt = _formato_bds(bds_resumen.get("BDS_pvalue_mean", np.nan))
+    bds_pmin_txt = _formato_bds(bds_resumen.get("BDS_pvalue_min", np.nan))
+    bds_folds_txt = str(bds_resumen.get("BDS_folds_pass", "N/A"))
+
+    return html.Div([
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Convolutional Neural Network (CNN) - Calamar", style=estilo_titulo),
+            html.P(
+                "Este modelo corresponde a una red convolucional 1D implementada en Keras, configurada para predecir simultáneamente "
+                "un horizonte de 10 días del nivel en la estación Calamar. La selección se realizó con validación cruzada "
+                "temporal mediante split_train_val_groupKFold y diagnóstico BDS de residuos.",
+                style=estilo_parrafo,
+            ),
+            html.P(metadata.get("criterio_final", ""), style=estilo_parrafo),
+            html.P(metadata.get("nota_y_scaling", ""), style=estilo_parrafo),
+        ]),
+
+        html.Div(style=estilo_flex, children=[
+            tarjeta_metrica("MAE test externo H10", f"{mae:.3f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo H10", f"{mse:.3f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo H10", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Validación temporal", style=estilo_titulo),
+            html.P(
+                "El modelo se entrenó con el bloque de train/validación interna y los últimos 10 registros se reservaron "
+                "como test externo final, en coherencia con el horizonte H10.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_validacion, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Búsqueda y mejores hiperparámetros", style=estilo_titulo),
+            html.P(
+                "La búsqueda evaluó ventanas de entrada e hiperparámetros de la red CNN. "
+                "La tabla resume la configuración seleccionada.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_hiper, page_size=14),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Curva de aprendizaje", style=estilo_titulo),
+            html.P(
+                "La curva de aprendizaje se construyó a partir del historial de entrenamiento. "
+                "Se muestran las pérdidas promedio de entrenamiento y validación durante la validación cruzada, "
+                "junto con la pérdida de entrenamiento del modelo final. La línea vertical resalta la época donde se obtuvo el menor loss de validación.",
+                style=estilo_parrafo,
+            ),
+            dcc.Graph(
+                figure=fig_curva_aprendizaje,
+                config={
+                    "displayModeBar": True,
+                    "scrollZoom": True,
+                    "displaylogo": False,
+                    "toImageButtonOptions": {
+                        "format": "png",
+                        "filename": "curva_aprendizaje_cnn_multioutput_h10",
+                        "height": 900,
+                        "width": 1400,
+                        "scale": 2,
+                    },
+                },
+            ),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Resumen de validación cruzada", style=estilo_titulo),
+            html.P(
+                "Esta tabla resume el criterio de selección, las métricas promedio de validación y el diagnóstico BDS "
+                "obtenido durante la validación cruzada temporal.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_resumen, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Resultados por ventana evaluada", style=estilo_titulo),
+            html.P(
+                "Se muestran los resultados de validación para cada ventana de entrada evaluada en el modelo CNN multioutput.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_resultados_cv, page_size=8),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Test BDS de los residuos", style=estilo_titulo),
+            html.P(
+                "El test BDS se usó como diagnóstico de independencia de los residuos durante la validación cruzada temporal. "
+                "La hipótesis nula plantea que los residuos son independientes e idénticamente distribuidos. Por tanto, "
+                "p-valores mayores o iguales a 0.05 indican que no se rechaza esa hipótesis; p-valores menores a 0.05 sugieren "
+                "dependencia remanente o estructura no explicada por el modelo.",
+                style=estilo_parrafo,
+            ),
+            html.Div(style=estilo_flex, children=[
+                tarjeta_metrica("BDS p-valor medio", bds_pmean_txt, "Promedio entre folds"),
+                tarjeta_metrica("BDS p-valor mínimo", bds_pmin_txt, "Valor más exigente"),
+                tarjeta_metrica("Folds que pasan BDS", bds_folds_txt, "p-valor ≥ 0.05"),
+            ]),
+            html.P(
+                "El mapa de calor resume los p-valores BDS por ventana evaluada. "
+                "Los valores por encima de 0.05 indican que no se rechaza la hipótesis nula de residuos.",
+                style=estilo_parrafo,
+            ),
+            dcc.Graph(
+                figure=fig_bds_heatmap,
+                style={"width": "950px", "maxWidth": "100%", "margin": "0 auto", "display": "block"},
+                config={
+                    "displayModeBar": True,
+                    "scrollZoom": True,
+                    "displaylogo": False,
+                    "toImageButtonOptions": {
+                        "format": "png",
+                        "filename": "heatmap_bds_cnn_multioutput_h10",
+                        "height": 380,
+                        "width": 1400,
+                        "scale": 2,
+                    },
+                },
+            ),
+            html.P(
+                "La tabla permite revisar el resultado BDS por ventana evaluada junto con las métricas de validación H10. "
+                "Este diagnóstico no reemplaza las métricas predictivas, sino que complementa la selección del modelo al evaluar "
+                "si los errores conservan dependencia temporal.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_bds_tabla, page_size=8),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Métricas del test externo", style=estilo_titulo),
+            crear_tabla_simple(df_metricas, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Métricas por horizonte", style=estilo_titulo),
+            html.P(
+                "Además del desempeño acumulado H10, se reportan las métricas para los horizontes 1, 5 y 10 días.",
+                style=estilo_parrafo,
+            ),
+            crear_tabla_simple(df_metricas_horizontes_tabla, page_size=5),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Partición temporal del modelado", style=estilo_titulo),
+            html.P(
+                "La serie se dividió temporalmente en un bloque de entrenamiento y validación interna, seguido por un test externo final de 10 días. "
+                "Este periodo no fue usado durante la selección de hiperparámetros.",
+                style=estilo_parrafo_sec,
+            ),
+            dcc.Graph(
+                figure=fig_particion,
+                config={
+                    "displayModeBar": True,
+                    "scrollZoom": True,
+                    "displaylogo": False,
+                    "toImageButtonOptions": {
+                        "format": "png",
+                        "filename": "particion_temporal_cnn_multioutput_h10_calamar",
+                        "height": 900,
+                        "width": 1400,
+                        "scale": 2,
+                    },
+                },
+            ),
+        ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Serie observada vs predicha", style=estilo_titulo),
+            html.P(
+                "La gráfica compara el nivel observado en Calamar con la predicción del modelo CNN multioutput durante los 10 días del test externo.",
                 style=estilo_parrafo,
             ),
             dcc.Graph(figure=fig_serie, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),

@@ -1,0 +1,54 @@
+{
+    "target": "Calamar",
+    "numInputs_seleccionado": 30,
+    "numOutputs": 10,
+    "numJumps": 1,
+    "ventanas_evaluadas": [
+        30,
+        60
+    ],
+    "horizontes_eval_test": [
+        1,
+        5,
+        10
+    ],
+    "best_params": {
+        "knn__n_neighbors": 10,
+        "knn__weights": "distance",
+        "knn__p": 2,
+        "knn__metric": "minkowski"
+    },
+    "grid_hiperparametros": {
+        "knn__n_neighbors": [
+            3,
+            5,
+            7,
+            10
+        ],
+        "knn__weights": [
+            "uniform",
+            "distance"
+        ],
+        "knn__p": [
+            1,
+            2
+        ]
+    },
+    "modelo": "Pipeline(StandardScaler + KNeighborsRegressor)",
+    "criterio_final": "Menor MAE de validación acumulado sobre la salida completa H10, usando BDS como criterio de diagnóstico/filtro. El modelo final fue entrenado sin incluir los últimos 10 registros, reservados como test externo final.",
+    "validacion_cruzada": "split_train_val_groupKFold de timeseries-cv",
+    "fecha_inicio_trainval": "1975-06-29 00:00:00",
+    "fecha_fin_trainval": "2025-10-31 00:00:00",
+    "fecha_inicio_test_externo": "2025-11-01 00:00:00",
+    "fecha_fin_test_externo": "2025-11-10 00:00:00",
+    "MAE_test_externo": 0.9573164268239793,
+    "MSE_test_externo": 1.4383284371748772,
+    "archivo_resultados": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\KNN\\resultados_knn_multioutput_h10_timeseries_cv_bds.csv",
+    "archivo_resumen": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\KNN\\resumen_knn_multioutput_h10_timeseries_cv_bds.csv",
+    "archivo_test_final": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\KNN\\test_final_externo_knn_multioutput_h10_calamar.csv",
+    "archivo_metricas_horizontes": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\KNN\\metricas_horizontes_1_5_10_knn_multioutput_h10.csv",
+    "archivo_modelo": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\KNN\\modelo_knn_multioutput_h10_calamar.joblib",
+    "archivo_figura_test": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\KNN\\knn_multioutput_h10_test_final_externo.png",
+    "archivo_acf_residuos": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\KNN\\acf_residuos_knn_multioutput_h10_test_externo.png",
+    "archivo_hist_residuos": "C:\\Users\\Victus\\Documents\\Academico\\MCT\\Semestre2\\MachineLearning\\PF\\src_Entregable2\\Modelos\\ModelosCorregidos\\Resultados\\KNN\\histograma_residuos_knn_multioutput_h10_test_externo.png"
+}
