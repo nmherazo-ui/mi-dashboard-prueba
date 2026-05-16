@@ -1,0 +1,69 @@
+{
+    "target": "Calamar",
+    "numInputs_seleccionado": 80,
+    "numOutputs": 10,
+    "numJumps": 1,
+    "ventanas_evaluadas": [
+        80
+    ],
+    "dwt_configs_evaluadas": [
+        {
+            "wavelet": "db1",
+            "dwt_level": 3
+        },
+        {
+            "wavelet": "db1",
+            "dwt_level": 4
+        }
+    ],
+    "wavelet_seleccionada": "db1",
+    "dwt_level_seleccionado": 3,
+    "horizontes_eval_test": [
+        1,
+        5,
+        10
+    ],
+    "best_params": {
+        "wavelet": "db1",
+        "dwt_level": 3,
+        "low_filters": "[64, 128, 256]",
+        "low_lstm_units": 128,
+        "low_dropout": 0.5,
+        "high_filters_1": 128,
+        "high_filters_2": 192,
+        "high_dilation_rates": "[1, 2, 4, 8]",
+        "high_dropout": 0.5,
+        "dense_units": 64,
+        "learning_rate": 0.001,
+        "epochs_max": 100,
+        "batch_size": 32,
+        "patience": 15
+    },
+    "modelo": "Keras DWT-CLSTM-DCCNN MultiOutput Dense(10)",
+    "criterio_final": "Menor MAE de validación acumulado sobre H10, usando BDS como diagnóstico/filtro. El modelo final excluye los últimos 10 registros reservados como test externo final.",
+    "validacion_cruzada": "split_train_val_groupKFold de timeseries-cv",
+    "fecha_inicio_trainval": "1975-06-29 00:00:00",
+    "fecha_fin_trainval": "2025-10-31 00:00:00",
+    "fecha_inicio_test_externo": "2025-11-01 00:00:00",
+    "fecha_fin_test_externo": "2025-11-10 00:00:00",
+    "MAE_test_externo": 1.7111989941908405,
+    "MSE_test_externo": 3.663971971078829,
+    "RMSE_test_externo": 1.914150456750678,
+    "R2_test_externo": 0.9524930700670492,
+    "NSE_test_externo": 0.9524930700670492,
+    "archivo_resultados": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosDWT_CLSTM_DCCNN_MultiOutput_H10_Ventana80\\resultados_dwt_clstm_dccnn_multioutput_h10_timeseries_cv_bds_ventana80.csv",
+    "archivo_resumen": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosDWT_CLSTM_DCCNN_MultiOutput_H10_Ventana80\\resumen_dwt_clstm_dccnn_multioutput_h10_timeseries_cv_bds_ventana80.csv",
+    "archivo_test_final": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosDWT_CLSTM_DCCNN_MultiOutput_H10_Ventana80\\test_final_externo_dwt_clstm_dccnn_multioutput_h10_calamar_ventana80.csv",
+    "archivo_metricas_horizontes": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosDWT_CLSTM_DCCNN_MultiOutput_H10_Ventana80\\metricas_horizontes_1_5_10_dwt_clstm_dccnn_multioutput_h10_ventana80.csv",
+    "archivo_historial_entrenamiento": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosDWT_CLSTM_DCCNN_MultiOutput_H10_Ventana80\\historial_entrenamiento_dwt_clstm_dccnn_multioutput_h10_ventana80.csv",
+    "archivo_historial_modelo_final": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosDWT_CLSTM_DCCNN_MultiOutput_H10_Ventana80\\historial_modelo_final_dwt_clstm_dccnn_multioutput_h10_ventana80.csv",
+    "archivo_modelo": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosDWT_CLSTM_DCCNN_MultiOutput_H10_Ventana80\\modelo_dwt_clstm_dccnn_multioutput_h10_calamar_ventana80.keras",
+    "archivo_figura_test": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosDWT_CLSTM_DCCNN_MultiOutput_H10_Ventana80\\dwt_clstm_dccnn_multioutput_h10_test_final_externo_ventana80.png",
+    "archivo_acf_residuos": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosDWT_CLSTM_DCCNN_MultiOutput_H10_Ventana80\\acf_residuos_dwt_clstm_dccnn_multioutput_h10_test_externo_ventana80.png",
+    "archivo_hist_residuos": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosDWT_CLSTM_DCCNN_MultiOutput_H10_Ventana80\\histograma_residuos_dwt_clstm_dccnn_multioutput_h10_test_externo_ventana80.png",
+    "archivo_curva_final": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosDWT_CLSTM_DCCNN_MultiOutput_H10_Ventana80\\curva_aprendizaje_modelo_final_dwt_clstm_dccnn_h10_ventana80.png",
+    "archivo_curvas_cv": "C:\\Users\\Daniel Rangel\\Documents\\MachineLearning\\ProyectoFinal\\ResultadosDWT_CLSTM_DCCNN_MultiOutput_H10_Ventana80\\curvas_aprendizaje_cv_dwt_clstm_dccnn_h10_ventana80.png",
+    "nota_y_scaling": "La salida multioutput y fue escalada por horizonte usando solo el conjunto de entrenamiento correspondiente.",
+    "nota_dwt": "Cada ventana se descompone con DWT db1 nivel 3; AJ entra a CLSTM y D1-DJ a DCCNN.",
+    "nota_adaptacion": "Adaptación a predicción diaria H10 de Calamar; el artículo original trabajó lluvia mensual y horizontes 4, 6, 8 y 10."
+}

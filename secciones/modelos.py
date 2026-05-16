@@ -103,11 +103,27 @@ RUTAS_MW_TODOS_CONTRA_TODOS = [
 
 
 def _formatear_valor_metrica_tabla(valor, nombre_columna):
-    """Reduce ruido visual en tablas sin alterar hiperparámetros como learning_rate."""
-    if pd.isna(valor):
-        return ""
-
+    """Aplica formato visual sin alterar learning_rate y manteniendo celdas válidas para Dash."""
     nombre = str(nombre_columna).lower()
+
+    # Dash DataTable solo acepta string, number o boolean. Convertir estructuras complejas a texto.
+    if isinstance(valor, dict):
+        return json.dumps(valor, ensure_ascii=False)
+
+    if isinstance(valor, tuple):
+        return "(" + ", ".join(map(str, valor)) + ")"
+
+    if isinstance(valor, list):
+        return ", ".join(map(str, valor))
+
+    if isinstance(valor, (bool, np.bool_)):
+        return bool(valor)
+
+    try:
+        if pd.isna(valor):
+            return ""
+    except (TypeError, ValueError):
+        pass
 
     # Conservar learning_rate exactamente como viene en los archivos.
     if "learning_rate" in nombre or "learning rate" in nombre:
@@ -122,42 +138,53 @@ def _formatear_valor_metrica_tabla(valor, nombre_columna):
         return valor
 
     # Conteos e identificadores enteros.
-    if any(clave in nombre for clave in ["fold", "horizonte", "ranking", "entrada", "ventana", "modelos entrenados"]):
+    if any(clave in nombre for clave in [
+        "fold", "horizonte", "ranking", "entrada", "ventana",
+        "modelos entrenados", "numinputs", "numoutputs", "numjumps"
+    ]):
         if valor_float.is_integer():
             return int(valor_float)
 
     # BDS y p-valores en notación compacta/científica.
-    if any(clave in nombre for clave in ["pvalue", "p_value", "p-valor", "p valor", "p_valor", "bds"]):
+    if any(clave in nombre for clave in [
+        "pvalue", "p_value", "p-valor", "p valor", "p_valor", "pvalor", "bds"
+    ]):
         return f"{valor_float:.3g}"
 
     # Métricas principales y estadísticos resumen con 2 decimales.
-    if any(clave in nombre for clave in ["mae", "mse", "rmse", "mape", "mean", "std"]):
+    if any(clave in nombre for clave in [
+        "mae", "mse", "rmse", "mape", "r2", "r²", "nse", "mean", "std"
+    ]):
         return f"{valor_float:.2f}"
 
     return valor
 
 
 def _formatear_dataframe_metricas_tabla(df):
-    """Aplica formato visual a tablas, manteniendo intacta la columna Valor de hiperparámetros."""
+    """Aplica formato visual a tablas sin cambiar learning_rate ni la estructura del Dash."""
     df_mostrar = df.copy()
 
     for col in df_mostrar.columns:
         nombre_col = str(col).lower()
 
-        # La columna Valor contiene hiperparámetros; se conserva para no cambiar learning_rate.
-        if nombre_col == "valor":
-            continue
-
-        # Conservar columnas explícitas de learning_rate.
-        if "learning_rate" in nombre_col or "learning rate" in nombre_col:
-            continue
-
-        serie_num = pd.to_numeric(df_mostrar[col], errors="coerce")
-        if serie_num.notna().any():
+        if nombre_col == "valor" and "Parámetro" in df_mostrar.columns:
             df_mostrar[col] = [
-                _formatear_valor_metrica_tabla(valor, col) if pd.notna(valor_num) else valor
-                for valor, valor_num in zip(df_mostrar[col], serie_num)
+                _formatear_valor_metrica_tabla(valor, parametro)
+                for valor, parametro in zip(df_mostrar[col], df_mostrar["Parámetro"])
             ]
+            continue
+
+        if nombre_col == "valor" and "Parametro" in df_mostrar.columns:
+            df_mostrar[col] = [
+                _formatear_valor_metrica_tabla(valor, parametro)
+                for valor, parametro in zip(df_mostrar[col], df_mostrar["Parametro"])
+            ]
+            continue
+
+        df_mostrar[col] = [
+            _formatear_valor_metrica_tabla(valor, col)
+            for valor in df_mostrar[col]
+        ]
 
     return df_mostrar
 
@@ -1568,9 +1595,9 @@ def layout_svr_calamar():
         ]),
 
         html.Div(style=estilo_flex, children=[
-            tarjeta_metrica("MAE test externo", f"{mae:.3f}", "Error absoluto medio"),
-            tarjeta_metrica("MSE test externo", f"{mse:.3f}", "Error cuadrático medio"),
-            tarjeta_metrica("RMSE test externo", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+            tarjeta_metrica("MAE test externo", f"{mae:.2f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo", f"{mse:.2f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo", f"{rmse:.2f}", "Raíz del error cuadrático medio"),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
@@ -1688,9 +1715,9 @@ def layout_knn_calamar():
         ]),
 
         html.Div(style=estilo_flex, children=[
-            tarjeta_metrica("MAE test externo", f"{mae:.3f}", "Error absoluto medio"),
-            tarjeta_metrica("MSE test externo", f"{mse:.3f}", "Error cuadrático medio"),
-            tarjeta_metrica("RMSE test externo", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+            tarjeta_metrica("MAE test externo", f"{mae:.2f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo", f"{mse:.2f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo", f"{rmse:.2f}", "Raíz del error cuadrático medio"),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
@@ -1800,9 +1827,9 @@ def layout_xarima_calamar():
         ]),
 
         html.Div(style=estilo_flex, children=[
-            tarjeta_metrica("MAE test externo", f"{mae:.3f}", "Error absoluto medio"),
-            tarjeta_metrica("MSE test externo", f"{mse:.3f}", "Error cuadrático medio"),
-            tarjeta_metrica("RMSE test externo", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+            tarjeta_metrica("MAE test externo", f"{mae:.2f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo", f"{mse:.2f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo", f"{rmse:.2f}", "Raíz del error cuadrático medio"),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
@@ -1916,9 +1943,9 @@ def layout_dt_calamar():
         ]),
 
         html.Div(style=estilo_flex, children=[
-            tarjeta_metrica("MAE test externo", f"{mae:.3f}", "Error absoluto medio"),
-            tarjeta_metrica("MSE test externo", f"{mse:.3f}", "Error cuadrático medio"),
-            tarjeta_metrica("RMSE test externo", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+            tarjeta_metrica("MAE test externo", f"{mae:.2f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo", f"{mse:.2f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo", f"{rmse:.2f}", "Raíz del error cuadrático medio"),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
@@ -2028,9 +2055,9 @@ def layout_lasso_calamar():
         ]),
 
         html.Div(style=estilo_flex, children=[
-            tarjeta_metrica("MAE test externo", f"{mae:.3f}", "Error absoluto medio"),
-            tarjeta_metrica("MSE test externo", f"{mse:.3f}", "Error cuadrático medio"),
-            tarjeta_metrica("RMSE test externo", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+            tarjeta_metrica("MAE test externo", f"{mae:.2f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo", f"{mse:.2f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo", f"{rmse:.2f}", "Raíz del error cuadrático medio"),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
@@ -2138,9 +2165,9 @@ def layout_ridge_calamar():
         ]),
 
         html.Div(style=estilo_flex, children=[
-            tarjeta_metrica("MAE test externo", f"{mae:.3f}", "Error absoluto medio"),
-            tarjeta_metrica("MSE test externo", f"{mse:.3f}", "Error cuadrático medio"),
-            tarjeta_metrica("RMSE test externo", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+            tarjeta_metrica("MAE test externo", f"{mae:.2f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo", f"{mse:.2f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo", f"{rmse:.2f}", "Raíz del error cuadrático medio"),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
@@ -2251,9 +2278,9 @@ def layout_rf_calamar():
         ]),
 
         html.Div(style=estilo_flex, children=[
-            tarjeta_metrica("MAE test externo", f"{mae:.3f}", "Error absoluto medio"),
-            tarjeta_metrica("MSE test externo", f"{mse:.3f}", "Error cuadrático medio"),
-            tarjeta_metrica("RMSE test externo", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+            tarjeta_metrica("MAE test externo", f"{mae:.2f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo", f"{mse:.2f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo", f"{rmse:.2f}", "Raíz del error cuadrático medio"),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
@@ -2366,9 +2393,9 @@ def layout_xgb_calamar():
         ]),
 
         html.Div(style=estilo_flex, children=[
-            tarjeta_metrica("MAE test externo", f"{mae:.3f}", "Error absoluto medio"),
-            tarjeta_metrica("MSE test externo", f"{mse:.3f}", "Error cuadrático medio"),
-            tarjeta_metrica("RMSE test externo", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+            tarjeta_metrica("MAE test externo", f"{mae:.2f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo", f"{mse:.2f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo", f"{rmse:.2f}", "Raíz del error cuadrático medio"),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
@@ -2480,9 +2507,9 @@ def layout_mlp_calamar():
         ]),
 
         html.Div(style=estilo_flex, children=[
-            tarjeta_metrica("MAE test externo", f"{mae:.3f}", "Error absoluto medio"),
-            tarjeta_metrica("MSE test externo", f"{mse:.3f}", "Error cuadrático medio"),
-            tarjeta_metrica("RMSE test externo", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+            tarjeta_metrica("MAE test externo", f"{mae:.2f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo", f"{mse:.2f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo", f"{rmse:.2f}", "Raíz del error cuadrático medio"),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
@@ -2596,9 +2623,9 @@ def layout_rnn_calamar():
         ]),
 
         html.Div(style=estilo_flex, children=[
-            tarjeta_metrica("MAE test externo", f"{mae:.3f}", "Error absoluto medio"),
-            tarjeta_metrica("MSE test externo", f"{mse:.3f}", "Error cuadrático medio"),
-            tarjeta_metrica("RMSE test externo", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+            tarjeta_metrica("MAE test externo", f"{mae:.2f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo", f"{mse:.2f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo", f"{rmse:.2f}", "Raíz del error cuadrático medio"),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
@@ -2710,9 +2737,9 @@ def layout_lstm_calamar():
         ]),
 
         html.Div(style=estilo_flex, children=[
-            tarjeta_metrica("MAE test externo", f"{mae:.3f}", "Error absoluto medio"),
-            tarjeta_metrica("MSE test externo", f"{mse:.3f}", "Error cuadrático medio"),
-            tarjeta_metrica("RMSE test externo", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+            tarjeta_metrica("MAE test externo", f"{mae:.2f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo", f"{mse:.2f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo", f"{rmse:.2f}", "Raíz del error cuadrático medio"),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
@@ -2826,9 +2853,9 @@ def layout_cnn_calamar():
         ]),
 
         html.Div(style=estilo_flex, children=[
-            tarjeta_metrica("MAE test externo", f"{mae:.3f}", "Error absoluto medio"),
-            tarjeta_metrica("MSE test externo", f"{mse:.3f}", "Error cuadrático medio"),
-            tarjeta_metrica("RMSE test externo", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+            tarjeta_metrica("MAE test externo", f"{mae:.2f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo", f"{mse:.2f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo", f"{rmse:.2f}", "Raíz del error cuadrático medio"),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
@@ -3244,10 +3271,10 @@ def figura_mosaico_metricas(df_metricas):
         go.Bar(
             x=df_plot["Modelo"],
             y=df_plot["MAE"],
-            text=df_plot["MAE"].round(3),
+            text=df_plot["MAE"].round(2),
             textposition="outside",
             marker_color=AZUL_MED,
-            hovertemplate="<b>Modelo:</b> %{x}<br><b>MAE:</b> %{y:.4f}<extra></extra>",
+            hovertemplate="<b>Modelo:</b> %{x}<br><b>MAE:</b> %{y:.2f}<extra></extra>",
             showlegend=False,
         ),
         row=1,
@@ -3258,10 +3285,10 @@ def figura_mosaico_metricas(df_metricas):
         go.Bar(
             x=df_plot["Modelo"],
             y=df_plot["RMSE"],
-            text=df_plot["RMSE"].round(3),
+            text=df_plot["RMSE"].round(2),
             textposition="outside",
             marker_color=CELESTE,
-            hovertemplate="<b>Modelo:</b> %{x}<br><b>RMSE:</b> %{y:.4f}<extra></extra>",
+            hovertemplate="<b>Modelo:</b> %{x}<br><b>RMSE:</b> %{y:.2f}<extra></extra>",
             showlegend=False,
         ),
         row=1,
@@ -3272,10 +3299,10 @@ def figura_mosaico_metricas(df_metricas):
         go.Bar(
             x=df_plot["Modelo"],
             y=df_plot["MAPE"],
-            text=df_plot["MAPE"].round(3),
+            text=df_plot["MAPE"].round(2),
             textposition="outside",
             marker_color=COLOR_MAPE,
-            hovertemplate="<b>Modelo:</b> %{x}<br><b>MAPE:</b> %{y:.4f} %<extra></extra>",
+            hovertemplate="<b>Modelo:</b> %{x}<br><b>MAPE:</b> %{y:.2f} %<extra></extra>",
             showlegend=False,
         ),
         row=2,
@@ -3324,10 +3351,10 @@ def figura_ranking_mae_modelos(df_metricas):
             x=df_plot["MAE"],
             y=df_plot["Modelo"],
             orientation="h",
-            text=df_plot["MAE"].round(3),
+            text=df_plot["MAE"].round(2),
             textposition="outside",
             marker_color=AZUL_MED,
-            hovertemplate="<b>Modelo:</b> %{y}<br><b>MAE:</b> %{x:.4f}<extra></extra>",
+            hovertemplate="<b>Modelo:</b> %{y}<br><b>MAE:</b> %{x:.2f}<extra></extra>",
             showlegend=False,
         ),
         row=1,
@@ -3401,8 +3428,8 @@ def figura_dispersion_metricas(df_metricas):
             ),
             hovertemplate=(
                 "<b>%{text}</b><br>"
-                "<b>MAE:</b> %{x:.4f}<br>"
-                "<b>RMSE:</b> %{y:.4f}"
+                "<b>MAE:</b> %{x:.2f}<br>"
+                "<b>RMSE:</b> %{y:.2f}"
                 "<extra></extra>"
             ),
             showlegend=False,
@@ -3427,8 +3454,8 @@ def figura_dispersion_metricas(df_metricas):
             ),
             hovertemplate=(
                 "<b>%{text}</b><br>"
-                "<b>MAE:</b> %{x:.4f}<br>"
-                "<b>MAPE:</b> %{y:.4f} %"
+                "<b>MAE:</b> %{x:.2f}<br>"
+                "<b>MAPE:</b> %{y:.2f} %"
                 "<extra></extra>"
             ),
             showlegend=False,
@@ -4063,9 +4090,9 @@ def layout_todos_modelos():
     texto_conclusion = (
     "Con el fin de evaluar la eficacia de cada modelo para predecir el nivel del río, se hizo uso de un test externo correspondiente "
     "a un año de datos 2025 y se midieron las métricas de MAE, RMSE y MAPE. Se observa que el modelo SVR presentó el mejor desempeño "
-    "global frente a los demás modelos analizados. Este obtuvo el menor valor de MAE = 1.604, lo que indica que, en promedio, sus "
-    "predicciones se desviaron menos de los valores reales del nivel en Calamar. Asimismo, este modelo alcanzó el menor RMSE = 2.144 y "
-    "el menor MAPE = 0.304 %, lo que refleja un error porcentual relativo muy bajo. En conjunto, estos resultados sugieren que el modelo "
+    "global frente a los demás modelos analizados. Este obtuvo el menor valor de MAE = 1.60, lo que indica que, en promedio, sus "
+    "predicciones se desviaron menos de los valores reales del nivel en Calamar. Asimismo, este modelo alcanzó el menor RMSE = 2.14 y "
+    "el menor MAPE = 0.30 %, lo que refleja un error porcentual relativo muy bajo. En conjunto, estos resultados sugieren que el modelo "
     "SVR logró una mejor capacidad predictiva en el periodo de prueba externo, por lo que puede considerarse como el más apto para la "
     "tarea de predicción en la estación de estudio."
     )
@@ -4087,9 +4114,9 @@ def layout_todos_modelos():
         ]),
 
         html.Div(style=estilo_flex, children=[
-            tarjeta_metrica("Mejor MAE", mejor_mae["Modelo"], f"MAE = {mejor_mae['MAE']:.3f}"),
-            tarjeta_metrica("Mejor RMSE", mejor_rmse["Modelo"], f"RMSE = {mejor_rmse['RMSE']:.3f}"),
-            tarjeta_metrica("Mejor MAPE", mejor_mape["Modelo"], f"MAPE = {mejor_mape['MAPE']:.3f} %"),
+            tarjeta_metrica("Mejor MAE", mejor_mae["Modelo"], f"MAE = {mejor_mae['MAE']:.2f}"),
+            tarjeta_metrica("Mejor RMSE", mejor_rmse["Modelo"], f"RMSE = {mejor_rmse['RMSE']:.2f}"),
+            tarjeta_metrica("Mejor MAPE", mejor_mape["Modelo"], f"MAPE = {mejor_mape['MAPE']:.2f} %"),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
@@ -4773,9 +4800,9 @@ def figura_heatmap_bds_residuos(df_resultados_cv):
             y=y,
             text=texto.values,
             texttemplate="%{text}",
-            textfont=dict(size=14, color=AZUL),
-            xgap=2,
-            ygap=2,
+            textfont=dict(size=18, color="white"),
+            xgap=3,
+            ygap=3,
             zmin=0,
             zmax=1,
             colorscale=[
@@ -4802,8 +4829,9 @@ def figura_heatmap_bds_residuos(df_resultados_cv):
     # cuando solo existen columnas resumen como p-valor mean y p-valor min.
     n_filas = max(1, len(y))
     n_columnas = max(1, len(x))
+
     ancho_figura = 950
-    alto_figura = 360
+    alto_figura = max(650, 28 * n_filas)
 
     fig.update_layout(
         title=None,
@@ -4914,7 +4942,7 @@ def layout_svr_calamar():
 
     bds_resumen = df_resumen.iloc[0].to_dict() if len(df_resumen) > 0 else {}
 
-    def _formato_bds(valor, decimales=6):
+    def _formato_bds(valor, decimales=3):
         if pd.isna(valor):
             return "N/A"
         try:
@@ -4940,9 +4968,9 @@ def layout_svr_calamar():
         ]),
 
         html.Div(style=estilo_flex, children=[
-            tarjeta_metrica("MAE test externo H10", f"{mae:.3f}", "Error absoluto medio"),
-            tarjeta_metrica("MSE test externo H10", f"{mse:.3f}", "Error cuadrático medio"),
-            tarjeta_metrica("RMSE test externo H10", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+            tarjeta_metrica("MAE test externo H10", f"{mae:.2f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo H10", f"{mse:.2f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo H10", f"{rmse:.2f}", "Raíz del error cuadrático medio"),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
@@ -5099,7 +5127,7 @@ def layout_modelos(modelos=None):
                 style=estilo_parrafo,
             ),
             html.P(
-                "La gráfica muestra los segmentos de entrada y salida utilizados en los pliegues de validación cruzada temporalpara todos los modelos. ",
+                "La gráfica muestra los segmentos de entrada y salida utilizados en los pliegues de validación cruzada temporal para todos los modelos. ",
                 style=estilo_parrafo,
             ),
             dcc.Graph(
@@ -5229,6 +5257,9 @@ def layout_ridge_calamar():
     nlags_acf = max(1, min(9, len(df_test["Residuo"].dropna()) - 1))
     fig_acf = figura_acf_residuos(df_test, nlags=nlags_acf)
     fig_bds_heatmap = figura_heatmap_bds_residuos(df_resultados_cv)
+    fig_bds_heatmap.update_layout(
+        height=max(650, min(1200, 120 + 24 * len(df_resultados_cv))),
+    )
 
     df_validacion = pd.DataFrame([
         {
@@ -5305,7 +5336,7 @@ def layout_ridge_calamar():
 
     bds_resumen = df_resumen.iloc[0].to_dict() if len(df_resumen) > 0 else {}
 
-    def _formato_bds(valor, decimales=6):
+    def _formato_bds(valor, decimales=3):
         if pd.isna(valor):
             return "N/A"
         try:
@@ -5330,9 +5361,9 @@ def layout_ridge_calamar():
         ]),
 
         html.Div(style=estilo_flex, children=[
-            tarjeta_metrica("MAE test externo H10", f"{mae:.3f}", "Error absoluto medio"),
-            tarjeta_metrica("MSE test externo H10", f"{mse:.3f}", "Error cuadrático medio"),
-            tarjeta_metrica("RMSE test externo H10", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+            tarjeta_metrica("MAE test externo H10", f"{mae:.2f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo H10", f"{mse:.2f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo H10", f"{rmse:.2f}", "Raíz del error cuadrático medio"),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
@@ -5641,7 +5672,7 @@ def layout_lasso_calamar():
 
     bds_resumen = df_resumen.iloc[0].to_dict() if len(df_resumen) > 0 else {}
 
-    def _formato_bds(valor, decimales=6):
+    def _formato_bds(valor, decimales=3):
         if pd.isna(valor):
             return "N/A"
         try:
@@ -5666,9 +5697,9 @@ def layout_lasso_calamar():
         ]),
 
         html.Div(style=estilo_flex, children=[
-            tarjeta_metrica("MAE test externo H10", f"{mae:.3f}", "Error absoluto medio"),
-            tarjeta_metrica("MSE test externo H10", f"{mse:.3f}", "Error cuadrático medio"),
-            tarjeta_metrica("RMSE test externo H10", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+            tarjeta_metrica("MAE test externo H10", f"{mae:.2f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo H10", f"{mse:.2f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo H10", f"{rmse:.2f}", "Raíz del error cuadrático medio"),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
@@ -5979,7 +6010,7 @@ def figura_heatmap_bds_dt_residuos(df_resultados_cv):
             y=y,
             text=texto.values,
             texttemplate="%{text}",
-            textfont=dict(size=14, color=AZUL),
+            textfont=dict(size=18, color="white"),
             xgap=2,
             ygap=2,
             zmin=0,
@@ -6151,7 +6182,7 @@ def layout_dt_calamar():
 
     bds_resumen = df_resumen.iloc[0].to_dict() if len(df_resumen) > 0 else {}
 
-    def _formato_bds_dt(valor, decimales=6):
+    def _formato_bds_dt(valor, decimales=3):
         if pd.isna(valor):
             return "N/A"
         try:
@@ -6176,9 +6207,9 @@ def layout_dt_calamar():
         ]),
 
         html.Div(style=estilo_flex, children=[
-            tarjeta_metrica("MAE test externo H10", f"{mae:.3f}", "Error absoluto medio"),
-            tarjeta_metrica("MSE test externo H10", f"{mse:.3f}", "Error cuadrático medio"),
-            tarjeta_metrica("RMSE test externo H10", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+            tarjeta_metrica("MAE test externo H10", f"{mae:.2f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo H10", f"{mse:.2f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo H10", f"{rmse:.2f}", "Raíz del error cuadrático medio"),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
@@ -6488,7 +6519,7 @@ def layout_rf_calamar():
 
     bds_resumen = df_resumen.iloc[0].to_dict() if len(df_resumen) > 0 else {}
 
-    def _formato_bds_rf(valor, decimales=6):
+    def _formato_bds_rf(valor, decimales=3):
         if pd.isna(valor):
             return "N/A"
         try:
@@ -6513,9 +6544,9 @@ def layout_rf_calamar():
         ]),
 
         html.Div(style=estilo_flex, children=[
-            tarjeta_metrica("MAE test externo H10", f"{mae:.3f}", "Error absoluto medio"),
-            tarjeta_metrica("MSE test externo H10", f"{mse:.3f}", "Error cuadrático medio"),
-            tarjeta_metrica("RMSE test externo H10", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+            tarjeta_metrica("MAE test externo H10", f"{mae:.2f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo H10", f"{mse:.2f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo H10", f"{rmse:.2f}", "Raíz del error cuadrático medio"),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
@@ -6824,7 +6855,7 @@ def layout_xgb_calamar():
 
     bds_resumen = df_resumen.iloc[0].to_dict() if len(df_resumen) > 0 else {}
 
-    def _formato_bds_xgb(valor, decimales=6):
+    def _formato_bds_xgb(valor, decimales=3):
         if pd.isna(valor):
             return "N/A"
         try:
@@ -6849,9 +6880,9 @@ def layout_xgb_calamar():
         ]),
 
         html.Div(style=estilo_flex, children=[
-            tarjeta_metrica("MAE test externo H10", f"{mae:.3f}", "Error absoluto medio"),
-            tarjeta_metrica("MSE test externo H10", f"{mse:.3f}", "Error cuadrático medio"),
-            tarjeta_metrica("RMSE test externo H10", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+            tarjeta_metrica("MAE test externo H10", f"{mae:.2f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo H10", f"{mse:.2f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo H10", f"{rmse:.2f}", "Raíz del error cuadrático medio"),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
@@ -7409,7 +7440,7 @@ def layout_lstm_calamar():
 
     bds_resumen = df_resumen.iloc[0].to_dict() if len(df_resumen) > 0 else {}
 
-    def _formato_bds(valor, decimales=6):
+    def _formato_bds(valor, decimales=3):
         if pd.isna(valor):
             return "N/A"
         try:
@@ -7435,9 +7466,9 @@ def layout_lstm_calamar():
         ]),
 
         html.Div(style=estilo_flex, children=[
-            tarjeta_metrica("MAE test externo H10", f"{mae:.3f}", "Error absoluto medio"),
-            tarjeta_metrica("MSE test externo H10", f"{mse:.3f}", "Error cuadrático medio"),
-            tarjeta_metrica("RMSE test externo H10", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+            tarjeta_metrica("MAE test externo H10", f"{mae:.2f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo H10", f"{mse:.2f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo H10", f"{rmse:.2f}", "Raíz del error cuadrático medio"),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
@@ -7765,7 +7796,7 @@ def layout_knn_calamar():
 
     bds_resumen = df_resumen.iloc[0].to_dict() if len(df_resumen) > 0 else {}
 
-    def _formato_bds_knn(valor, decimales=6):
+    def _formato_bds_knn(valor, decimales=3):
         if pd.isna(valor):
             return "N/A"
         try:
@@ -7790,9 +7821,9 @@ def layout_knn_calamar():
         ]),
 
         html.Div(style=estilo_flex, children=[
-            tarjeta_metrica("MAE test externo H10", f"{mae:.3f}", "Error absoluto medio"),
-            tarjeta_metrica("MSE test externo H10", f"{mse:.3f}", "Error cuadrático medio"),
-            tarjeta_metrica("RMSE test externo H10", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+            tarjeta_metrica("MAE test externo H10", f"{mae:.2f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo H10", f"{mse:.2f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo H10", f"{rmse:.2f}", "Raíz del error cuadrático medio"),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
@@ -8132,7 +8163,7 @@ def layout_xarima_calamar():
 
     bds_resumen = df_resumen.iloc[0].to_dict() if len(df_resumen) > 0 else {}
 
-    def _formato_bds_xarima(valor, decimales=6):
+    def _formato_bds_xarima(valor, decimales=3):
         if pd.isna(valor):
             return "N/A"
         try:
@@ -8158,9 +8189,9 @@ def layout_xarima_calamar():
         ]),
 
         html.Div(style=estilo_flex, children=[
-            tarjeta_metrica("MAE test externo H10", f"{mae:.3f}", "Error absoluto medio"),
-            tarjeta_metrica("MSE test externo H10", f"{mse:.3f}", "Error cuadrático medio"),
-            tarjeta_metrica("RMSE test externo H10", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+            tarjeta_metrica("MAE test externo H10", f"{mae:.2f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo H10", f"{mse:.2f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo H10", f"{rmse:.2f}", "Raíz del error cuadrático medio"),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
@@ -8481,7 +8512,7 @@ def layout_cnn_calamar():
 
     bds_resumen = df_resumen.iloc[0].to_dict() if len(df_resumen) > 0 else {}
 
-    def _formato_bds(valor, decimales=6):
+    def _formato_bds(valor, decimales=3):
         if pd.isna(valor):
             return "N/A"
         try:
@@ -8507,9 +8538,9 @@ def layout_cnn_calamar():
         ]),
 
         html.Div(style=estilo_flex, children=[
-            tarjeta_metrica("MAE test externo H10", f"{mae:.3f}", "Error absoluto medio"),
-            tarjeta_metrica("MSE test externo H10", f"{mse:.3f}", "Error cuadrático medio"),
-            tarjeta_metrica("RMSE test externo H10", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+            tarjeta_metrica("MAE test externo H10", f"{mae:.2f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo H10", f"{mse:.2f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo H10", f"{rmse:.2f}", "Raíz del error cuadrático medio"),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
@@ -8852,7 +8883,7 @@ def layout_rnn_calamar():
 
     bds_resumen = df_resumen.iloc[0].to_dict() if len(df_resumen) > 0 else {}
 
-    def _formato_bds(valor, decimales=6):
+    def _formato_bds(valor, decimales=3):
         if pd.isna(valor):
             return "N/A"
         try:
@@ -8878,9 +8909,9 @@ def layout_rnn_calamar():
         ]),
 
         html.Div(style=estilo_flex, children=[
-            tarjeta_metrica("MAE test externo H10", f"{mae:.3f}", "Error absoluto medio"),
-            tarjeta_metrica("MSE test externo H10", f"{mse:.3f}", "Error cuadrático medio"),
-            tarjeta_metrica("RMSE test externo H10", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+            tarjeta_metrica("MAE test externo H10", f"{mae:.2f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo H10", f"{mse:.2f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo H10", f"{rmse:.2f}", "Raíz del error cuadrático medio"),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
@@ -9223,7 +9254,7 @@ def layout_mlp_calamar():
 
     bds_resumen = df_resumen.iloc[0].to_dict() if len(df_resumen) > 0 else {}
 
-    def _formato_bds(valor, decimales=6):
+    def _formato_bds(valor, decimales=3):
         if pd.isna(valor):
             return "N/A"
         try:
@@ -9249,9 +9280,9 @@ def layout_mlp_calamar():
         ]),
 
         html.Div(style=estilo_flex, children=[
-            tarjeta_metrica("MAE test externo H10", f"{mae:.3f}", "Error absoluto medio"),
-            tarjeta_metrica("MSE test externo H10", f"{mse:.3f}", "Error cuadrático medio"),
-            tarjeta_metrica("RMSE test externo H10", f"{rmse:.3f}", "Raíz del error cuadrático medio"),
+            tarjeta_metrica("MAE test externo H10", f"{mae:.2f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo H10", f"{mse:.2f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo H10", f"{rmse:.2f}", "Raíz del error cuadrático medio"),
         ]),
 
         html.Div(style=estilo_tarjeta, children=[
@@ -9414,3 +9445,755 @@ def layout_mlp_calamar():
             dcc.Graph(figure=fig_acf, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
         ]),
     ])
+
+# =====================================================================
+# AJUSTE FINAL DE VISIBILIDAD: XARIMA, MLP, RNN, CNN Y MODELO PROPUESTO
+# Bloque agregado al final para no modificar la estructura previa.
+# =====================================================================
+
+import fnmatch as _fnmatch_modelos
+
+
+def _resolver_archivo_resultados_robusto(*nombres_archivo, subcarpetas=()):
+    """Busca archivos por rutas esperadas y, si no aparecen, por búsqueda recursiva en Resultados."""
+    nombres = [str(n) for n in nombres_archivo if n]
+    candidatos = []
+
+    for nombre in nombres:
+        for sub in subcarpetas:
+            candidatos.append(Path("Resultados") / sub / nombre)
+        candidatos.append(Path("Resultados") / nombre)
+        for sub in subcarpetas:
+            candidatos.append(Path(sub) / nombre)
+
+    for ruta in candidatos:
+        if ruta.exists():
+            return ruta
+
+    raices_busqueda = [Path("Resultados"), Path(".")]
+    patrones = [n.lower() for n in nombres]
+
+    for raiz in raices_busqueda:
+        if not raiz.exists():
+            continue
+        try:
+            for ruta in raiz.rglob("*"):
+                if not ruta.is_file():
+                    continue
+                nombre_ruta = ruta.name.lower()
+                if any(_fnmatch_modelos.fnmatch(nombre_ruta, patron) for patron in patrones):
+                    return ruta
+        except Exception:
+            continue
+
+    # Devuelve una ruta probable para que el error indique claramente qué archivo falta.
+    if candidatos:
+        return candidatos[0]
+    return Path(nombres[0]) if nombres else Path("archivo_no_definido")
+
+
+def _leer_csv_modelos_si_existe(ruta):
+    ruta = Path(ruta)
+    if not ruta.exists():
+        return pd.DataFrame()
+    return _leer_csv_modelos(ruta)
+
+
+# Rutas finales robustas para XARIMA H10
+# Ajustadas a los nombres reales generados en la carpeta XARIMA.
+RUTA_METADATA_XARIMA = _resolver_archivo_resultados_robusto(
+    "metadata_modelo_xarima_h10_calamar.json",
+    "metadata*xarima*h10*calamar*.json",
+    "metadata_modelo_xarima_multioutput_h10_calamar.json",
+    "metadata*xarima*multioutput*h10*calamar*.json",
+    subcarpetas=("XARIMA", "7_XARIMA", "Xarima", "xarima", "ResultadosXARIMA_MultiOutput_H10"),
+)
+RUTA_TEST_XARIMA = _resolver_archivo_resultados_robusto(
+    "test_final_externo_xarima_h10_calamar.csv",
+    "test*xarima*h10*calamar*.csv",
+    "test_final_externo_xarima_multioutput_h10_calamar.csv",
+    "test*xarima*multioutput*h10*calamar*.csv",
+    subcarpetas=("XARIMA", "7_XARIMA", "Xarima", "xarima", "ResultadosXARIMA_MultiOutput_H10"),
+)
+RUTA_RESUMEN_XARIMA = _resolver_archivo_resultados_robusto(
+    "resumen_xarima_h10_timeseries_cv_bds.csv",
+    "resumen*xarima*h10*timeseries*cv*bds*.csv",
+    "resumen_xarima_multioutput_h10_timeseries_cv_bds.csv",
+    "resumen*xarima*multioutput*h10*.csv",
+    subcarpetas=("XARIMA", "7_XARIMA", "Xarima", "xarima", "ResultadosXARIMA_MultiOutput_H10"),
+)
+RUTA_RESULTADOS_CV_XARIMA = _resolver_archivo_resultados_robusto(
+    "resultados_xarima_h10_timeseries_cv_bds.csv",
+    "resultados*xarima*h10*timeseries*cv*bds*.csv",
+    "resultados_xarima_multioutput_h10_timeseries_cv_bds.csv",
+    "resultados*xarima*multioutput*h10*cv*bds*.csv",
+    subcarpetas=("XARIMA", "7_XARIMA", "Xarima", "xarima", "ResultadosXARIMA_MultiOutput_H10"),
+)
+RUTA_METRICAS_HORIZONTES_XARIMA = _resolver_archivo_resultados_robusto(
+    "metricas_horizontes_1_5_10_xarima_h10.csv",
+    "metricas*horizontes*xarima*h10*.csv",
+    "metricas_horizontes_1_5_10_xarima_multioutput_h10.csv",
+    "metricas*horizontes*xarima*multioutput*h10*.csv",
+    subcarpetas=("XARIMA", "7_XARIMA", "Xarima", "xarima", "ResultadosXARIMA_MultiOutput_H10"),
+)
+
+# Rutas finales robustas para MLP, RNN y CNN H10
+RUTA_METADATA_MLP = _resolver_archivo_resultados_robusto(
+    "metadata_modelo_mlp_multioutput_h10_calamar.json",
+    "metadata*mlp*multioutput*h10*calamar*.json",
+    subcarpetas=("MLP", "10_MLP", "ResultadosMLP_MultiOutput_H10"),
+)
+RUTA_TEST_MLP = _resolver_archivo_resultados_robusto(
+    "test_final_externo_mlp_multioutput_h10_calamar.csv",
+    "test*mlp*multioutput*h10*calamar*.csv",
+    subcarpetas=("MLP", "10_MLP", "ResultadosMLP_MultiOutput_H10"),
+)
+RUTA_RESUMEN_MLP = _resolver_archivo_resultados_robusto(
+    "resumen_mlp_multioutput_h10_timeseries_cv_bds.csv",
+    "resumen*mlp*multioutput*h10*.csv",
+    subcarpetas=("MLP", "10_MLP", "ResultadosMLP_MultiOutput_H10"),
+)
+RUTA_RESULTADOS_CV_MLP = _resolver_archivo_resultados_robusto(
+    "resultados_mlp_multioutput_h10_timeseries_cv_bds.csv",
+    "resultados*mlp*multioutput*h10*cv*bds*.csv",
+    subcarpetas=("MLP", "10_MLP", "ResultadosMLP_MultiOutput_H10"),
+)
+RUTA_METRICAS_HORIZONTES_MLP = _resolver_archivo_resultados_robusto(
+    "metricas_horizontes_1_5_10_mlp_multioutput_h10.csv",
+    "metricas*horizontes*mlp*multioutput*h10*.csv",
+    subcarpetas=("MLP", "10_MLP", "ResultadosMLP_MultiOutput_H10"),
+)
+RUTA_HISTORIAL_ENTRENAMIENTO_MLP = _resolver_archivo_resultados_robusto(
+    "historial_entrenamiento_mlp_multioutput_h10.csv",
+    "historial*entrenamiento*mlp*multioutput*h10*.csv",
+    subcarpetas=("MLP", "10_MLP", "ResultadosMLP_MultiOutput_H10"),
+)
+RUTA_HISTORIAL_MODELO_FINAL_MLP = _resolver_archivo_resultados_robusto(
+    "historial_modelo_final_mlp_multioutput_h10.csv",
+    "historial*modelo*final*mlp*multioutput*h10*.csv",
+    subcarpetas=("MLP", "10_MLP", "ResultadosMLP_MultiOutput_H10"),
+)
+
+RUTA_METADATA_RNN = _resolver_archivo_resultados_robusto(
+    "metadata_modelo_rnn_multioutput_h10_calamar.json",
+    "metadata*rnn*multioutput*h10*calamar*.json",
+    subcarpetas=("RNN", "9_RNN", "ResultadosRNN_MultiOutput_H10"),
+)
+RUTA_TEST_RNN = _resolver_archivo_resultados_robusto(
+    "test_final_externo_rnn_multioutput_h10_calamar.csv",
+    "test*rnn*multioutput*h10*calamar*.csv",
+    subcarpetas=("RNN", "9_RNN", "ResultadosRNN_MultiOutput_H10"),
+)
+RUTA_RESUMEN_RNN = _resolver_archivo_resultados_robusto(
+    "resumen_rnn_multioutput_h10_timeseries_cv_bds.csv",
+    "resumen*rnn*multioutput*h10*.csv",
+    subcarpetas=("RNN", "9_RNN", "ResultadosRNN_MultiOutput_H10"),
+)
+RUTA_RESULTADOS_CV_RNN = _resolver_archivo_resultados_robusto(
+    "resultados_rnn_multioutput_h10_timeseries_cv_bds.csv",
+    "resultados*rnn*multioutput*h10*cv*bds*.csv",
+    subcarpetas=("RNN", "9_RNN", "ResultadosRNN_MultiOutput_H10"),
+)
+RUTA_METRICAS_HORIZONTES_RNN = _resolver_archivo_resultados_robusto(
+    "metricas_horizontes_1_5_10_rnn_multioutput_h10.csv",
+    "metricas*horizontes*rnn*multioutput*h10*.csv",
+    subcarpetas=("RNN", "9_RNN", "ResultadosRNN_MultiOutput_H10"),
+)
+RUTA_HISTORIAL_ENTRENAMIENTO_RNN = _resolver_archivo_resultados_robusto(
+    "historial_entrenamiento_rnn_multioutput_h10.csv",
+    "historial*entrenamiento*rnn*multioutput*h10*.csv",
+    subcarpetas=("RNN", "9_RNN", "ResultadosRNN_MultiOutput_H10"),
+)
+RUTA_HISTORIAL_MODELO_FINAL_RNN = _resolver_archivo_resultados_robusto(
+    "historial_modelo_final_rnn_multioutput_h10.csv",
+    "historial*modelo*final*rnn*multioutput*h10*.csv",
+    subcarpetas=("RNN", "9_RNN", "ResultadosRNN_MultiOutput_H10"),
+)
+
+RUTA_METADATA_CNN = _resolver_archivo_resultados_robusto(
+    "metadata_modelo_cnn_multioutput_h10_calamar.json",
+    "metadata*cnn*multioutput*h10*calamar*.json",
+    subcarpetas=("CNN", "8_CNN", "ResultadosCNN_MultiOutput_H10"),
+)
+RUTA_TEST_CNN = _resolver_archivo_resultados_robusto(
+    "test_final_externo_cnn_multioutput_h10_calamar.csv",
+    "test*cnn*multioutput*h10*calamar*.csv",
+    subcarpetas=("CNN", "8_CNN", "ResultadosCNN_MultiOutput_H10"),
+)
+RUTA_RESUMEN_CNN = _resolver_archivo_resultados_robusto(
+    "resumen_cnn_multioutput_h10_timeseries_cv_bds.csv",
+    "resumen*cnn*multioutput*h10*.csv",
+    subcarpetas=("CNN", "8_CNN", "ResultadosCNN_MultiOutput_H10"),
+)
+RUTA_RESULTADOS_CV_CNN = _resolver_archivo_resultados_robusto(
+    "resultados_cnn_multioutput_h10_timeseries_cv_bds.csv",
+    "resultados*cnn*multioutput*h10*cv*bds*.csv",
+    subcarpetas=("CNN", "8_CNN", "ResultadosCNN_MultiOutput_H10"),
+)
+RUTA_METRICAS_HORIZONTES_CNN = _resolver_archivo_resultados_robusto(
+    "metricas_horizontes_1_5_10_cnn_multioutput_h10.csv",
+    "metricas*horizontes*cnn*multioutput*h10*.csv",
+    subcarpetas=("CNN", "8_CNN", "ResultadosCNN_MultiOutput_H10"),
+)
+RUTA_HISTORIAL_ENTRENAMIENTO_CNN = _resolver_archivo_resultados_robusto(
+    "historial_entrenamiento_cnn_multioutput_h10.csv",
+    "historial*entrenamiento*cnn*multioutput*h10*.csv",
+    subcarpetas=("CNN", "8_CNN", "ResultadosCNN_MultiOutput_H10"),
+)
+RUTA_HISTORIAL_MODELO_FINAL_CNN = _resolver_archivo_resultados_robusto(
+    "historial_modelo_final_cnn_multioutput_h10.csv",
+    "historial*modelo*final*cnn*multioutput*h10*.csv",
+    subcarpetas=("CNN", "8_CNN", "ResultadosCNN_MultiOutput_H10"),
+)
+
+# Rutas del Modelo propuesto
+_SUBCARPETAS_PROPUESTO = (
+    "Hibrido",
+    "13_Hibrido",
+    "Modelo_propuesto",
+    "Modelo propuesto",
+    "ResultadosDWT_CLSTM_DCCNN_MultiOutput_H10_Ventana80",
+    "ResultadosDWT-CLSTM-DCCNN_MultiOutput_H10_Ventana80",
+)
+RUTA_METADATA_PROPUESTO = _resolver_archivo_resultados_robusto(
+    "metadata_modelo_dwt_clstm_dccnn_multioutput_h10_calamar_ventana80.json",
+    "metadata*dwt*clstm*dccnn*multioutput*h10*calamar*.json",
+    "metadata*dwt*clstm*dccnn*multioutput*h10*ventana80*.json",
+    subcarpetas=_SUBCARPETAS_PROPUESTO,
+)
+RUTA_TEST_PROPUESTO = _resolver_archivo_resultados_robusto(
+    "test_final_externo_dwt_clstm_dccnn_multioutput_h10_calamar_ventana80.csv",
+    "test*dwt*clstm*dccnn*multioutput*h10*calamar*.csv",
+    "test*dwt*clstm*dccnn*multioutput*h10*ventana80*.csv",
+    subcarpetas=_SUBCARPETAS_PROPUESTO,
+)
+RUTA_RESUMEN_PROPUESTO = _resolver_archivo_resultados_robusto(
+    "resumen_dwt_clstm_dccnn_multioutput_h10_timeseries_cv_bds_ventana80.csv",
+    "resumen*dwt*clstm*dccnn*multioutput*h10*.csv",
+    subcarpetas=_SUBCARPETAS_PROPUESTO,
+)
+RUTA_RESULTADOS_CV_PROPUESTO = _resolver_archivo_resultados_robusto(
+    "resultados_dwt_clstm_dccnn_multioutput_h10_timeseries_cv_bds_ventana80.csv",
+    "resultados*dwt*clstm*dccnn*multioutput*h10*cv*bds*.csv",
+    subcarpetas=_SUBCARPETAS_PROPUESTO,
+)
+RUTA_METRICAS_HORIZONTES_PROPUESTO = _resolver_archivo_resultados_robusto(
+    "metricas_horizontes_1_5_10_dwt_clstm_dccnn_multioutput_h10_ventana80.csv",
+    "metricas*horizontes*dwt*clstm*dccnn*multioutput*h10*.csv",
+    subcarpetas=_SUBCARPETAS_PROPUESTO,
+)
+RUTA_HISTORIAL_ENTRENAMIENTO_PROPUESTO = _resolver_archivo_resultados_robusto(
+    "historial_entrenamiento_dwt_clstm_dccnn_multioutput_h10_ventana80.csv",
+    "historial*entrenamiento*dwt*clstm*dccnn*multioutput*h10*.csv",
+    subcarpetas=_SUBCARPETAS_PROPUESTO,
+)
+RUTA_HISTORIAL_MODELO_FINAL_PROPUESTO = _resolver_archivo_resultados_robusto(
+    "historial_modelo_final_dwt_clstm_dccnn_multioutput_h10_ventana80.csv",
+    "historial*modelo*final*dwt*clstm*dccnn*multioutput*h10*.csv",
+    subcarpetas=_SUBCARPETAS_PROPUESTO,
+)
+
+
+def _actualizar_spec_comparacion(codigo, nombre, ruta_metadata, ruta_test):
+    encontrado = False
+    for spec in MODELOS_COMPARACION:
+        if spec.get("codigo") == codigo:
+            spec["nombre"] = nombre
+            spec["ruta_metadata"] = ruta_metadata
+            spec["ruta_test"] = ruta_test
+            encontrado = True
+            break
+    if not encontrado:
+        MODELOS_COMPARACION.append({
+            "codigo": codigo,
+            "nombre": nombre,
+            "ruta_metadata": ruta_metadata,
+            "ruta_test": ruta_test,
+        })
+
+
+_actualizar_spec_comparacion("xarima_calamar", "XARIMA H10", RUTA_METADATA_XARIMA, RUTA_TEST_XARIMA)
+_actualizar_spec_comparacion("mlp_calamar", "MLP Multioutput H10", RUTA_METADATA_MLP, RUTA_TEST_MLP)
+_actualizar_spec_comparacion("rnn_calamar", "RNN Multioutput H10", RUTA_METADATA_RNN, RUTA_TEST_RNN)
+_actualizar_spec_comparacion("cnn_calamar", "CNN Multioutput H10", RUTA_METADATA_CNN, RUTA_TEST_CNN)
+_actualizar_spec_comparacion("propuesto_calamar", "Modelo propuesto", RUTA_METADATA_PROPUESTO, RUTA_TEST_PROPUESTO)
+
+
+# Cargadores robustos finales para evitar que el dropdown falle por rutas antiguas.
+def cargar_resultados_xarima_calamar():
+    with open(RUTA_METADATA_XARIMA, "r", encoding="utf-8") as f:
+        metadata = json.load(f)
+    df_test = _leer_csv_modelos(RUTA_TEST_XARIMA)
+    if "Fecha" in df_test.columns:
+        df_test["Fecha"] = pd.to_datetime(df_test["Fecha"], errors="coerce")
+    for col in ["Calamar_real", "Calamar_predicho", "Residuo", "horizonte"]:
+        if col in df_test.columns:
+            df_test[col] = pd.to_numeric(df_test[col], errors="coerce")
+    if "Residuo" not in df_test.columns and {"Calamar_real", "Calamar_predicho"}.issubset(df_test.columns):
+        df_test["Residuo"] = df_test["Calamar_real"] - df_test["Calamar_predicho"]
+    return metadata, df_test
+
+
+def cargar_resultados_mlp_calamar():
+    with open(RUTA_METADATA_MLP, "r", encoding="utf-8") as f:
+        metadata = json.load(f)
+    df_test = _leer_csv_modelos(RUTA_TEST_MLP)
+    if "Fecha" in df_test.columns:
+        df_test["Fecha"] = pd.to_datetime(df_test["Fecha"], errors="coerce")
+    for col in ["Calamar_real", "Calamar_predicho", "Residuo", "horizonte"]:
+        if col in df_test.columns:
+            df_test[col] = pd.to_numeric(df_test[col], errors="coerce")
+    if "Residuo" not in df_test.columns and {"Calamar_real", "Calamar_predicho"}.issubset(df_test.columns):
+        df_test["Residuo"] = df_test["Calamar_real"] - df_test["Calamar_predicho"]
+    return metadata, df_test
+
+
+def cargar_resultados_rnn_calamar():
+    with open(RUTA_METADATA_RNN, "r", encoding="utf-8") as f:
+        metadata = json.load(f)
+    df_test = _leer_csv_modelos(RUTA_TEST_RNN)
+    if "Fecha" in df_test.columns:
+        df_test["Fecha"] = pd.to_datetime(df_test["Fecha"], errors="coerce")
+    for col in ["Calamar_real", "Calamar_predicho", "Residuo", "horizonte"]:
+        if col in df_test.columns:
+            df_test[col] = pd.to_numeric(df_test[col], errors="coerce")
+    if "Residuo" not in df_test.columns and {"Calamar_real", "Calamar_predicho"}.issubset(df_test.columns):
+        df_test["Residuo"] = df_test["Calamar_real"] - df_test["Calamar_predicho"]
+    return metadata, df_test
+
+
+def cargar_resultados_cnn_calamar():
+    with open(RUTA_METADATA_CNN, "r", encoding="utf-8") as f:
+        metadata = json.load(f)
+    df_test = _leer_csv_modelos(RUTA_TEST_CNN)
+    if "Fecha" in df_test.columns:
+        df_test["Fecha"] = pd.to_datetime(df_test["Fecha"], errors="coerce")
+    for col in ["Calamar_real", "Calamar_predicho", "Residuo", "horizonte"]:
+        if col in df_test.columns:
+            df_test[col] = pd.to_numeric(df_test[col], errors="coerce")
+    if "Residuo" not in df_test.columns and {"Calamar_real", "Calamar_predicho"}.issubset(df_test.columns):
+        df_test["Residuo"] = df_test["Calamar_real"] - df_test["Calamar_predicho"]
+    return metadata, df_test
+
+
+def cargar_resultados_propuesto_calamar():
+    with open(RUTA_METADATA_PROPUESTO, "r", encoding="utf-8") as f:
+        metadata = json.load(f)
+    df_test = _leer_csv_modelos(RUTA_TEST_PROPUESTO)
+    if "Fecha" in df_test.columns:
+        df_test["Fecha"] = pd.to_datetime(df_test["Fecha"], errors="coerce")
+    for col in ["Calamar_real", "Calamar_predicho", "Residuo", "horizonte"]:
+        if col in df_test.columns:
+            df_test[col] = pd.to_numeric(df_test[col], errors="coerce")
+    if "Residuo" not in df_test.columns and {"Calamar_real", "Calamar_predicho"}.issubset(df_test.columns):
+        df_test["Residuo"] = df_test["Calamar_real"] - df_test["Calamar_predicho"]
+    return metadata, df_test
+
+
+def cargar_tablas_xarima_multioutput():
+    return (
+        _leer_csv_modelos_si_existe(RUTA_RESUMEN_XARIMA),
+        _leer_csv_modelos_si_existe(RUTA_RESULTADOS_CV_XARIMA),
+        _leer_csv_modelos_si_existe(RUTA_METRICAS_HORIZONTES_XARIMA),
+    )
+
+
+def cargar_tablas_propuesto_multioutput():
+    return (
+        _leer_csv_modelos_si_existe(RUTA_RESUMEN_PROPUESTO),
+        _leer_csv_modelos_si_existe(RUTA_RESULTADOS_CV_PROPUESTO),
+        _leer_csv_modelos_si_existe(RUTA_METRICAS_HORIZONTES_PROPUESTO),
+        _leer_csv_modelos_si_existe(RUTA_HISTORIAL_ENTRENAMIENTO_PROPUESTO),
+        _leer_csv_modelos_si_existe(RUTA_HISTORIAL_MODELO_FINAL_PROPUESTO),
+    )
+
+
+def figura_serie_propuesto(df_test):
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df_test["Fecha"],
+        y=df_test["Calamar_real"],
+        mode="lines",
+        name="Calamar real",
+        line=dict(color=AZUL, width=2),
+        hovertemplate="<b>Fecha:</b> %{x|%Y-%m-%d}<br><b>Nivel real:</b> %{y:.2f} cm<br><extra></extra>",
+    ))
+    fig.add_trace(go.Scatter(
+        x=df_test["Fecha"],
+        y=df_test["Calamar_predicho"],
+        mode="lines",
+        name="Calamar predicho - Modelo propuesto",
+        line=dict(color=CELESTE, width=2, dash="dash"),
+        hovertemplate="<b>Fecha:</b> %{x|%Y-%m-%d}<br><b>Nivel predicho:</b> %{y:.2f} cm<br><extra></extra>",
+    ))
+    fig.update_layout(
+        title=None,
+        xaxis_title="Fecha",
+        yaxis_title="Nivel en Calamar [cm]",
+        plot_bgcolor=BLANCO,
+        paper_bgcolor=BLANCO,
+        font=dict(family=FUENTE, size=13, color=AZUL),
+        hovermode="x unified",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        margin=dict(l=70, r=40, t=70, b=60),
+        height=520,
+    )
+    fig.update_xaxes(showgrid=True, gridcolor="#D9E2EF")
+    fig.update_yaxes(showgrid=True, gridcolor="#D9E2EF", zeroline=False)
+    return fig
+
+
+def figura_particion_temporal_propuesto(metadata, df_serie, df_test):
+    fig = figura_particion_temporal_svr(metadata, df_serie, df_test)
+    for trace in fig.data:
+        if trace.name == "Predicción SVR":
+            trace.name = "Predicción Modelo propuesto"
+            trace.hovertemplate = (
+                "<b>Predicción Modelo propuesto</b><br>"
+                "<b>Fecha:</b> %{x|%Y-%m-%d}<br>"
+                "<b>Nivel predicho:</b> %{y:.2f} cm<br>"
+                "<extra></extra>"
+            )
+    for anot in fig.layout.annotations:
+        if getattr(anot, "text", None) == "observado<br>SVR":
+            anot.text = "observado<br>Modelo propuesto"
+    return fig
+
+
+def figura_curva_aprendizaje_propuesto(df_historial_entrenamiento, df_historial_final=None, num_inputs=None, metadata=None):
+    return _figura_curva_aprendizaje_nn(
+        df_historial_entrenamiento=df_historial_entrenamiento,
+        df_historial_final=df_historial_final,
+        metadata=metadata,
+        num_inputs=num_inputs,
+        nombre_modelo="Modelo propuesto",
+    )
+
+
+def _preparar_tabla_metricas_horizontes(df_metricas_horizontes):
+    df = df_metricas_horizontes.copy()
+    for col in ["MAE", "MSE", "RMSE", "R2", "MAPE_pct", "MAPE"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+    return df
+
+
+def _preparar_tabla_bds(df_resultados_cv):
+    columnas_bds = [
+        "ventana", "numInputs", "MAE_val_h10_mean", "MSE_val_h10_mean",
+        "BDS_pvalue_mean", "BDS_pvalue_min", "BDS_folds_pass",
+        "BDS_all_folds_pass", "BDS_any_fold_pass",
+    ]
+    columnas_bds = [col for col in columnas_bds if col in df_resultados_cv.columns]
+    df_bds_tabla = df_resultados_cv[columnas_bds].copy() if columnas_bds else pd.DataFrame()
+    df_bds_tabla = df_bds_tabla.rename(columns={
+        "ventana": "Ventana",
+        "numInputs": "Entrada [días]",
+        "MAE_val_h10_mean": "MAE validación H10",
+        "MSE_val_h10_mean": "MSE validación H10",
+        "BDS_pvalue_mean": "BDS p-valor medio",
+        "BDS_pvalue_min": "BDS p-valor mínimo",
+        "BDS_folds_pass": "Folds que no rechazan H0",
+        "BDS_all_folds_pass": "Todos los folds pasan",
+        "BDS_any_fold_pass": "Algún fold pasa",
+    })
+    return df_bds_tabla
+
+
+def _tarjetas_bds_desde_resumen(df_resumen):
+    bds_resumen = df_resumen.iloc[0].to_dict() if df_resumen is not None and len(df_resumen) > 0 else {}
+    def _fmt(valor):
+        if pd.isna(valor):
+            return "N/A"
+        try:
+            return f"{float(valor):.3g}"
+        except (TypeError, ValueError):
+            return str(valor)
+    return (
+        _fmt(bds_resumen.get("BDS_pvalue_mean", np.nan)),
+        _fmt(bds_resumen.get("BDS_pvalue_min", np.nan)),
+        str(bds_resumen.get("BDS_folds_pass", "N/A")),
+    )
+
+
+def layout_xarima_calamar():
+    metadata, df_test = cargar_resultados_xarima_calamar()
+    df_resumen, df_resultados_cv, df_metricas_horizontes = cargar_tablas_xarima_multioutput()
+
+    mae = float(metadata["MAE_test_externo"])
+    mse = float(metadata["MSE_test_externo"])
+    rmse = float(np.sqrt(mse))
+
+    df_serie_completa = leer_serie_completa_calamar()
+    fig_particion = figura_particion_temporal_xarima(metadata, df_serie_completa, df_test)
+    fig_serie = figura_serie_xarima(df_test)
+    fig_hist = figura_histograma_residuos(df_test)
+    nlags_acf = max(1, min(9, len(df_test["Residuo"].dropna()) - 1))
+    fig_acf = figura_acf_residuos(df_test, nlags=nlags_acf)
+    fig_bds_heatmap = figura_heatmap_bds_residuos(df_resultados_cv)
+
+    df_validacion = pd.DataFrame([
+        {"Conjunto": "Train / validación interna", "Fecha inicial": metadata.get("fecha_inicio_trainval", "N/A"), "Fecha final": metadata.get("fecha_fin_trainval", "N/A")},
+        {"Conjunto": "Test externo final", "Fecha inicial": metadata.get("fecha_inicio_test_externo", "N/A"), "Fecha final": metadata.get("fecha_fin_test_externo", "N/A")},
+    ])
+
+    best_params = metadata.get("best_params", {}) if isinstance(metadata.get("best_params", {}), dict) else {}
+    order = metadata.get("order", best_params.get("order", metadata.get("orden_arima", "N/A")))
+    seasonal_order = metadata.get("seasonal_order", best_params.get("seasonal_order", metadata.get("orden_estacional", "N/A")))
+    ventana = metadata.get("numInputs_seleccionado", metadata.get("numInputs", metadata.get("train_size", "N/A")))
+    def _valor_tabla_xarima(valor):
+        if isinstance(valor, (list, tuple)):
+            return "(" + ", ".join(map(str, valor)) + ")"
+        if isinstance(valor, dict):
+            return json.dumps(valor, ensure_ascii=False)
+        return valor
+
+    ventanas_evaluadas = metadata.get("ventanas_evaluadas", metadata.get("numInputs_cv_list", []))
+
+    df_hiper = pd.DataFrame([
+        {"Parámetro": "Modelo", "Valor": _valor_tabla_xarima(metadata.get("modelo", "XARIMA/ARIMA multioutput H10"))},
+        {"Parámetro": "Validación cruzada", "Valor": _valor_tabla_xarima(metadata.get("validacion_cruzada", "split_train_val_groupKFold"))},
+        {"Parámetro": "Ventana seleccionada", "Valor": f"{ventana} días" if ventana != "N/A" else "N/A"},
+        {"Parámetro": "Horizonte de salida", "Valor": f"H{metadata.get('numOutputs', 'N/A')}"},
+        {"Parámetro": "Orden ARIMA", "Valor": _valor_tabla_xarima(order)},
+        {"Parámetro": "Orden estacional", "Valor": _valor_tabla_xarima(seasonal_order)},
+        {"Parámetro": "Tendencia", "Valor": _valor_tabla_xarima(metadata.get("trend", best_params.get("trend", metadata.get("tendencia", "N/A"))))},
+        {"Parámetro": "Ventanas evaluadas", "Valor": ", ".join(map(str, ventanas_evaluadas)) if isinstance(ventanas_evaluadas, (list, tuple, set)) else _valor_tabla_xarima(ventanas_evaluadas)},
+        {"Parámetro": "Modelos entrenados en búsqueda", "Valor": _valor_tabla_xarima(metadata.get("modelos_entrenados_busqueda", "N/A"))},
+    ])
+
+    df_metricas = pd.DataFrame([{"Etapa": "Test externo H10", "MAE": mae, "MSE": mse, "RMSE": rmse}])
+    df_bds_tabla = _preparar_tabla_bds(df_resultados_cv)
+    bds_pmean_txt, bds_pmin_txt, bds_folds_txt = _tarjetas_bds_desde_resumen(df_resumen)
+
+    return html.Div([
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("XARIMA/ARIMA - Calamar", style=estilo_titulo),
+            html.P(
+                "Este modelo corresponde a una formulación XARIMA/ARIMA para predecir simultáneamente un horizonte de 10 días del nivel en la estación Calamar.",
+                style=estilo_parrafo,
+            ),
+            html.P(metadata.get("criterio_final", ""), style=estilo_parrafo),
+        ]),
+        html.Div(style=estilo_flex, children=[
+            tarjeta_metrica("MAE test externo H10", f"{mae:.2f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo H10", f"{mse:.2f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo H10", f"{rmse:.2f}", "Raíz del error cuadrático medio"),
+        ]),
+        html.Div(style=estilo_tarjeta, children=[html.H2("Validación temporal", style=estilo_titulo), crear_tabla_simple(df_validacion, page_size=5)]),
+        html.Div(style=estilo_tarjeta, children=[html.H2("Búsqueda y mejores hiperparámetros", style=estilo_titulo), crear_tabla_simple(df_hiper, page_size=12)]),
+        html.Div(style=estilo_tarjeta, children=[html.H2("Resumen de validación cruzada", style=estilo_titulo), crear_tabla_simple(df_resumen, page_size=5)]),
+        html.Div(style=estilo_tarjeta, children=[html.H2("Resultados por configuración evaluada", style=estilo_titulo), crear_tabla_simple(df_resultados_cv, page_size=8)]),
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Test BDS de los residuos", style=estilo_titulo),
+            html.Div(style=estilo_flex, children=[
+                tarjeta_metrica("BDS p-valor medio", bds_pmean_txt, "Promedio entre folds"),
+                tarjeta_metrica("BDS p-valor mínimo", bds_pmin_txt, "Valor más exigente"),
+                tarjeta_metrica("Folds que pasan BDS", bds_folds_txt, "p-valor ≥ 0.05"),
+            ]),
+            dcc.Graph(figure=fig_bds_heatmap, style={"width": "950px", "maxWidth": "100%", "margin": "0 auto", "display": "block"}, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+            crear_tabla_simple(df_bds_tabla, page_size=8),
+        ]),
+        html.Div(style=estilo_tarjeta, children=[html.H2("Métricas del test externo", style=estilo_titulo), crear_tabla_simple(df_metricas, page_size=5)]),
+        html.Div(style=estilo_tarjeta, children=[html.H2("Métricas por horizonte", style=estilo_titulo), crear_tabla_simple(_preparar_tabla_metricas_horizontes(df_metricas_horizontes), page_size=5)]),
+        html.Div(style=estilo_tarjeta, children=[html.H2("Partición temporal del modelado", style=estilo_titulo), dcc.Graph(figure=fig_particion, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False})]),
+        html.Div(style=estilo_tarjeta, children=[html.H2("Serie observada vs predicha", style=estilo_titulo), dcc.Graph(figure=fig_serie, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False})]),
+        html.Div(style=estilo_tarjeta, children=[html.H2("Diagnóstico de residuos", style=estilo_titulo), dcc.Graph(figure=fig_hist, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}), dcc.Graph(figure=fig_acf, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False})]),
+    ])
+
+
+def layout_propuesto_calamar():
+    metadata, df_test = cargar_resultados_propuesto_calamar()
+    df_resumen, df_resultados_cv, df_metricas_horizontes, df_historial_entrenamiento, df_historial_final = cargar_tablas_propuesto_multioutput()
+
+    mae = float(metadata["MAE_test_externo"])
+    mse = float(metadata["MSE_test_externo"])
+    rmse = float(np.sqrt(mse))
+
+    df_serie_completa = leer_serie_completa_calamar()
+    fig_particion = figura_particion_temporal_propuesto(metadata, df_serie_completa, df_test)
+    fig_serie = figura_serie_propuesto(df_test)
+    fig_hist = figura_histograma_residuos(df_test)
+    nlags_acf = max(1, min(9, len(df_test["Residuo"].dropna()) - 1))
+    fig_acf = figura_acf_residuos(df_test, nlags=nlags_acf)
+    fig_bds_heatmap = figura_heatmap_bds_residuos(df_resultados_cv)
+    fig_curva_aprendizaje = figura_curva_aprendizaje_propuesto(
+        df_historial_entrenamiento,
+        df_historial_final,
+        num_inputs=metadata.get("numInputs_seleccionado", metadata.get("numInputs")),
+        metadata=metadata,
+    )
+
+    df_validacion = pd.DataFrame([
+        {"Conjunto": "Train / validación interna", "Fecha inicial": metadata.get("fecha_inicio_trainval", "N/A"), "Fecha final": metadata.get("fecha_fin_trainval", "N/A")},
+        {"Conjunto": "Test externo final", "Fecha inicial": metadata.get("fecha_inicio_test_externo", "N/A"), "Fecha final": metadata.get("fecha_fin_test_externo", "N/A")},
+    ])
+
+    best_params = metadata.get("best_params", {}) if isinstance(metadata.get("best_params", {}), dict) else {}
+    df_hiper = pd.DataFrame([
+        {"Parámetro": "Modelo", "Valor": metadata.get("modelo", "DWT-CLSTM-DCCNN MultiOutput H10")},
+        {"Parámetro": "Validación cruzada", "Valor": metadata.get("validacion_cruzada", "split_train_val_groupKFold")},
+        {"Parámetro": "Ventana seleccionada", "Valor": f"{metadata.get('numInputs_seleccionado', metadata.get('numInputs', 'N/A'))} días"},
+        {"Parámetro": "Horizonte de salida", "Valor": f"H{metadata.get('numOutputs', 'N/A')}"},
+        {"Parámetro": "filters", "Valor": best_params.get("filters", "N/A")},
+        {"Parámetro": "kernel_size", "Valor": best_params.get("kernel_size", "N/A")},
+        {"Parámetro": "units", "Valor": best_params.get("units", "N/A")},
+        {"Parámetro": "dropout", "Valor": best_params.get("dropout", "N/A")},
+        {"Parámetro": "dense_units", "Valor": best_params.get("dense_units", "N/A")},
+        {"Parámetro": "learning_rate", "Valor": best_params.get("learning_rate", "N/A")},
+        {"Parámetro": "batch_size", "Valor": best_params.get("batch_size", "N/A")},
+        {"Parámetro": "Ventanas evaluadas", "Valor": ", ".join(map(str, metadata.get("ventanas_evaluadas", [])))},
+        {"Parámetro": "Modelos entrenados en búsqueda", "Valor": metadata.get("modelos_entrenados_busqueda", "N/A")},
+    ])
+
+    df_metricas = pd.DataFrame([{"Etapa": "Test externo H10", "MAE": mae, "MSE": mse, "RMSE": rmse}])
+    df_bds_tabla = _preparar_tabla_bds(df_resultados_cv)
+    bds_pmean_txt, bds_pmin_txt, bds_folds_txt = _tarjetas_bds_desde_resumen(df_resumen)
+
+    return html.Div([
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Modelo propuesto (DWT-CLSTM-DCCNN) - Calamar", style=estilo_titulo),
+            html.P(
+                "Esta sección presenta el modelo propuesto con su validación temporal, configuración seleccionada, curva de aprendizaje, diagnóstico BDS, métricas y predicción sobre el test externo.",
+                style=estilo_parrafo,
+            ),
+            html.P(metadata.get("criterio_final", ""), style=estilo_parrafo),
+        ]),
+        html.Div(style=estilo_flex, children=[
+            tarjeta_metrica("MAE test externo H10", f"{mae:.2f}", "Error absoluto medio"),
+            tarjeta_metrica("MSE test externo H10", f"{mse:.2f}", "Error cuadrático medio"),
+            tarjeta_metrica("RMSE test externo H10", f"{rmse:.2f}", "Raíz del error cuadrático medio"),
+        ]),
+        html.Div(style=estilo_tarjeta, children=[html.H2("Validación temporal", style=estilo_titulo), crear_tabla_simple(df_validacion, page_size=5)]),
+        html.Div(style=estilo_tarjeta, children=[html.H2("Búsqueda y mejores hiperparámetros", style=estilo_titulo), crear_tabla_simple(df_hiper, page_size=14)]),
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Curva de aprendizaje", style=estilo_titulo),
+            html.P(
+                "La curva muestra las pérdidas promedio de entrenamiento y validación durante la validación cruzada. Se señala la época donde el gap absoluto entre train loss CV y val loss CV fue menor.",
+                style=estilo_parrafo,
+            ),
+            dcc.Graph(figure=fig_curva_aprendizaje, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+        ]),
+        html.Div(style=estilo_tarjeta, children=[html.H2("Resumen de validación cruzada", style=estilo_titulo), crear_tabla_simple(df_resumen, page_size=5)]),
+        html.Div(style=estilo_tarjeta, children=[html.H2("Resultados por configuración evaluada", style=estilo_titulo), crear_tabla_simple(df_resultados_cv, page_size=8)]),
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Test BDS de los residuos", style=estilo_titulo),
+            html.Div(style=estilo_flex, children=[
+                tarjeta_metrica("BDS p-valor medio", bds_pmean_txt, "Promedio entre folds"),
+                tarjeta_metrica("BDS p-valor mínimo", bds_pmin_txt, "Valor más exigente"),
+                tarjeta_metrica("Folds que pasan BDS", bds_folds_txt, "p-valor ≥ 0.05"),
+            ]),
+            dcc.Graph(figure=fig_bds_heatmap, style={"width": "950px", "maxWidth": "100%", "margin": "0 auto", "display": "block"}, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}),
+            crear_tabla_simple(df_bds_tabla, page_size=8),
+        ]),
+        html.Div(style=estilo_tarjeta, children=[html.H2("Métricas del test externo", style=estilo_titulo), crear_tabla_simple(df_metricas, page_size=5)]),
+        html.Div(style=estilo_tarjeta, children=[html.H2("Métricas por horizonte", style=estilo_titulo), crear_tabla_simple(_preparar_tabla_metricas_horizontes(df_metricas_horizontes), page_size=5)]),
+        html.Div(style=estilo_tarjeta, children=[html.H2("Partición temporal del modelado", style=estilo_titulo), dcc.Graph(figure=fig_particion, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False})]),
+        html.Div(style=estilo_tarjeta, children=[html.H2("Serie observada vs predicha", style=estilo_titulo), dcc.Graph(figure=fig_serie, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False})]),
+        html.Div(style=estilo_tarjeta, children=[html.H2("Diagnóstico de residuos", style=estilo_titulo), dcc.Graph(figure=fig_hist, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False}), dcc.Graph(figure=fig_acf, config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False})]),
+    ])
+
+
+def _layout_error_modelo(nombre_modelo, error):
+    return html.Div(style=estilo_tarjeta, children=[
+        html.H2(f"{nombre_modelo} no disponible", style=estilo_titulo),
+        html.P("No fue posible cargar la información del modelo seleccionado. Revisa que los archivos estén dentro de la carpeta Resultados o en la subcarpeta correspondiente.", style=estilo_parrafo),
+        html.Pre(str(error), style={"whiteSpace": "pre-wrap", "fontFamily": "Consolas", "fontSize": "13px", "color": "#8A1F1F"}),
+    ])
+
+
+def layout_modelos(modelos=None):
+    fig_pliegues = figura_pliegues_validacion()
+    return html.Div([
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Modelos implementados", style=estilo_titulo),
+            html.P(
+                "Debido a la alta multicolinealidad observada entre las series de nivel de las diferentes estaciones, se decidió construir los modelos utilizando únicamente la información temporal y el nivel registrado en Calamar. De esta forma, se trabajó bajo un esquema univariado, donde el nivel futuro se predice a partir de la memoria reciente de la propia serie.",
+                style=estilo_parrafo,
+            ),
+            html.P(
+                "La gráfica muestra los segmentos de entrada y salida utilizados en los pliegues de validación cruzada temporal para todos los modelos.",
+                style=estilo_parrafo,
+            ),
+            dcc.Graph(
+                figure=fig_pliegues,
+                config={"displayModeBar": True, "scrollZoom": True, "displaylogo": False},
+            ),
+            html.Br(),
+            html.P(
+                "A continuación seleccione un modelo para visualizar su configuración, validación temporal, métricas, predicciones y diagnóstico de residuos en la estación de Calamar.",
+                style=estilo_parrafo,
+            ),
+            dcc.Dropdown(
+                id="selector-modelo",
+                options=[
+                    {"label": "Todos", "value": "todos"},
+                    {"label": "Máquina de Vectores de Soporte (SVR)", "value": "svr_calamar"},
+                    {"label": "K-Vecinos más Cercanos (KNN)", "value": "knn_calamar"},
+                    {"label": "XARIMA/ARIMA", "value": "xarima_calamar"},
+                    {"label": "Árbol de Decisión", "value": "dt_calamar"},
+                    {"label": "Regresión Lasso", "value": "lasso_calamar"},
+                    {"label": "Regresión Ridge", "value": "ridge_calamar"},
+                    {"label": "Random Forest", "value": "rf_calamar"},
+                    {"label": "XGBoost", "value": "xgb_calamar"},
+                    {"label": "Multi-Layer Perceptron (MLP)", "value": "mlp_calamar"},
+                    {"label": "Recurrent Neural Network (RNN)", "value": "rnn_calamar"},
+                    {"label": "Long Short-Term Memory (LSTM)", "value": "lstm_calamar"},
+                    {"label": "Convolutional Neural Network (CNN)", "value": "cnn_calamar"},
+                    {"label": "Modelo propuesto (DWT-CLSTM-DCCNN)", "value": "propuesto_calamar"},
+                ],
+                value="svr_calamar",
+                clearable=False,
+                style={"fontFamily": FUENTE, "fontSize": "14px", "maxWidth": "520px"},
+            ),
+        ]),
+        html.Div(id="contenido-modelo"),
+    ])
+
+
+def registrar_callbacks_modelos(app, df, serie_objetivo, modelos=None):
+    @app.callback(Output("contenido-modelo", "children"), Input("selector-modelo", "value"))
+    def mostrar_modelo(modelo):
+        try:
+            if modelo == "todos":
+                return layout_todos_modelos()
+            if modelo == "svr_calamar":
+                return layout_svr_calamar()
+            if modelo == "knn_calamar":
+                return layout_knn_calamar()
+            if modelo == "xarima_calamar":
+                return layout_xarima_calamar()
+            if modelo == "dt_calamar":
+                return layout_dt_calamar()
+            if modelo == "lasso_calamar":
+                return layout_lasso_calamar()
+            if modelo == "ridge_calamar":
+                return layout_ridge_calamar()
+            if modelo == "rf_calamar":
+                return layout_rf_calamar()
+            if modelo == "xgb_calamar":
+                return layout_xgb_calamar()
+            if modelo == "mlp_calamar":
+                return layout_mlp_calamar()
+            if modelo == "rnn_calamar":
+                return layout_rnn_calamar()
+            if modelo == "lstm_calamar":
+                return layout_lstm_calamar()
+            if modelo == "cnn_calamar":
+                return layout_cnn_calamar()
+            if modelo == "propuesto_calamar":
+                return layout_propuesto_calamar()
+        except Exception as exc:
+            nombres = {
+                "xarima_calamar": "XARIMA/ARIMA",
+                "mlp_calamar": "MLP",
+                "rnn_calamar": "RNN",
+                "cnn_calamar": "CNN",
+                "propuesto_calamar": "Modelo propuesto",
+            }
+            return _layout_error_modelo(nombres.get(modelo, "Modelo"), exc)
+
+        return html.Div(style=estilo_tarjeta, children=[
+            html.H2("Modelo no disponible", style=estilo_titulo),
+            html.P("La información de este modelo todavía no ha sido cargada.", style=estilo_parrafo),
+        ])

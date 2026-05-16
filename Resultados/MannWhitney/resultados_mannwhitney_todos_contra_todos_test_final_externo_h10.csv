@@ -1,0 +1,79 @@
+﻿modelo_a,modelo_b,n_modelo_a,n_modelo_b,MAE_modelo_a,MAE_modelo_b,mejor_por_MAE,diferencia_MAE_a_menos_b,U,p_valor,¿Diferencia significativa?,interpretación
+SVR,Random Forest,10,10,1.871,1.993,SVR,-0.122,53.0,0.85,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+SVR,KNN,10,10,1.871,0.957,KNN,0.914,78.0,0.038,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+SVR,XGBoost,10,10,1.871,7.454,SVR,-5.583,15.0,0.009,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+SVR,Árbol de Decisión,10,10,1.871,1.606,Árbol de Decisión,0.265,60.0,0.472,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+SVR,Ridge,10,10,1.871,6.03,SVR,-4.159,20.0,0.026,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+SVR,Lasso,10,10,1.871,6.675,SVR,-4.804,17.0,0.014,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+SVR,CNN,10,10,1.871,3.154,SVR,-1.283,33.0,0.212,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+SVR,RNN,10,10,1.871,13.561,SVR,-11.69,11.0,0.004,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+SVR,XARIMA/ARIMA,10,10,1.871,4.605,SVR,-2.734,23.0,0.045,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+SVR,LSTM,10,10,1.871,1.075,LSTM,0.795,75.0,0.064,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+SVR,MLP,10,10,1.871,7.089,SVR,-5.218,18.0,0.017,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+SVR,DWT-CLSTM-DCCNN,10,10,1.871,1.711,DWT-CLSTM-DCCNN,0.16,55.0,0.734,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+Random Forest,KNN,10,10,1.993,0.957,KNN,1.035,89.0,0.004,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Random Forest,XGBoost,10,10,1.993,7.454,Random Forest,-5.462,19.0,0.021,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Random Forest,Árbol de Decisión,10,10,1.993,1.606,Árbol de Decisión,0.386,67.0,0.212,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+Random Forest,Ridge,10,10,1.993,6.03,Random Forest,-4.038,22.0,0.038,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Random Forest,Lasso,10,10,1.993,6.675,Random Forest,-4.683,20.0,0.026,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Random Forest,CNN,10,10,1.993,3.154,Random Forest,-1.161,35.0,0.273,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+Random Forest,RNN,10,10,1.993,13.561,Random Forest,-11.569,11.0,0.004,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Random Forest,XARIMA/ARIMA,10,10,1.993,4.605,Random Forest,-2.612,24.0,0.054,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+Random Forest,LSTM,10,10,1.993,1.075,LSTM,0.917,83.0,0.014,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Random Forest,MLP,10,10,1.993,7.089,Random Forest,-5.096,20.0,0.026,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Random Forest,DWT-CLSTM-DCCNN,10,10,1.993,1.711,DWT-CLSTM-DCCNN,0.281,60.0,0.473,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+KNN,XGBoost,10,10,0.957,7.454,KNN,-6.497,5.0,0.001,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+KNN,Árbol de Decisión,10,10,0.957,1.606,KNN,-0.649,25.0,0.064,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+KNN,Ridge,10,10,0.957,6.03,KNN,-5.073,18.0,0.017,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+KNN,Lasso,10,10,0.957,6.675,KNN,-5.718,12.0,0.005,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+KNN,CNN,10,10,0.957,3.154,KNN,-2.197,26.0,0.076,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+KNN,RNN,10,10,0.957,13.561,KNN,-12.604,10.0,0.003,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+KNN,XARIMA/ARIMA,10,10,0.957,4.605,KNN,-3.647,22.0,0.038,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+KNN,LSTM,10,10,0.957,1.075,KNN,-0.118,42.0,0.571,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+KNN,MLP,10,10,0.957,7.089,KNN,-6.131,14.0,0.007,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+KNN,DWT-CLSTM-DCCNN,10,10,0.957,1.711,KNN,-0.754,23.0,0.045,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+XGBoost,Árbol de Decisión,10,10,7.454,1.606,Árbol de Decisión,5.848,91.0,0.002,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+XGBoost,Ridge,10,10,7.454,6.03,Ridge,1.424,62.0,0.385,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+XGBoost,Lasso,10,10,7.454,6.675,Lasso,0.779,58.0,0.571,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+XGBoost,CNN,10,10,7.454,3.154,CNN,4.3,80.0,0.026,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+XGBoost,RNN,10,10,7.454,13.561,XGBoost,-6.107,26.0,0.076,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+XGBoost,XARIMA/ARIMA,10,10,7.454,4.605,XARIMA/ARIMA,2.85,71.0,0.121,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+XGBoost,LSTM,10,10,7.454,1.075,LSTM,6.379,93.0,0.001,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+XGBoost,MLP,10,10,7.454,7.089,MLP,0.366,53.0,0.85,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+XGBoost,DWT-CLSTM-DCCNN,10,10,7.454,1.711,DWT-CLSTM-DCCNN,5.743,88.0,0.005,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Árbol de Decisión,Ridge,10,10,1.606,6.03,Árbol de Decisión,-4.424,21.0,0.031,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Árbol de Decisión,Lasso,10,10,1.606,6.675,Árbol de Decisión,-5.069,17.0,0.014,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Árbol de Decisión,CNN,10,10,1.606,3.154,Árbol de Decisión,-1.548,34.0,0.241,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+Árbol de Decisión,RNN,10,10,1.606,13.561,Árbol de Decisión,-11.955,11.0,0.004,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Árbol de Decisión,XARIMA/ARIMA,10,10,1.606,4.605,Árbol de Decisión,-2.998,24.0,0.054,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+Árbol de Decisión,LSTM,10,10,1.606,1.075,LSTM,0.531,63.0,0.344,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+Árbol de Decisión,MLP,10,10,1.606,7.089,Árbol de Decisión,-5.482,15.0,0.009,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Árbol de Decisión,DWT-CLSTM-DCCNN,10,10,1.606,1.711,Árbol de Decisión,-0.105,43.0,0.623,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+Ridge,Lasso,10,10,6.03,6.675,Ridge,-0.645,44.0,0.678,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+Ridge,CNN,10,10,6.03,3.154,CNN,2.876,69.0,0.162,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+Ridge,RNN,10,10,6.03,13.561,Ridge,-7.531,22.0,0.038,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Ridge,XARIMA/ARIMA,10,10,6.03,4.605,XARIMA/ARIMA,1.426,61.0,0.427,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+Ridge,LSTM,10,10,6.03,1.075,LSTM,4.955,83.0,0.014,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Ridge,MLP,10,10,6.03,7.089,Ridge,-1.058,41.0,0.521,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+Ridge,DWT-CLSTM-DCCNN,10,10,6.03,1.711,DWT-CLSTM-DCCNN,4.319,79.0,0.031,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Lasso,CNN,10,10,6.675,3.154,CNN,3.521,78.0,0.038,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Lasso,RNN,10,10,6.675,13.561,Lasso,-6.886,25.0,0.064,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+Lasso,XARIMA/ARIMA,10,10,6.675,4.605,XARIMA/ARIMA,2.071,64.0,0.307,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+Lasso,LSTM,10,10,6.675,1.075,LSTM,5.6,86.0,0.007,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+Lasso,MLP,10,10,6.675,7.089,Lasso,-0.413,46.0,0.791,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+Lasso,DWT-CLSTM-DCCNN,10,10,6.675,1.711,DWT-CLSTM-DCCNN,4.964,82.0,0.017,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+CNN,RNN,10,10,3.154,13.561,CNN,-10.407,15.0,0.009,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+CNN,XARIMA/ARIMA,10,10,3.154,4.605,CNN,-1.451,40.0,0.473,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+CNN,LSTM,10,10,3.154,1.075,LSTM,2.079,76.0,0.054,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+CNN,MLP,10,10,3.154,7.089,CNN,-3.934,24.0,0.054,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+CNN,DWT-CLSTM-DCCNN,10,10,3.154,1.711,DWT-CLSTM-DCCNN,1.443,67.0,0.212,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+RNN,XARIMA/ARIMA,10,10,13.561,4.605,XARIMA/ARIMA,8.957,82.0,0.017,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+RNN,LSTM,10,10,13.561,1.075,LSTM,12.486,91.0,0.002,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+RNN,MLP,10,10,13.561,7.089,MLP,6.473,74.0,0.076,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+RNN,DWT-CLSTM-DCCNN,10,10,13.561,1.711,DWT-CLSTM-DCCNN,11.85,89.0,0.004,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+XARIMA/ARIMA,LSTM,10,10,4.605,1.075,LSTM,3.529,82.0,0.017,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+XARIMA/ARIMA,MLP,10,10,4.605,7.089,XARIMA/ARIMA,-2.484,33.0,0.212,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+XARIMA/ARIMA,DWT-CLSTM-DCCNN,10,10,4.605,1.711,DWT-CLSTM-DCCNN,2.893,76.0,0.054,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+LSTM,MLP,10,10,1.075,7.089,LSTM,-6.013,14.0,0.007,Sí,Las distribuciones de errores absolutos son significativamente diferentes.
+LSTM,DWT-CLSTM-DCCNN,10,10,1.075,1.711,LSTM,-0.636,29.0,0.121,No,No se evidencia diferencia significativa entre las distribuciones de errores.
+MLP,DWT-CLSTM-DCCNN,10,10,7.089,1.711,DWT-CLSTM-DCCNN,5.377,83.0,0.014,Sí,Las distribuciones de errores absolutos son significativamente diferentes.

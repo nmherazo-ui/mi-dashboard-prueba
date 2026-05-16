@@ -1,0 +1,13 @@
+﻿comparación,modelo_referencia,modelo_comparado,n_referencia,n_comparado,MAE_referencia,MAE_comparado,diferencia_MAE,U,p_valor,¿Diferencia significativa?,interpretación
+DWT-CLSTM-DCCNN vs SVR,DWT-CLSTM-DCCNN,SVR,10,10,1.711,1.871,0.16,45.0,0.367,No,No se evidencia diferencia significativa a favor de DWT-CLSTM-DCCNN.
+DWT-CLSTM-DCCNN vs Random Forest,DWT-CLSTM-DCCNN,Random Forest,10,10,1.711,1.993,0.281,40.0,0.236,No,No se evidencia diferencia significativa a favor de DWT-CLSTM-DCCNN.
+DWT-CLSTM-DCCNN vs KNN,DWT-CLSTM-DCCNN,KNN,10,10,1.711,0.957,-0.754,77.0,0.981,No,No se evidencia diferencia significativa a favor de DWT-CLSTM-DCCNN.
+DWT-CLSTM-DCCNN vs XGBoost,DWT-CLSTM-DCCNN,XGBoost,10,10,1.711,7.454,5.743,12.0,0.002,Sí,El modelo DWT-CLSTM-DCCNN presenta errores significativamente menores.
+DWT-CLSTM-DCCNN vs Árbol de Decisión,DWT-CLSTM-DCCNN,Árbol de Decisión,10,10,1.711,1.606,-0.105,57.0,0.715,No,No se evidencia diferencia significativa a favor de DWT-CLSTM-DCCNN.
+DWT-CLSTM-DCCNN vs Ridge,DWT-CLSTM-DCCNN,Ridge,10,10,1.711,6.03,4.319,21.0,0.016,Sí,El modelo DWT-CLSTM-DCCNN presenta errores significativamente menores.
+DWT-CLSTM-DCCNN vs Lasso,DWT-CLSTM-DCCNN,Lasso,10,10,1.711,6.675,4.964,18.0,0.009,Sí,El modelo DWT-CLSTM-DCCNN presenta errores significativamente menores.
+DWT-CLSTM-DCCNN vs CNN,DWT-CLSTM-DCCNN,CNN,10,10,1.711,3.154,1.443,33.0,0.106,No,No se evidencia diferencia significativa a favor de DWT-CLSTM-DCCNN.
+DWT-CLSTM-DCCNN vs RNN,DWT-CLSTM-DCCNN,RNN,10,10,1.711,13.561,11.85,11.0,0.002,Sí,El modelo DWT-CLSTM-DCCNN presenta errores significativamente menores.
+DWT-CLSTM-DCCNN vs XARIMA/ARIMA,DWT-CLSTM-DCCNN,XARIMA/ARIMA,10,10,1.711,4.605,2.893,24.0,0.027,Sí,El modelo DWT-CLSTM-DCCNN presenta errores significativamente menores.
+DWT-CLSTM-DCCNN vs LSTM,DWT-CLSTM-DCCNN,LSTM,10,10,1.711,1.075,-0.636,71.0,0.948,No,No se evidencia diferencia significativa a favor de DWT-CLSTM-DCCNN.
+DWT-CLSTM-DCCNN vs MLP,DWT-CLSTM-DCCNN,MLP,10,10,1.711,7.089,5.377,17.0,0.007,Sí,El modelo DWT-CLSTM-DCCNN presenta errores significativamente menores.
