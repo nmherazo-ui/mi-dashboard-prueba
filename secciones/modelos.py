@@ -76,26 +76,44 @@ RUTA_SERIE_COMPLETA = Path("data/Niveles_imputados_completo.csv")
 RUTA_SERIE_COMPLETA = Path("data/Niveles_imputados_completo.csv")
 
 RUTAS_DM_ABSOLUTA = [
+    Path("Resultados/Diebold/diebold_mariano_todos_los_pares_perdida_absoluta.csv"),
+    Path("Resultados/Diebold/matriz_pvalues_dm_absoluta.csv"),
+    Path("Resultados/Diebold/matriz_pvalues_dm_absoluta.xlsx"),
     Path("Resultados/matriz_pvalues_dm_absoluta.csv"),
     Path("Resultados/matriz_pvalues_dm_absoluta.xlsx"),
 ]
 
 RUTAS_DM_CUADRATICA = [
+    Path("Resultados/Diebold/diebold_mariano_todos_los_pares_perdida_cuadratica.csv"),
+    Path("Resultados/Diebold/matriz_pvalues_dm_cuadratica.csv"),
+    Path("Resultados/Diebold/matriz_pvalues_dm_cuadratica.xlsx"),
     Path("Resultados/matriz_pvalues_dm_cuadratica.csv"),
     Path("Resultados/matriz_pvalues_dm_cuadratica.xlsx"),
 ]
 
 RUTAS_MW_ERRORES_ABSOLUTOS = [
+    Path("Resultados/MannWhitney/matriz_errores_absolutos_modelos_test_final_externo_h10.csv"),
+    Path("Resultados/MannWhitney/matriz_errores_absolutos_modelos.csv"),
+    Path("Resultados/MannWhitney/matriz_errores_absolutos_modelos.xlsx"),
+    Path("Resultados/matriz_errores_absolutos_modelos_test_final_externo_h10.csv"),
     Path("Resultados/matriz_errores_absolutos_modelos.csv"),
     Path("Resultados/matriz_errores_absolutos_modelos.xlsx"),
 ]
 
 RUTAS_MW_SVR_VS_MODELOS = [
-    Path("Resultados/resultados_mannwhitney_svr_vs_modelos.csv"),
-    Path("Resultados/resultados_mannwhitney_svr_vs_modelos.xlsx"),
+    Path("Resultados/MannWhitney/resultados_mannwhitney_dwt_clstm_dccnn_vs_modelos_test_final_externo_h10.csv"),
+    Path("Resultados/MannWhitney/resultados_mannwhitney_dwt_clstm_dccnn_vs_modelos.csv"),
+    Path("Resultados/MannWhitney/resultados_mannwhitney_dwt_clstm_dccnn_vs_modelos.xlsx"),
+    Path("Resultados/resultados_mannwhitney_dwt_clstm_dccnn_vs_modelos_test_final_externo_h10.csv"),
+    Path("Resultados/resultados_mannwhitney_dwt_clstm_dccnn_vs_modelos.csv"),
+    Path("Resultados/resultados_mannwhitney_dwt_clstm_dccnn_vs_modelos.xlsx"),
 ]
 
 RUTAS_MW_TODOS_CONTRA_TODOS = [
+    Path("Resultados/MannWhitney/resultados_mannwhitney_todos_contra_todos_test_final_externo_h10.csv"),
+    Path("Resultados/MannWhitney/resultados_mannwhitney_todos_contra_todos.csv"),
+    Path("Resultados/MannWhitney/resultados_mannwhitney_todos_contra_todos.xlsx"),
+    Path("Resultados/resultados_mannwhitney_todos_contra_todos_test_final_externo_h10.csv"),
     Path("Resultados/resultados_mannwhitney_todos_contra_todos.csv"),
     Path("Resultados/resultados_mannwhitney_todos_contra_todos.xlsx"),
 ]
@@ -3806,6 +3824,8 @@ MAPA_NOMBRES_MANNWHITNEY = {
     "RandomForest": "Random Forest",
     "DecisionTree": "Árbol de Decisión",
     "XARIMA": "XARIMA/ARIMA",
+    "DWT-CLSTM-DCCNN": "DWT-CLSTM-DCCNN",
+    "DWT_CLSTM_DCCNN": "DWT-CLSTM-DCCNN",
 }
 
 
@@ -3902,14 +3922,22 @@ def figura_heatmap_mannwhitney_svr_vs_modelos(df_resultados):
 
     columna_modelo = "modelo_comparado"
     if columna_modelo not in df.columns:
-        raise ValueError("No se encontró la columna 'modelo_comparado' en resultados_mannwhitney_svr_vs_modelos.")
+        raise ValueError("No se encontró la columna 'modelo_comparado' en resultados_mannwhitney_dwt_clstm_dccnn_vs_modelos.")
+
+    columna_referencia = "modelo_referencia"
+    if columna_referencia in df.columns and len(df) > 0:
+        modelo_referencia = str(df[columna_referencia].iloc[0]).strip()
+    else:
+        modelo_referencia = "Modelo propuesto"
+
+    modelo_referencia = MAPA_NOMBRES_MANNWHITNEY.get(modelo_referencia, modelo_referencia)
 
     columna_pvalor = "p_valor_ajustado_holm"
     if columna_pvalor not in df.columns:
         columna_pvalor = "p_valor"
 
     if columna_pvalor not in df.columns:
-        raise ValueError("No se encontró la columna de p-valor en resultados_mannwhitney_svr_vs_modelos.")
+        raise ValueError("No se encontró la columna de p-valor en resultados_mannwhitney_dwt_clstm_dccnn_vs_modelos.")
 
     df[columna_modelo] = df[columna_modelo].astype(str).str.strip().replace(MAPA_NOMBRES_MANNWHITNEY)
     df[columna_pvalor] = pd.to_numeric(df[columna_pvalor], errors="coerce")
@@ -3922,7 +3950,7 @@ def figura_heatmap_mannwhitney_svr_vs_modelos(df_resultados):
         data=go.Heatmap(
             z=valores,
             x=modelos,
-            y=["SVR"],
+            y=[modelo_referencia],
             text=texto,
             texttemplate="%{text}",
             textfont=dict(size=10, color=AZUL),
@@ -3939,7 +3967,7 @@ def figura_heatmap_mannwhitney_svr_vs_modelos(df_resultados):
                 tickfont=dict(family=FUENTE, size=12, color=AZUL),
             ),
             hovertemplate=(
-                "<b>Referencia:</b> SVR<br>"
+                f"<b>Referencia:</b> {modelo_referencia}<br>"
                 "<b>Modelo comparado:</b> %{x}<br>"
                 "<b>p-valor:</b> %{z:.4g}"
                 "<extra></extra>"
@@ -4070,30 +4098,25 @@ def layout_todos_modelos():
     df_dm_cuadratica = leer_matriz_pvalues_dm(RUTAS_DM_CUADRATICA)
     fig_dm_absoluta = figura_heatmap_pvalues_dm(df_dm_absoluta)
     fig_dm_cuadratica = figura_heatmap_pvalues_dm(df_dm_cuadratica)
-    df_mw_errores_absolutos = leer_archivo_mannwhitney_modelos(
-        RUTAS_MW_ERRORES_ABSOLUTOS,
-        "matriz de errores absolutos por modelo",
-    )
     df_mw_svr_vs_modelos = leer_archivo_mannwhitney_modelos(
         RUTAS_MW_SVR_VS_MODELOS,
-        "resultados Mann-Whitney SVR vs modelos",
+        "resultados Mann-Whitney modelo propuesto vs modelos",
     )
     df_mw_todos_contra_todos = leer_archivo_mannwhitney_modelos(
         RUTAS_MW_TODOS_CONTRA_TODOS,
         "resultados Mann-Whitney todos contra todos",
     )
-    fig_mw_errores_absolutos = figura_heatmap_errores_absolutos_mannwhitney(df_mw_errores_absolutos)
     fig_mw_svr_vs_modelos = figura_heatmap_mannwhitney_svr_vs_modelos(df_mw_svr_vs_modelos)
     fig_mw_todos_contra_todos = figura_heatmap_mannwhitney_todos_contra_todos(df_mw_todos_contra_todos)
 
     texto_conclusion = (
     "Con el fin de evaluar la eficacia de cada modelo para predecir el nivel del río, se hizo uso de un test externo correspondiente "
-    "a un año de datos 2025 y se midieron las métricas de MAE, RMSE y MAPE. Se observa que el modelo SVR presentó el mejor desempeño "
-    "global frente a los demás modelos analizados. Este obtuvo el menor valor de MAE = 1.60, lo que indica que, en promedio, sus "
-    "predicciones se desviaron menos de los valores reales del nivel en Calamar. Asimismo, este modelo alcanzó el menor RMSE = 2.14 y "
-    "el menor MAPE = 0.30 %, lo que refleja un error porcentual relativo muy bajo. En conjunto, estos resultados sugieren que el modelo "
-    "SVR logró una mejor capacidad predictiva en el periodo de prueba externo, por lo que puede considerarse como el más apto para la "
-    "tarea de predicción en la estación de estudio."
+    "a un año de datos 2025 y se midieron las métricas de MAE, RMSE y MAPE. Se observa que el modelo KNN presentó el mejor desempeño "
+    "global frente a los demás modelos analizados. Este obtuvo el menor valor de MAE = 0.96, lo que indica que, en promedio, sus predicciones " 
+    "se desviaron menos de los valores reales del nivel en Calamar. Asimismo, este modelo alcanzó el menor RMSE = 1.20 y el menor "
+    "MAPE = 0.14 %, lo que refleja un error porcentual relativo muy bajo. En conjunto, estos resultados sugieren que el modelo KNN "
+    "logró una mejor capacidad predictiva en el periodo de prueba externo. "
+
     )
 
     return html.Div([
@@ -4274,11 +4297,14 @@ def layout_todos_modelos():
             html.P(
                 "El test de Diebold–Mariano se aplicó para comparar la capacidad predictiva de los modelos sobre el mismo periodo "
                 "de test externo, usando pérdida absoluta y pérdida cuadrática, asociadas al MAE y al MSE, respectivamente. "
-                "Los resultados mostraron que SVR obtuvo el menor error promedio en el test externo, sin embargo, su diferencia "
-                "con Random Forest no fue estadísticamente significativa en ninguna de las dos funciones de pérdida. Esto indica que, "
-                "aunque SVR presentó el mejor desempeño promedio, Random Forest tuvo una capacidad predictiva estadísticamente comparable. "
-                "En contraste, varios modelos con mayores errores, como MLP, LSTM, RNN y XARIMA, sí presentaron diferencias significativas "
-                "frente a los modelos de mejor desempeño, evidenciando una menor precisión relativa en el periodo evaluado.",
+                "Los resultados mostraron que el modelo híbrido DWT-CLSTM-DCCNN presentó un desempeño competitivo frente "
+                "a varios modelos tradicionales y de aprendizaje profundo. . Aunque KNN y LSTM obtuvieron menores errores promedio " 
+                "en el test externo, la diferencia entre el modelo propuesto y KNN no fue estadísticamente significativa en ninguna "
+                "de las dos funciones de pérdida. En contraste, frente a modelos como RNN, XGBoost, MLP, Lasso, Ridge y XARIMA/ARIMA, " 
+                "el modelo híbrido sí presentó diferencias significativas, evidenciando una mejor capacidad predictiva relativa."
+                "Además, las diferencias frente a SVR, Random Forest, CNN y Árbol de Decisión no fueron estadísticamente significativas, "
+                ", lo que indica que estos modelos tuvieron un comportamiento predictivo comparable al propuesto durante el periodo evaluado.",
+                
                 style=estilo_parrafo,
             ),
             
@@ -4296,6 +4322,9 @@ def layout_todos_modelos():
                             "Este mapa presenta los p-valores de la prueba Diebold-Mariano calculada sobre "
                             "la diferencia absoluta entre errores. Valores menores que 0.05 indican diferencias "
                             "estadísticamente significativas entre el desempeño predictivo de los modelos comparados.",
+                            "En este caso, el modelo DWT-CLSTM-DCCNN mostró diferencias significativas frente a varios "
+                            "modelos con mayores errores, mientras que frente a SVR, Random Forest, KNN, CNN y Árbol "
+                            "de Decisión no se evidenciaron diferencias significativas.",
                             style=estilo_parrafo,
                         ),
                         dcc.Graph(
@@ -4319,7 +4348,10 @@ def layout_todos_modelos():
                         html.P(
                             "Este mapa presenta los p-valores de la prueba Diebold-Mariano calculada sobre "
                             "la diferencia cuadrática entre errores. Valores menores que 0.05 indican diferencias "
-                            "estadísticamente significativas entre el desempeño predictivo de los modelos comparados.",
+                            "estadísticamente significativas entre el desempeño predictivo de los modelos comparados. "
+                            "Los resultados mantienen una tendencia similar a la pérdida absoluta, destacando que el modelo "
+                            "DWT-CLSTM-DCCNN presenta diferencias significativas frente a modelos como RNN, XGBoost, MLP, Lasso, "
+                            "Ridge y XARIMA/ARIMA, pero no frente a SVR, Random Forest, KNN, CNN y Árbol de Decisión.",
                             style=estilo_parrafo,
                         ),
                         dcc.Graph(
@@ -4346,15 +4378,14 @@ def layout_todos_modelos():
             html.H2("Diferencias entre modelos con el Test Mann-Whitney", style=estilo_titulo),
             html.P(
                 "Para comprender la significancia entre las diferencias de los modelos, se optó por aplicar el test Mann-Whitney. "
-                "Los valores de P fueron graficados en una matriz, esta muestra que, en la mayoría de comparaciones, los modelos sí "
-                "presentan diferencias claras entre sus errores, porque muchos valores de P son menores a 0.001. Esto quiere decir "
-                "que no solo hay diferencias en las métricas generales como MAE o RMSE, sino que esas diferencias también se reflejan "
-                "en los errores del test externo. Sin embargo, hay algunos grupos de modelos que se comportan de forma parecida, por "
-                "ejemplo SVR y Random Forest, donde el valor-p ajustado fue alto, lo que indica que sus errores no son estadísticamente "
-                "tan distintos. Algo similar ocurre entre Ridge y Lasso, y entre XGBoost y Decision Tree. En general, la prueba confirma "
-                "que SVR fue uno de los modelos más competitivos, pero también muestra que su ventaja frente a algunos modelos cercanos, "
-                "como Random Forest, no es tan marcada desde el punto de vista estadístico y se podría optar por modelos con menor costo "
-                "computacional.",
+                "Los valores de p fueron graficados en una matriz, usando los p-values originales sin ajuste Holm. . Esta matriz muestra que, "
+                "en varias comparaciones, los modelos sí presentan diferencias claras entre sus distribuciones de errores, especialmente cuando " 
+                "los p-valores son menores a 0.05. En el caso del modelo híbrido DWT-CLSTM-DCCNN, se observan diferencias significativas frente a "
+                "modelos como RNN, XGBoost, MLP, Lasso y Ridge, lo cual indica que sus errores absolutos se distribuyen de forma distinta y, en general, "
+                "con menor magnitud. Sin embargo, frente a modelos como SVR, Random Forest, Árbol de Decisión, CNN y LSTM, los p-valores fueron mayores a "
+                "0.05, por lo que no se evidencia una diferencia estadísticamente significativa. En general, la prueba confirma que el modelo propuesto es "
+                "competitivo, aunque su ventaja frente a algunos modelos cercanos no es suficientemente marcada desde el punto de vista estadístico.",
+                
                 style=estilo_parrafo,
             ),
             html.Div(
@@ -4366,10 +4397,11 @@ def layout_todos_modelos():
                 },
                 children=[
                     html.Div(children=[
-                        html.H3("Mann-Whitney: SVR vs modelos", style={**estilo_titulo, "fontSize": "18px"}),
+                        html.H3("Mann-Whitney: Modelo propuesto vs modelos", style={**estilo_titulo, "fontSize": "18px"}),
                         html.P(
-                            "Este mapa muestra los p-valores ajustados del test Mann-Whitney al comparar "
-                            "la distribución de errores absolutos del SVR frente a los demás modelos.",
+                            "Este mapa muestra los p-valores del test Mann-Whitney al comparar la distribución de errores absolutos del modelo híbrido "
+                            "DWT-CLSTM-DCCNN frente a los demás modelos. Valores menores que 0.05 indican diferencias estadísticamente significativas "
+                            "entre las distribuciones de errores.",
                             style=estilo_parrafo,
                         ),
                         dcc.Graph(
@@ -4380,7 +4412,7 @@ def layout_todos_modelos():
                                 "displaylogo": False,
                                 "toImageButtonOptions": {
                                     "format": "png",
-                                    "filename": "heatmap_mannwhitney_svr_vs_modelos",
+                                    "filename": "heatmap_mannwhitney_modelo_propuesto_vs_modelos",
                                     "height": 700,
                                     "width": 1400,
                                     "scale": 2,
@@ -4391,9 +4423,9 @@ def layout_todos_modelos():
                     html.Div(children=[
                         html.H3("Mann-Whitney: todos contra todos", style={**estilo_titulo, "fontSize": "18px"}),
                         html.P(
-                            "Este mapa muestra los p-valores ajustados del test Mann-Whitney para todas "
-                            "las comparaciones pareadas entre modelos. Valores menores que 0.05 indican "
-                            "diferencias estadísticamente significativas entre distribuciones de errores.",
+                            "Este mapa muestra los p-valores ajustados del test Mann-Whitney para todas las comparaciones pareadas entre modelos. "
+                            "Valores menores que 0.05 indican diferencias estadísticamente significativas entre distribuciones de errores. La matriz "
+                            "permite observar qué modelos presentan comportamientos estadísticamente similares y cuáles se diferencian claramente en el test externo.",
                             style=estilo_parrafo,
                         ),
                         dcc.Graph(
