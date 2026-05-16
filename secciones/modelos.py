@@ -3208,9 +3208,8 @@ def tabla_comparativa_modelos(df_metricas):
             {"name": "RMSE", "id": "RMSE", "type": "numeric", "format": {"specifier": ".2f"}},
             {"name": "MAPE [%]", "id": "MAPE", "type": "numeric", "format": {"specifier": ".2f"}},
             {"name": "Ventana seleccionada", "id": "Ventana"},
-            {"name": "Modelos entrenados", "id": "Modelos entrenados"},
         ],
-        page_size=12,
+        page_size=13,
         style_table={"overflowX": "auto", "marginTop": "14px"},
         style_cell={
             "textAlign": "center",
@@ -9649,6 +9648,7 @@ RUTA_HISTORIAL_MODELO_FINAL_CNN = _resolver_archivo_resultados_robusto(
 # Rutas del Modelo propuesto
 _SUBCARPETAS_PROPUESTO = (
     "Hibrido",
+    "Hibrido/Hibrido",
     "13_Hibrido",
     "Modelo_propuesto",
     "Modelo propuesto",
@@ -9716,7 +9716,7 @@ _actualizar_spec_comparacion("xarima_calamar", "XARIMA H10", RUTA_METADATA_XARIM
 _actualizar_spec_comparacion("mlp_calamar", "MLP Multioutput H10", RUTA_METADATA_MLP, RUTA_TEST_MLP)
 _actualizar_spec_comparacion("rnn_calamar", "RNN Multioutput H10", RUTA_METADATA_RNN, RUTA_TEST_RNN)
 _actualizar_spec_comparacion("cnn_calamar", "CNN Multioutput H10", RUTA_METADATA_CNN, RUTA_TEST_CNN)
-_actualizar_spec_comparacion("propuesto_calamar", "Modelo propuesto", RUTA_METADATA_PROPUESTO, RUTA_TEST_PROPUESTO)
+_actualizar_spec_comparacion("propuesto_calamar", "Modelo propuesto (DWT-CLSTM-DCCNN)", RUTA_METADATA_PROPUESTO, RUTA_TEST_PROPUESTO)
 
 
 # Cargadores robustos finales para evitar que el dropdown falle por rutas antiguas.
