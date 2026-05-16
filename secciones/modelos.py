@@ -76,46 +76,21 @@ RUTA_SERIE_COMPLETA = Path("data/Niveles_imputados_completo.csv")
 RUTA_SERIE_COMPLETA = Path("data/Niveles_imputados_completo.csv")
 
 RUTAS_DM_ABSOLUTA = [
-    Path("Resultados/Diebold/diebold_mariano_todos_los_pares_perdida_absoluta.csv"),
     Path("Resultados/Diebold/matriz_pvalues_dm_absoluta.csv"),
-    Path("Resultados/Diebold/matriz_pvalues_dm_absoluta.xlsx"),
-    Path("Resultados/matriz_pvalues_dm_absoluta.csv"),
-    Path("Resultados/matriz_pvalues_dm_absoluta.xlsx"),
 ]
 
 RUTAS_DM_CUADRATICA = [
-    Path("Resultados/Diebold/diebold_mariano_todos_los_pares_perdida_cuadratica.csv"),
     Path("Resultados/Diebold/matriz_pvalues_dm_cuadratica.csv"),
-    Path("Resultados/Diebold/matriz_pvalues_dm_cuadratica.xlsx"),
-    Path("Resultados/matriz_pvalues_dm_cuadratica.csv"),
-    Path("Resultados/matriz_pvalues_dm_cuadratica.xlsx"),
 ]
 
-RUTAS_MW_ERRORES_ABSOLUTOS = [
-    Path("Resultados/MannWhitney/matriz_errores_absolutos_modelos_test_final_externo_h10.csv"),
-    Path("Resultados/MannWhitney/matriz_errores_absolutos_modelos.csv"),
-    Path("Resultados/MannWhitney/matriz_errores_absolutos_modelos.xlsx"),
-    Path("Resultados/matriz_errores_absolutos_modelos_test_final_externo_h10.csv"),
-    Path("Resultados/matriz_errores_absolutos_modelos.csv"),
-    Path("Resultados/matriz_errores_absolutos_modelos.xlsx"),
-]
+RUTAS_MW_ERRORES_ABSOLUTOS = []
 
 RUTAS_MW_SVR_VS_MODELOS = [
     Path("Resultados/MannWhitney/resultados_mannwhitney_dwt_clstm_dccnn_vs_modelos_test_final_externo_h10.csv"),
-    Path("Resultados/MannWhitney/resultados_mannwhitney_dwt_clstm_dccnn_vs_modelos.csv"),
-    Path("Resultados/MannWhitney/resultados_mannwhitney_dwt_clstm_dccnn_vs_modelos.xlsx"),
-    Path("Resultados/resultados_mannwhitney_dwt_clstm_dccnn_vs_modelos_test_final_externo_h10.csv"),
-    Path("Resultados/resultados_mannwhitney_dwt_clstm_dccnn_vs_modelos.csv"),
-    Path("Resultados/resultados_mannwhitney_dwt_clstm_dccnn_vs_modelos.xlsx"),
 ]
 
 RUTAS_MW_TODOS_CONTRA_TODOS = [
     Path("Resultados/MannWhitney/resultados_mannwhitney_todos_contra_todos_test_final_externo_h10.csv"),
-    Path("Resultados/MannWhitney/resultados_mannwhitney_todos_contra_todos.csv"),
-    Path("Resultados/MannWhitney/resultados_mannwhitney_todos_contra_todos.xlsx"),
-    Path("Resultados/resultados_mannwhitney_todos_contra_todos_test_final_externo_h10.csv"),
-    Path("Resultados/resultados_mannwhitney_todos_contra_todos.csv"),
-    Path("Resultados/resultados_mannwhitney_todos_contra_todos.xlsx"),
 ]
 
 
@@ -3028,6 +3003,23 @@ def calcular_mape(y_real, y_pred):
     return np.mean(np.abs((y_real[mask] - y_pred[mask]) / y_real[mask])) * 100
 
 
+def calcular_r2(y_real, y_pred):
+    y_real = pd.to_numeric(y_real, errors="coerce")
+    y_pred = pd.to_numeric(y_pred, errors="coerce")
+    mask = y_real.notna() & y_pred.notna()
+
+    if mask.sum() == 0:
+        return np.nan
+
+    ss_res = np.sum((y_real[mask] - y_pred[mask]) ** 2)
+    ss_tot = np.sum((y_real[mask] - np.mean(y_real[mask])) ** 2)
+
+    if ss_tot == 0:
+        return np.nan
+
+    return 1 - (ss_res / ss_tot)
+
+
 def _formatear_ventana_comparacion(metadata):
     """Obtiene la ventana seleccionada usando los nombres nuevos y antiguos del metadata."""
     ventana = metadata.get("numInputs_seleccionado", None)
@@ -3182,6 +3174,7 @@ def cargar_comparacion_modelos():
         mse = float(metadata["MSE_test_externo"])
         rmse = float(np.sqrt(mse))
         mape = float(calcular_mape(df_test["Calamar_real"], df_test["Calamar_predicho"]))
+        r2 = float(calcular_r2(df_test["Calamar_real"], df_test["Calamar_predicho"]))
 
         ventana = _formatear_ventana_comparacion(metadata)
         modelos_entrenados = _calcular_modelos_entrenados_comparacion(
@@ -3195,6 +3188,7 @@ def cargar_comparacion_modelos():
             "MSE": mse,
             "RMSE": rmse,
             "MAPE": mape,
+            "R2": r2,
             "Ventana": ventana,
             "Modelos entrenados": modelos_entrenados,
         })
@@ -3210,7 +3204,7 @@ def cargar_comparacion_modelos():
 
 def tabla_comparativa_modelos(df_metricas):
     df_tabla = df_metricas.copy()
-    for col in ["MAE", "MSE", "RMSE", "MAPE"]:
+    for col in ["MAE", "MSE", "RMSE", "MAPE", "R2"]:
         df_tabla[col] = df_tabla[col].round(2)
 
     modelo_mejor = df_tabla.iloc[0]["Modelo"]
@@ -3225,6 +3219,7 @@ def tabla_comparativa_modelos(df_metricas):
             {"name": "MSE", "id": "MSE", "type": "numeric", "format": {"specifier": ".2f"}},
             {"name": "RMSE", "id": "RMSE", "type": "numeric", "format": {"specifier": ".2f"}},
             {"name": "MAPE [%]", "id": "MAPE", "type": "numeric", "format": {"specifier": ".2f"}},
+            {"name": "R²", "id": "R2", "type": "numeric", "format": {"specifier": ".2f"}},
             {"name": "Ventana seleccionada", "id": "Ventana"},
         ],
         page_size=13,
@@ -4447,6 +4442,37 @@ def layout_todos_modelos():
                 ],
             ),
         ]),
+
+        html.Div(style=estilo_tarjeta, children=[
+            html.H2("Conclusiones", style=estilo_titulo),
+            html.Ul(
+                children=[
+                    html.Li(
+                        "Los modelos mostraron diferencias importantes entre el desempeño en validación y el desempeño en test externo, lo que evidencia la importancia de evaluar con un periodo futuro independiente.  "
+                    ),
+                    html.Li(
+                        "Algunos modelos siguieron adecuadamente la tendencia creciente del nivel en el test externo, aunque con diferencias en la magnitud del error.  "
+                    ),
+                    html.Li(
+                        "Los modelos lineales regularizados, como Ridge y Lasso, presentaron diagnósticos BDS más favorables, aunque tendieron a subestimar el incremento final del nivel.  "
+                    ),
+                    html.Li(
+                        "La prueba BDS permitió complementar las métricas de error, identificando si los residuos conservaban patrones temporales no capturados por el modelo.  "
+                    ),
+                      html.Li(
+                        "El pronóstico del nivel en Calamar puede abordarse de forma efectiva con modelos supervisados, siempre que se controle cuidadosamente la validación temporal y la fuga de información.  "
+                    ),
+                        html.Li(
+                        "Como trabajo futuro, sería recomendable incluir variables hidrometeorológicas adicionales, como caudal, lluvia o niveles en estaciones aguas arriba, para mejorar la capacidad predictiva ante cambios rápidos del nivel. "
+                    ),
+                ],
+                style={
+                    **estilo_parrafo,
+                    "paddingLeft": "28px",
+                    "lineHeight": "1.8",
+                },
+            ),
+        ]),
     ])
 
 def layout_modelos(modelos=None):
@@ -5157,6 +5183,13 @@ def layout_modelos(modelos=None):
                 "la memoria reciente de la propia serie.",
                 style=estilo_parrafo,
             ),
+            
+            html.H3("Metodología", style=estilo_titulo),
+            html.P(
+                "tengo SUEÑO.",
+                style=estilo_parrafo,
+            ),
+    
             html.P(
                 "La gráfica muestra los segmentos de entrada y salida utilizados en los pliegues de validación cruzada temporal para todos los modelos. ",
                 style=estilo_parrafo,
@@ -10143,6 +10176,55 @@ def layout_modelos(modelos=None):
                 "Debido a la alta multicolinealidad observada entre las series de nivel de las diferentes estaciones, se decidió construir los modelos utilizando únicamente la información temporal y el nivel registrado en Calamar. De esta forma, se trabajó bajo un esquema univariado, donde el nivel futuro se predice a partir de la memoria reciente de la propia serie.",
                 style=estilo_parrafo,
             ),
+            html.Div(style=estilo_tarjeta, children=[
+                html.H2("Metodología", style=estilo_titulo),
+                html.Ol(
+                    children=[
+                        html.Li([
+                            html.B("Metodología de modelación: "),
+                            "Los modelos se entrenaron para pronosticar directamente el nivel en Calamar a 10 días, usando ventanas históricas de la serie como entrada. El enfoque fue multi-horizonte directo."
+                        ]),
+                        html.Li([
+                            html.B("Separación temporal: "),
+                            "Los últimos 10 registros del CSV se reservaron como test externo final. Estos datos no fueron usados durante el entrenamiento ni durante la validación, con el fin de evaluar el desempeño del modelo sobre un periodo futuro no visto."
+                        ]),
+                        html.Li([
+                            html.B("Validación cruzada temporal: "),
+                            "La validación interna se realizó con split_train_val_groupKFold de la librería timeseries-cv, usando pliegues temporales que respetan el orden cronológico de la serie y reducen el riesgo de fuga de información. "
+                        ]),
+                         html.Li([
+                            html.B("Escalamiento: "),
+                            "En los modelos que requieren escalamiento, como SVR, KNN, Ridge y Lasso, se utilizó StandardScaler dentro de un Pipeline, ajustado únicamente con los datos de entrenamiento de cada fold. En modelos basados en árboles no se aplicó escalamiento. En redes neuronales se usaron esquemas específicos, como MinMaxScaler(-1,1). "
+                        ]),
+                          html.Li([
+                            html.B("Predicción multioutput: "),
+                            "La mayoría de modelos generaron directamente los 10 días de pronóstico. En modelos como SVR y XGBoost se usó MultiOutputRegressor, por lo que se entrenó un modelo interno para cada horizonte de predicción."
+                        ]),
+                           html.Li([
+                            html.B("Redes neuronales: "),
+                            "En las redes neuronales, el entrenamiento se controló usando el comportamiento del gap entre val_loss y train_loss durante la validación cruzada."
+                        ]),
+                        html.Li([
+                            html.B("Evaluación: "),
+                            "El desempeño se evaluó sobre el test externo mediante métricas acumuladas hasta los horizontes 1, 5 y 10, incluyendo MAE, MSE, RMSE, MAPE, R² y NSE, según el modelo."
+                        ]),
+                        html.Li([
+                            html.B("Diagnóstico de residuos: "),
+                            "Se aplicó la prueba BDS para evaluar si los residuos conservaban patrones temporales. Esta prueba se usó como diagnóstico complementario, no como único criterio de selección."
+                        ]),
+                        html.Li([
+                            html.B("Criterio general: "),
+                            "Todos los modelos se compararon bajo una metodología común: validación temporal, control de fuga de información, test externo fijo, predicción directa H10 y análisis del error por horizonte."
+                        ]),
+                        
+                    ],
+                    style={
+                        **estilo_parrafo,
+                        "paddingLeft": "28px",
+                        "lineHeight": "1.8",
+                    },
+                )
+            ]),
             html.P(
                 "La gráfica muestra los segmentos de entrada y salida utilizados en los pliegues de validación cruzada temporal para todos los modelos.",
                 style=estilo_parrafo,
