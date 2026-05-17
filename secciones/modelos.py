@@ -5486,7 +5486,7 @@ def layout_ridge_calamar():
             ]),
             html.P(
                 "El mapa de calor resume los p-valores BDS por ventana evaluada. "
-                "Los valores por encima de 0.05 indican que no se rechaza la hipótesis nula de residuos i.i.d.",
+                "Los valores por encima de 0.05 indican que no se rechaza la hipótesis nula de residuos.",
                 style=estilo_parrafo,
             ),
             dcc.Graph(
@@ -5822,7 +5822,7 @@ def layout_lasso_calamar():
             ]),
             html.P(
                 "El mapa de calor resume los p-valores BDS por ventana evaluada. "
-                "Los valores por encima de 0.05 indican que no se rechaza la hipótesis nula de residuos i.i.d.",
+                "Los valores por encima de 0.05 indican que no se rechaza la hipótesis nula de residuos.",
                 style=estilo_parrafo,
             ),
             dcc.Graph(
@@ -6331,7 +6331,7 @@ def layout_dt_calamar():
             ]),
             html.P(
                 "El mapa de calor resume los p-valores BDS por ventana evaluada. "
-                "Los valores por encima de 0.05 indican que no se rechaza la hipótesis nula de residuos i.i.d.",
+                "Los valores por encima de 0.05 indican que no se rechaza la hipótesis nula de residuos.",
                 style=estilo_parrafo,
             ),
             dcc.Graph(
@@ -6668,7 +6668,7 @@ def layout_rf_calamar():
             ]),
             html.P(
                 "El mapa de calor resume los p-valores BDS por ventana evaluada. "
-                "Los valores por encima de 0.05 indican que no se rechaza la hipótesis nula de residuos i.i.d.",
+                "Los valores por encima de 0.05 indican que no se rechaza la hipótesis nula de residuos.",
                 style=estilo_parrafo,
             ),
             dcc.Graph(
@@ -7004,7 +7004,7 @@ def layout_xgb_calamar():
             ]),
             html.P(
                 "El mapa de calor resume los p-valores BDS por ventana evaluada. "
-                "Los valores por encima de 0.05 indican que no se rechaza la hipótesis nula de residuos i.i.d.",
+                "Los valores por encima de 0.05 indican que no se rechaza la hipótesis nula de residuos.",
                 style=estilo_parrafo,
             ),
             dcc.Graph(
@@ -7615,7 +7615,7 @@ def layout_lstm_calamar():
             ]),
             html.P(
                 "El mapa de calor resume los p-valores BDS por ventana evaluada. "
-                "Los valores por encima de 0.05 indican que no se rechaza la hipótesis nula de residuos i.i.d.",
+                "Los valores por encima de 0.05 indican que no se rechaza la hipótesis nula de residuos.",
                 style=estilo_parrafo,
             ),
             dcc.Graph(
@@ -7945,7 +7945,7 @@ def layout_knn_calamar():
             ]),
             html.P(
                 "El mapa de calor resume los p-valores BDS por ventana evaluada. "
-                "Los valores por encima de 0.05 indican que no se rechaza la hipótesis nula de residuos i.i.d.",
+                "Los valores por encima de 0.05 indican que no se rechaza la hipótesis nula de residuos.",
                 style=estilo_parrafo,
             ),
             dcc.Graph(
@@ -8687,7 +8687,7 @@ def layout_cnn_calamar():
             ]),
             html.P(
                 "El mapa de calor resume los p-valores BDS por ventana evaluada. "
-                "Los valores por encima de 0.05 indican que no se rechaza la hipótesis nula de residuos i.i.d.",
+                "Los valores por encima de 0.05 indican que no se rechaza la hipótesis nula de residuos.",
                 style=estilo_parrafo,
             ),
             dcc.Graph(
@@ -9058,7 +9058,7 @@ def layout_rnn_calamar():
             ]),
             html.P(
                 "El mapa de calor resume los p-valores BDS por ventana evaluada. "
-                "Los valores por encima de 0.05 indican que no se rechaza la hipótesis nula de residuos i.i.d.",
+                "Los valores por encima de 0.05 indican que no se rechaza la hipótesis nula de residuos.",
                 style=estilo_parrafo,
             ),
             dcc.Graph(

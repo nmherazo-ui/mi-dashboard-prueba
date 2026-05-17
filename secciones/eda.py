@@ -487,13 +487,52 @@ def registrar_callbacks_eda(app, df, columnas_estaciones, serie_objetivo):
 
         if boton_id == "btn-estructura-temporal":
             # ====================================================
-            # Autocorrelación
+            # Lectura de resultados precalculados
             # ====================================================
             series_cols = columnas_estaciones
-            lags_test = [7, 14, 21, 30, 60, 90, 180, 365]
+            ruta_estructura = Path("data") / "estructura_temporal"
             max_lag = 360
-            resultados_lb = []
 
+            acf_df = pd.read_csv(
+                ruta_estructura / "estructura_temporal_acf.csv",
+                encoding="utf-8-sig"
+            )
+
+            lb_df = pd.read_csv(
+                ruta_estructura / "estructura_temporal_ljungbox.csv",
+                encoding="utf-8-sig"
+            )
+
+            boxplots_df = pd.read_csv(
+                ruta_estructura / "estructura_temporal_boxplots_mensuales_datos.csv",
+                encoding="utf-8-sig"
+            )
+            boxplots_df["Fecha"] = pd.to_datetime(boxplots_df["Fecha"], errors="coerce")
+
+            series_mensuales_df = pd.read_csv(
+                ruta_estructura / "estructura_temporal_series_mensuales_tendencia.csv",
+                encoding="utf-8-sig"
+            )
+            series_mensuales_df["Fecha"] = pd.to_datetime(series_mensuales_df["Fecha"], errors="coerce")
+
+            mk_df = pd.read_csv(
+                ruta_estructura / "estructura_temporal_mann_kendall.csv",
+                encoding="utf-8-sig"
+            )
+
+            if "Tendencia_original" in mk_df.columns:
+                mk_df = mk_df[[
+                    "Serie",
+                    "Tendencia",
+                    "p-valor",
+                    "Tau",
+                    "Pendiente",
+                    "Intercepto",
+                ]]
+
+            # ====================================================
+            # Autocorrelación
+            # ====================================================
             fig_acf = make_subplots(
                 rows=2,
                 cols=3,
@@ -512,16 +551,12 @@ def registrar_callbacks_eda(app, df, columnas_estaciones, serie_objetivo):
             ]
 
             for col, (fila, columna) in zip(series_cols, posiciones_acf):
-                s = df[col].dropna()
+                acf_est = acf_df[acf_df["Estacion"] == col].copy()
+                acf_est = acf_est.sort_values("Lag")
 
-                acf_vals = acf(
-                    s,
-                    nlags=max_lag,
-                    fft=True,
-                    missing="drop",
-                )
-                lags = np.arange(len(acf_vals))
-                conf = 1.96 / np.sqrt(len(s))
+                lags = acf_est["Lag"].to_numpy()
+                acf_vals = acf_est["ACF"].to_numpy()
+                conf = float(acf_est["Confianza_95"].iloc[0])
 
                 # Banda de confianza aproximada al 95 %
                 fig_acf.add_trace(
@@ -608,19 +643,6 @@ def registrar_callbacks_eda(app, df, columnas_estaciones, serie_objetivo):
                     col=columna,
                 )
 
-                lb = acorr_ljungbox(
-                    s,
-                    lags=lags_test,
-                    return_df=True,
-                )
-                for lag, row_lb in lb.iterrows():
-                    resultados_lb.append({
-                        "Serie": NOMBRES_ESTACIONES[col],
-                        "Lag [días]": lag,
-                        "LB_stat": round(row_lb["lb_stat"], 2),
-                        "p-valor": round(row_lb["lb_pvalue"], 4),
-                    })
-
             fig_acf.update_layout(
                 height=850,
                 plot_bgcolor="white",
@@ -635,14 +657,9 @@ def registrar_callbacks_eda(app, df, columnas_estaciones, serie_objetivo):
                 anot["font"] = dict(family="Georgia", size=13, color=AZUL)
                 anot["xanchor"] = "center"
 
-            lb_df = pd.DataFrame(resultados_lb)
-
             # ====================================================
             # Boxplots mensuales por estación
             # ====================================================
-            df_mes = df.copy()
-            df_mes["Mes"] = df_mes["Fecha"].dt.month
-
             mes_labels = [
                 "Ene", "Feb", "Mar", "Abr", "May", "Jun",
                 "Jul", "Ago", "Sep", "Oct", "Nov", "Dic",
@@ -660,8 +677,10 @@ def registrar_callbacks_eda(app, df, columnas_estaciones, serie_objetivo):
             )
 
             for i, col in enumerate(series_cols, start=1):
+                box_est = boxplots_df[boxplots_df["Estacion"] == col].copy()
+
                 for mes_num, mes_nombre in enumerate(mes_labels, start=1):
-                    datos_mes = df_mes.loc[df_mes["Mes"] == mes_num, col].dropna()
+                    datos_mes = box_est.loc[box_est["Mes"] == mes_num, "Nivel"].dropna()
 
                     fig_boxplots_mensuales.add_trace(
                         go.Box(
@@ -688,9 +707,9 @@ def registrar_callbacks_eda(app, df, columnas_estaciones, serie_objetivo):
                         row=i,
                         col=1,
                     )
-                    
-                max_y = df_mes[col].dropna().max()
-                min_y = df_mes[col].dropna().min()
+
+                max_y = box_est["Nivel"].dropna().max()
+                min_y = box_est["Nivel"].dropna().min()
 
                 rango_y = max_y - min_y
                 margen_inferior = 0.08 * rango_y
@@ -708,7 +727,7 @@ def registrar_callbacks_eda(app, df, columnas_estaciones, serie_objetivo):
                     row=i,
                     col=1
                 )
-                
+
                 fig_boxplots_mensuales.update_xaxes(
                     title_text="Mes",
                     showgrid=False,
@@ -733,18 +752,6 @@ def registrar_callbacks_eda(app, df, columnas_estaciones, serie_objetivo):
             # ====================================================
             # Tendencias mensuales por estación
             # ====================================================
-            df_m = df.copy()
-            df_m["AñoMes"] = df_m["Fecha"].dt.to_period("M")
-
-            df_monthly = (
-                df_m.groupby("AñoMes")[series_cols]
-                .mean()
-                .reset_index()
-            )
-            df_monthly["Fecha"] = df_monthly["AñoMes"].dt.to_timestamp()
-
-            resultados_mk = []
-
             fig_tendencias = make_subplots(
                 rows=3,
                 cols=2,
@@ -764,31 +771,17 @@ def registrar_callbacks_eda(app, df, columnas_estaciones, serie_objetivo):
             ]
 
             for col, (fila, columna) in zip(series_cols, posiciones_tendencias):
-                s_mensual = df_monthly[["Fecha", col]].dropna().copy()
-
-                x = np.arange(len(s_mensual))
-                y = s_mensual[col].values
-
-                coef = np.polyfit(x, y, 1)
-                trend_line = np.poly1d(coef)(x)
-
-                res = mk.seasonal_test(s_mensual[col], period=12)
-
-                resultados_mk.append({
-                    "Serie": NOMBRES_ESTACIONES[col],
-                    "Tendencia": res.trend,
-                    "p-valor": round(res.p, 4),
-                    "Tau": round(res.Tau, 4),
-                    "Pendiente": round(res.slope, 4),
-                    "Intercepto": round(res.intercept, 4),
-                })
+                s_mensual = series_mensuales_df[
+                    series_mensuales_df["Estacion"] == col
+                ].copy()
+                s_mensual = s_mensual.sort_values("Fecha")
 
                 color_serie = COLORES_ESTACIONES.get(col, AZUL_MED)
 
                 fig_tendencias.add_trace(
                     go.Scatter(
                         x=s_mensual["Fecha"],
-                        y=s_mensual[col],
+                        y=s_mensual["Nivel_mensual"],
                         mode="lines",
                         name="Serie mensual",
                         line=dict(color=color_serie, width=1.3),
@@ -808,7 +801,7 @@ def registrar_callbacks_eda(app, df, columnas_estaciones, serie_objetivo):
                 fig_tendencias.add_trace(
                     go.Scatter(
                         x=s_mensual["Fecha"],
-                        y=trend_line,
+                        y=s_mensual["Tendencia_lineal"],
                         mode="lines",
                         name="Tendencia lineal",
                         line=dict(color=AZUL, width=2, dash="dash"),
@@ -881,13 +874,6 @@ def registrar_callbacks_eda(app, df, columnas_estaciones, serie_objetivo):
                 if str(texto_anotacion).startswith("Tendencia mensual"):
                     anot.font = dict(family="Georgia", size=13, color=AZUL)
                     anot.xanchor = "center"
-
-            mk_df = pd.DataFrame(resultados_mk)
-            mk_df["Tendencia"] = mk_df["Tendencia"].replace({
-                "increasing": "Creciente",
-                "decreasing": "Decreciente",
-                "no trend": "Sin tendencia",
-            })
 
             contenido = html.Div([
                 html.Div(style=estilo_tarjeta, children=[
@@ -1035,7 +1021,7 @@ def registrar_callbacks_eda(app, df, columnas_estaciones, serie_objetivo):
                             }
                         ]
                     ),
-                                       
+
                     html.P(
                         "Dado que las series presentaron autocorrelación significativa, la tendencia se evaluó "
                         "mediante la prueba Seasonal Mann-Kendall sobre series mensuales agregadas, en lugar "
