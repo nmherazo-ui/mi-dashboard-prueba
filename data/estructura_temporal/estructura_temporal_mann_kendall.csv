@@ -1,0 +1,7 @@
+﻿Estacion,Serie,Tendencia_original,Tendencia,p-valor,Tau,Pendiente,Intercepto,Significativa_005
+Calamar,Calamar,increasing,Creciente,0.0001,0.1101,1.5246,508.9144,Sí
+Achi,Achi,increasing,Creciente,0.0,0.2188,3.2714,395.3765,Sí
+ElBanco,El Banco,increasing,Creciente,0.0,0.1474,1.7747,595.8188,Sí
+SaladoBlanco,Salado Blanco,decreasing,Decreciente,0.0137,-0.0692,-0.1721,139.8315,Sí
+PuertoBerrio,Puerto Berrío,decreasing,Decreciente,0.0064,-0.077,-0.4895,372.3856,Sí
+Barrancabermeja,Barrancabermeja,no trend,Sin tendencia,0.409,0.0236,0.1857,270.9632,No

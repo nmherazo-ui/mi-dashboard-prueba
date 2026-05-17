@@ -1,0 +1,49 @@
+﻿Estacion,Serie,Lag [días],LB_stat,p-valor
+Calamar,Calamar,7,125259.23,0.0
+Calamar,Calamar,14,241132.28,0.0
+Calamar,Calamar,21,343535.48,0.0
+Calamar,Calamar,30,452011.3,0.0
+Calamar,Calamar,60,636897.02,0.0
+Calamar,Calamar,90,667957.45,0.0
+Calamar,Calamar,180,693223.51,0.0
+Calamar,Calamar,365,895798.36,0.0
+Achi,Achi,7,96728.79,0.0
+Achi,Achi,14,178735.87,0.0
+Achi,Achi,21,247929.06,0.0
+Achi,Achi,30,320547.75,0.0
+Achi,Achi,60,463573.44,0.0
+Achi,Achi,90,510897.23,0.0
+Achi,Achi,180,582505.13,0.0
+Achi,Achi,365,831312.05,0.0
+ElBanco,El Banco,7,119820.41,0.0
+ElBanco,El Banco,14,223026.26,0.0
+ElBanco,El Banco,21,307455.22,0.0
+ElBanco,El Banco,30,388307.45,0.0
+ElBanco,El Banco,60,486466.05,0.0
+ElBanco,El Banco,90,489826.52,0.0
+ElBanco,El Banco,180,579895.65,0.0
+ElBanco,El Banco,365,825105.92,0.0
+SaladoBlanco,Salado Blanco,7,39431.39,0.0
+SaladoBlanco,Salado Blanco,14,59460.74,0.0
+SaladoBlanco,Salado Blanco,21,75775.45,0.0
+SaladoBlanco,Salado Blanco,30,91685.95,0.0
+SaladoBlanco,Salado Blanco,60,120288.63,0.0
+SaladoBlanco,Salado Blanco,90,124812.43,0.0
+SaladoBlanco,Salado Blanco,180,158213.13,0.0
+SaladoBlanco,Salado Blanco,365,248433.88,0.0
+PuertoBerrio,Puerto Berrío,7,90773.59,0.0
+PuertoBerrio,Puerto Berrío,14,146726.9,0.0
+PuertoBerrio,Puerto Berrío,21,185896.61,0.0
+PuertoBerrio,Puerto Berrío,30,219740.31,0.0
+PuertoBerrio,Puerto Berrío,60,256061.27,0.0
+PuertoBerrio,Puerto Berrío,90,257480.65,0.0
+PuertoBerrio,Puerto Berrío,180,331111.15,0.0
+PuertoBerrio,Puerto Berrío,365,458208.07,0.0
+Barrancabermeja,Barrancabermeja,7,89552.2,0.0
+Barrancabermeja,Barrancabermeja,14,144384.9,0.0
+Barrancabermeja,Barrancabermeja,21,183019.25,0.0
+Barrancabermeja,Barrancabermeja,30,216252.36,0.0
+Barrancabermeja,Barrancabermeja,60,250351.17,0.0
+Barrancabermeja,Barrancabermeja,90,252201.97,0.0
+Barrancabermeja,Barrancabermeja,180,347205.65,0.0
+Barrancabermeja,Barrancabermeja,365,486940.46,0.0
